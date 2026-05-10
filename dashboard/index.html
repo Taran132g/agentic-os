@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S — AGENTIC OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #05080f;
+  --bg2:    #070b14;
+  --panel:  rgba(0,210,255,0.030);
+  --panel2: rgba(0,210,255,0.058);
+  --border: rgba(0,210,255,0.14);
+  --c:      #00d4ff;
+  --c2:     #7dd8e8;
+  --g:      #00ff7f;
+  --g2:     #00cc66;
+  --o:      #ffb700;
+  --r:      #ff4d4d;
+  --p:      #b06eff;
+  --text:   #cce6f5;
+  --dim:    #7aabbf;
+  --bright: #eef7ff;
+  --muted:  #1a3544;
+  --mono:   'Share Tech Mono','JetBrains Mono','Fira Code',monospace;
+  --sans:   'Rajdhani','Segoe UI',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  background-image:
+    radial-gradient(ellipse at 50% 0%,   rgba(0,140,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 0% 100%,  rgba(0,80,180,0.04)  0%, transparent 40%),
+    radial-gradient(ellipse at 100% 50%, rgba(0,60,120,0.03)  0%, transparent 40%);
+}
+
+/* scanlines */
+body::after {
+  content:'';
+  position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0px,rgba(0,0,0,.05) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* ── TOP BAR ─────────────────────────────────────────────────────── */
+.hud-top {
+  flex-shrink:0;
+  height:42px;
+  background:rgba(2,6,14,.98);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:11px;
+  position:relative;
+}
+.hud-top::after {
+  content:'';
+  position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--c) 20%,var(--c) 80%,transparent);
+  opacity:.22;
+}
+
+.jarvis-title {
+  font-family:var(--sans);
+  font-size:19px;
+  font-weight:700;
+  letter-spacing:.32em;
+  color:var(--c);
+  text-shadow:0 0 18px var(--c),0 0 38px rgba(0,210,255,.25);
+  white-space:nowrap;
+}
+
+.hud-sep{color:var(--muted);font-size:13px}
+
+.hud-badge {
+  font-family:var(--sans);
+  font-size:9px;font-weight:700;
+  letter-spacing:.18em;
+  padding:3px 9px;
+  border:1px solid var(--muted);
+  border-radius:2px;
+  color:var(--muted);
+  transition:all .3s;
+}
+.hud-badge.on   {border-color:var(--g);color:var(--g);text-shadow:0 0 6px var(--g)}
+.hud-badge.warn {border-color:var(--o);color:var(--o)}
+
+.chip {
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--sans);font-size:9px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);
+}
+
+.led {
+  width:6px;height:6px;
+  border-radius:50%;flex-shrink:0;
+  background:var(--g);box-shadow:0 0 6px var(--g);
+  transition:all .3s;
+}
+.led.orange{background:var(--o);box-shadow:0 0 6px var(--o);animation:blink .8s infinite}
+.led.off   {background:var(--muted);box-shadow:none}
+.led.red   {background:var(--r);box-shadow:0 0 6px var(--r)}
+.led.purple{background:var(--p);box-shadow:0 0 6px var(--p)}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.hud-clock {
+  margin-left:auto;
+  font-family:var(--sans);font-size:13px;font-weight:600;
+  color:var(--c2);letter-spacing:.15em;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────────────── */
+.layout {
+  flex:1;
+  display:grid;
+  grid-template-columns:198px 1fr 224px;
+  overflow:hidden;
+  min-height:0;
+}
+
+.col {
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  border-right:1px solid var(--border);
+  min-width:0;
+}
+.col:last-child{border-right:none;border-left:1px solid var(--border)}
+
+/* ── PANEL ───────────────────────────────────────────────────────── */
+.panel {
+  flex-shrink:0;
+  padding:9px 12px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  transition:background .15s;
+}
+.panel:hover{background:var(--panel2)}
+
+.ptitle {
+  font-family:var(--sans);
+  font-size:9px;font-weight:700;
+  letter-spacing:.28em;text-transform:uppercase;
+  color:var(--c);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:7px;
+}
+.ptitle::before{
+  content:'';width:12px;height:1px;flex-shrink:0;
+  background:linear-gradient(90deg,var(--c),transparent);
+  box-shadow:0 0 4px var(--c);
+}
+
+.srow {
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:4px;
+}
+.slabel{font-family:var(--sans);font-size:9px;font-weight:500;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+.sval  {font-size:10.5px;color:var(--bright);font-family:var(--mono)}
+.sval.g  {color:var(--g);text-shadow:0 0 5px rgba(0,255,127,.3)}
+.sval.o  {color:var(--o)}
+.sval.c  {color:var(--c);text-shadow:0 0 5px rgba(0,210,255,.3)}
+.sval.r  {color:var(--r)}
+.sval.dim{color:var(--dim)}
+
+.bar{background:rgba(0,210,255,.07);border:1px solid rgba(0,210,255,.12);height:3px;border-radius:2px;margin-top:6px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--c),#00ffe0);box-shadow:0 0 6px var(--c);transition:width .8s ease}
+.bar-fill.warn  {background:linear-gradient(90deg,var(--o),#ffcc44);box-shadow:0 0 6px var(--o)}
+.bar-fill.danger{background:linear-gradient(90deg,var(--r),#ff8080);box-shadow:0 0 6px var(--r)}
+
+/* ── QUICK FIRE ──────────────────────────────────────────────────── */
+.qbtn {
+  display:flex;align-items:center;gap:7px;
+  width:100%;
+  background:rgba(0,210,255,.04);
+  border:1px solid var(--border);
+  color:var(--dim);
+  font-family:var(--sans);font-size:10px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:6px 9px;cursor:pointer;
+  text-align:left;margin-bottom:4px;
+  border-radius:3px;transition:all .15s;
+}
+.qbtn:hover{border-color:var(--c);color:var(--c);background:rgba(0,210,255,.09);box-shadow:0 0 10px rgba(0,210,255,.07)}
+
+/* ── SCROLL AREA ─────────────────────────────────────────────────── */
+.scroll-area{flex:1;overflow-y:auto;min-height:0}
+.scroll-area::-webkit-scrollbar{width:2px}
+.scroll-area::-webkit-scrollbar-thumb{background:rgba(0,210,255,.14)}
+
+/* ── TASK LOG ────────────────────────────────────────────────────── */
+.task-mini {
+  padding:5px 12px;
+  border-bottom:1px solid rgba(0,210,255,.04);
+  display:flex;align-items:flex-start;gap:6px;
+  transition:background .1s;
+}
+.task-mini:hover{background:rgba(0,210,255,.04)}
+.mini-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.mini-dot.running{background:var(--o);animation:blink .8s infinite}
+.mini-dot.done   {background:var(--g)}
+.mini-dot.error  {background:var(--r)}
+.mini-text{flex:1;font-size:8.5px;color:var(--dim);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mini-time{flex-shrink:0;font-size:7.5px;color:var(--muted);letter-spacing:.04em}
+
+/* ── CENTER ──────────────────────────────────────────────────────── */
+.center-col{
+  background:radial-gradient(ellipse at 50% 28%,rgba(0,120,255,.04) 0%,transparent 60%);
+}
+
+/* ── ORB ─────────────────────────────────────────────────────────── */
+.orb-section {
+  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 0 8px;
+  border-bottom:1px solid var(--border);
+  background:radial-gradient(ellipse at 50% 65%,rgba(0,130,255,.04) 0%,transparent 70%);
+}
+
+.orb-label {
+  font-family:var(--sans);font-size:9px;font-weight:700;
+  letter-spacing:.42em;text-transform:uppercase;
+  color:var(--c);text-shadow:0 0 10px var(--c);
+  margin-bottom:8px;
+}
+
+#orb-canvas{display:block}
+
+.orb-sub {
+  margin-top:7px;
+  font-family:var(--sans);font-size:7.5px;font-weight:500;
+  letter-spacing:.2em;color:var(--muted);text-transform:uppercase;
+}
+
+/* ── TERMINAL ────────────────────────────────────────────────────── */
+.term-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+
+.term {
+  flex:1;overflow-y:auto;
+  padding:8px 15px 6px;
+  display:flex;flex-direction:column;gap:2px;
+  max-height:220px;
+}
+.term::-webkit-scrollbar{width:2px}
+.term::-webkit-scrollbar-thumb{background:rgba(0,210,255,.12)}
+
+.tline{line-height:1.65;word-break:break-word;animation:fadein .18s ease;font-size:11px}
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+.tline.jarvis{color:var(--c)}
+.tline.you   {color:var(--bright);font-family:var(--sans);font-size:12px;font-weight:500}
+.tline.tool  {color:#48c98a;font-size:10px}
+.tline.system{color:var(--dim);font-style:italic}
+.tline.warn  {color:var(--o)}
+.tline.error {color:var(--r)}
+.tline.done  {color:var(--g)}
+
+/* ── WAVE ────────────────────────────────────────────────────────── */
+.wave-row {
+  flex-shrink:0;height:32px;
+  background:rgba(2,6,14,.93);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 13px;gap:9px;
+}
+.wave-label{font-family:var(--sans);font-size:8px;font-weight:600;letter-spacing:.2em;color:var(--dim);white-space:nowrap;text-transform:uppercase}
+#wave-canvas{flex:1;height:26px}
+
+/* ── CMD BAR ─────────────────────────────────────────────────────── */
+.cmd-bar {
+  flex-shrink:0;
+  background:rgba(2,6,14,.97);
+  border-top:1px solid var(--border);
+  padding:8px 13px 10px;
+  display:flex;flex-direction:column;gap:6px;
+}
+
+.cmd-row{display:flex;align-items:center;gap:7px}
+
+#task-input {
+  flex:1;min-width:0;
+  background:rgba(0,210,255,.05);
+  border:1px solid var(--border);
+  color:var(--bright);
+  font-family:var(--mono);font-size:11.5px;
+  padding:8px 12px;outline:none;border-radius:3px;
+  transition:border-color .2s,box-shadow .2s;
+}
+#task-input:focus{border-color:var(--c);box-shadow:0 0 12px rgba(0,210,255,.1)}
+#task-input::placeholder{color:var(--muted)}
+
+.cbtn {
+  background:rgba(0,210,255,.05);
+  border:1px solid var(--border);
+  color:var(--dim);
+  font-family:var(--sans);font-size:9px;font-weight:700;
+  letter-spacing:.15em;text-transform:uppercase;
+  padding:7px 13px;cursor:pointer;border-radius:3px;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.cbtn:hover   {border-color:var(--c);color:var(--c);background:rgba(0,210,255,.09)}
+.cbtn.primary {border-color:var(--c);color:var(--c);background:rgba(0,210,255,.09)}
+.cbtn.mic-on  {border-color:var(--o);color:var(--o);background:rgba(255,183,0,.08);animation:blink .8s infinite}
+.cbtn.tts-on  {border-color:var(--g);color:var(--g);background:rgba(0,255,127,.05)}
+.cbtn.danger  {border-color:var(--r);color:var(--r);background:rgba(255,77,77,.05)}
+.cbtn:disabled{opacity:.3;cursor:not-allowed}
+
+.action-row{display:flex;gap:5px}
+.action-row .cbtn{flex:1;text-align:center;padding:6px 4px;font-size:8px}
+
+/* ── APPROVAL ────────────────────────────────────────────────────── */
+.appr-card {
+  padding:8px;
+  background:rgba(255,183,0,.06);
+  border:1px solid rgba(255,183,0,.3);
+  border-radius:3px;margin-bottom:5px;
+  animation:fadein .2s ease;
+}
+.appr-title{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--o);margin-bottom:4px}
+.appr-text {font-size:9px;color:var(--text);line-height:1.5;margin-bottom:7px}
+.appr-btns {display:flex;gap:6px}
+
+/* ── ACTIVITY ────────────────────────────────────────────────────── */
+.activity-item{
+  padding:5px 12px;
+  border-bottom:1px solid rgba(0,210,255,.04);
+  font-size:9px;color:var(--dim);
+  line-height:1.4;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+
+
+/* ── MOBILE ──────────────────────────────────────────────────────── */
+@media(max-width:700px){
+  .layout{grid-template-columns:1fr}
+  .col:not(.center-col){display:none}
+}
+
+/* ── CAREER LAUNCH BUTTON ────────────────────────────────────────── */
+.career-launch {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;margin-top:4px;
+  border:1px solid var(--border);border-radius:4px;
+  background:rgba(0,210,255,.04);
+  text-decoration:none;cursor:pointer;transition:all .15s;
+}
+.career-launch:hover{border-color:var(--c);background:rgba(0,210,255,.09);box-shadow:0 0 14px rgba(0,210,255,.08)}
+.clb-title{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--c);text-transform:uppercase}
+.clb-sub{font-size:8px;color:var(--dim);margin-top:2px;letter-spacing:.05em}
+.clb-arrow{font-size:20px;color:var(--c);opacity:.6;font-family:var(--sans)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="hud-top">
+  <span class="jarvis-title">J.A.R.V.I.S</span>
+  <span class="hud-sep">//</span>
+  <span class="hud-badge on" id="conn-badge">ONLINE</span>
+  <span class="hud-sep">//</span>
+  <div class="chip"><div class="led" id="run-led"></div><span id="run-label">STANDBY</span></div>
+  <span class="hud-sep">//</span>
+  <div class="chip"><div class="led off" id="mic-led"></div><span id="mic-label">MIC OFF</span></div>
+  <span class="hud-sep">//</span>
+  <div class="chip"><div class="led off" id="tts-led"></div><span id="tts-label">TTS ON</span></div>
+  <span class="hud-clock" id="clock">--:--:--</span>
+</div>
+
+<div class="layout">
+
+  <!-- ── LEFT ── -->
+  <div class="col">
+
+    <div class="panel">
+      <div class="ptitle">System</div>
+      <div class="srow"><span class="slabel">Connection</span><span class="sval g" id="sys-st">ONLINE</span></div>
+      <div class="srow"><span class="slabel">Queue</span><span class="sval c" id="q-val">0</span></div>
+      <div class="srow"><span class="slabel">Approvals</span><span class="sval" id="ap-cnt">0</span></div>
+      <div class="srow"><span class="slabel">Uptime</span><span class="sval dim" id="uptime">0:00:00</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Usage</div>
+      <div class="srow"><span class="slabel">Session Left</span><span class="sval dim" id="usage-sess-val">—</span></div>
+      <div class="bar"><div class="bar-fill" id="usage-sess-bar" style="width:100%"></div></div>
+      <div class="srow" style="margin-top:6px"><span class="slabel">Week Left</span><span class="sval dim" id="usage-week-val">—</span></div>
+      <div class="bar"><div class="bar-fill" id="usage-week-bar" style="width:100%"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Session</div>
+      <div class="srow"><span class="slabel">Tasks Done</span><span class="sval c" id="tc-val">0</span></div>
+      <div class="srow"><span class="slabel">Voice</span><span class="sval dim" id="tts-voice" style="font-size:9px">—</span></div>
+      <div class="srow"><span class="slabel">SR Engine</span><span class="sval" id="sr-st">—</span></div>
+      <div class="bar"><div class="bar-fill" id="task-bar" style="width:0%"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Quick Fire</div>
+      <button class="qbtn" onclick="quickTask('Check my vault index and tell me what pages need updating, are missing links, or are stale.')">◈ Vault Check</button>
+      <button class="qbtn" onclick="quickTask('Look at my summer goals and to-do list, then tell me the single highest-priority item to tackle right now and why.')">★ Top Priority</button>
+      <button class="qbtn" onclick="quickTask('Search for open AI engineering or software engineering internships for summer 2026. Summarize the top 5 with company, role, and how to apply.')">◎ Internships</button>
+      <button class="qbtn" onclick="quickTask('What is the current status of my agentic OS project, what phase are we in, and what should I build next?')">⬡ Project Status</button>
+    </div>
+
+    <div class="panel" style="flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column">
+      <div class="panel" style="flex-shrink:0;border-bottom:1px solid var(--border)">
+        <div class="ptitle">Task Log</div>
+      </div>
+      <div class="scroll-area" id="task-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ── CENTER ── -->
+  <div class="col center-col">
+
+    <div class="orb-section">
+      <div class="orb-label" id="orb-label">STANDBY</div>
+      <canvas id="orb-canvas" width="260" height="260"></canvas>
+      <div class="orb-sub">JUST · A · RATHER · VERY · INTELLIGENT · SYSTEM</div>
+    </div>
+
+    <div class="term-wrap">
+      <div class="term" id="term"></div>
+    </div>
+
+    <div class="wave-row">
+      <span class="wave-label">Audio Input</span>
+      <canvas id="wave-canvas"></canvas>
+    </div>
+
+    <div class="cmd-bar">
+      <div class="cmd-row">
+        <input id="task-input" type="text" placeholder="[ Speak or type a command... ]" autocomplete="off">
+        <button class="cbtn primary" id="send-btn">SEND</button>
+        <button class="cbtn" id="mic-btn">⬤ MIC</button>
+        <button class="cbtn tts-on" id="tts-btn">TTS</button>
+      </div>
+      <div class="action-row">
+        <button class="cbtn" onclick="quickTask('Check my vault index and tell me what pages need updating.')">VAULT</button>
+        <button class="cbtn" onclick="quickTask('Search for open AI engineering internships for summer 2026. Summarize the top 5.')">INTERNSHIPS</button>
+        <button class="cbtn" onclick="quickTask('What is the current status of the agentic OS project and what should I build next?')">STATUS</button>
+        <button class="cbtn" onclick="quickTask('Summarize my summer to-do list and tell me the single highest priority item right now.')">PRIORITIES</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div class="col">
+
+    <!-- Career Ops Launch -->
+    <div class="panel">
+      <div class="ptitle">Career Ops</div>
+      <a href="/career" class="career-launch">
+        <div class="clb-left">
+          <div class="clb-title">CAREER OPS</div>
+          <div class="clb-sub">AI job search · resume tailoring · auto-fill</div>
+        </div>
+        <span class="clb-arrow">›</span>
+      </a>
+    </div>
+
+    <!-- Pending Auth -->
+    <div class="panel">
+      <div class="ptitle">Pending Auth</div>
+      <div id="appr-list"></div>
+      <div id="no-appr" style="font-size:9px;color:var(--muted)">None pending.</div>
+    </div>
+
+    <!-- Voice Config -->
+    <div class="panel">
+      <div class="ptitle">Voice Output</div>
+      <div class="srow"><span class="slabel">Mic / Speech-to-Text</span><span class="sval g" id="sr-avail">Checking</span></div>
+      <div class="srow"><span class="slabel">TTS Engine</span><span class="sval g">Browser</span></div>
+      <div class="srow"><span class="slabel">Voice</span><span class="sval c" style="font-size:9px">System Default</span></div>
+    </div>
+
+    <!-- Agent Activity -->
+    <div class="panel" style="flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column">
+      <div class="panel" style="flex-shrink:0;border-bottom:1px solid var(--border)">
+        <div class="ptitle">Agent Activity</div>
+      </div>
+      <div class="scroll-area" id="activity-feed"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────
+const S = {
+  running: false, listening: false,
+  ttsEnabled: true, ttsMode: 'system',
+  taskCount: 0, voice: null,
+  tasks: [], streamedContent: false, reconnecting: false,
+  startTime: Date.now(),
+};
+
+// ── CLOCK / UPTIME ─────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: true });
+  const s = Math.floor((Date.now() - S.startTime) / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  document.getElementById('uptime').textContent =
+    `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}, 1000);
+
+// ── THREE.JS ORB ───────────────────────────────────────────────────────
+const orb = (() => {
+  const canvas = document.getElementById('orb-canvas');
+  const lbl    = document.getElementById('orb-label');
+  let mode = 'idle';
+
+  const COLORS = { idle: 0x00d4ff, listening: 0xffb700, speaking: 0xb06eff, running: 0x00ff7f };
+  const LABELS = { idle: 'STANDBY', listening: 'LISTENING', speaking: 'SPEAKING', running: 'PROCESSING' };
+
+  if (typeof THREE !== 'undefined') {
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setSize(260, 260);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0);
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 100);
+    camera.position.z = 2.9;
+
+    // Fibonacci-lattice particle sphere
+    const COUNT = 440;
+    const pos   = new Float32Array(COUNT * 3);
+    const PHI   = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < COUNT; i++) {
+      const y = 1 - (i / (COUNT - 1)) * 2;
+      const r = Math.sqrt(1 - y * y);
+      const t = PHI * i;
+      pos[i*3]   = Math.cos(t) * r;
+      pos[i*3+1] = y;
+      pos[i*3+2] = Math.sin(t) * r;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+    const mat = new THREE.PointsMaterial({
+      size: 0.033, color: COLORS.idle,
+      transparent: true, opacity: 0.78, sizeAttenuation: true,
+    });
+    const pts = new THREE.Points(geo, mat);
+    scene.add(pts);
+
+    // Glow shell
+    const glowGeo = new THREE.SphereGeometry(0.9, 32, 32);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: COLORS.idle, transparent: true, opacity: 0.028, side: THREE.BackSide,
+    });
+    scene.add(new THREE.Mesh(glowGeo, glowMat));
+
+    // Equatorial ring
+    const ringGeo = new THREE.TorusGeometry(1.05, 0.005, 8, 80);
+    const ringMat = new THREE.MeshBasicMaterial({ color: COLORS.idle, transparent: true, opacity: 0.18 });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.rotation.x = Math.PI / 2.2;
+    scene.add(ring);
+
+    let frame = 0;
+    const tgt = new THREE.Color(COLORS.idle);
+    const cur = new THREE.Color(COLORS.idle);
+
+    (function animate() {
+      requestAnimationFrame(animate);
+      frame++;
+
+      cur.lerp(tgt, 0.05);
+      mat.color.copy(cur);
+      glowMat.color.copy(cur);
+      ringMat.color.copy(cur);
+
+      const speed = mode === 'idle' ? 0.0032 : 0.009;
+      pts.rotation.y += speed;
+      pts.rotation.x  = Math.sin(frame * 0.007) * 0.14;
+      ring.rotation.y += speed * 0.6;
+
+      const amp = mode === 'idle' ? 0.022 : 0.045;
+      const freq = mode === 'idle' ? 0.04 : 0.1;
+      const pulse = 1 + Math.sin(frame * freq) * amp;
+      pts.scale.setScalar(pulse);
+
+      mat.opacity = 0.62 + Math.sin(frame * 0.05) * 0.16;
+      glowMat.opacity = 0.022 + Math.sin(frame * 0.04) * 0.012;
+      ringMat.opacity = 0.14 + Math.sin(frame * 0.06) * 0.06;
+
+      renderer.render(scene, camera);
+    })();
+
+    return {
+      set(m) {
+        mode = m;
+        lbl.textContent = LABELS[m] || 'STANDBY';
+        tgt.setHex(COLORS[m] || COLORS.idle);
+      }
+    };
+  }
+
+  // ── Canvas 2D fallback ──
+  const ctx = canvas.getContext('2d');
+  const C2D = { idle:'#00d4ff', listening:'#ffb700', speaking:'#b06eff', running:'#00ff7f' };
+  let f2 = 0, col = C2D.idle;
+  (function draw() {
+    requestAnimationFrame(draw);
+    const w = canvas.width, h = canvas.height, cx = w/2, cy = h/2;
+    ctx.clearRect(0, 0, w, h);
+    const r = 34 + Math.sin(f2 * 0.045) * 4.5;
+    const g = ctx.createRadialGradient(cx-9, cy-9, 0, cx, cy, r);
+    g.addColorStop(0, '#fff'); g.addColorStop(.3, col); g.addColorStop(1, col + '30');
+    ctx.shadowColor = col; ctx.shadowBlur = 24;
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0; f2++;
+  })();
+  return { set(m) { mode = m; lbl.textContent = LABELS[m] || 'STANDBY'; col = C2D[m] || C2D.idle; } };
+})();
+
+// ── WAVEFORM ───────────────────────────────────────────────────────────
+const waveform = (() => {
+  const cv  = document.getElementById('wave-canvas');
+  const ctx = cv.getContext('2d');
+  let analyser = null, buf = null, live = false, f = 0;
+  const resize = () => { cv.width = cv.offsetWidth; cv.height = cv.offsetHeight; };
+  resize(); new ResizeObserver(resize).observe(cv);
+  (function draw() {
+    requestAnimationFrame(draw);
+    const w = cv.width, h = cv.height, mid = h / 2;
+    ctx.clearRect(0, 0, w, h);
+    if (analyser && live && buf) {
+      analyser.getByteTimeDomainData(buf);
+      ctx.strokeStyle = '#ffb700'; ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#ffb700'; ctx.shadowBlur = 4;
+      ctx.beginPath();
+      const sw = w / buf.length;
+      for (let i = 0; i < buf.length; i++) {
+        const y = (buf[i] / 128.0) * mid;
+        i === 0 ? ctx.moveTo(0, y) : ctx.lineTo(i * sw, y);
+      }
+      ctx.stroke(); ctx.shadowBlur = 0;
+    } else {
+      ctx.strokeStyle = 'rgba(0,210,255,0.10)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 3) {
+        const y = mid + Math.sin(x * 0.04 + f * 0.04) * 1.5;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke(); f++;
+    }
+  })();
+  return {
+    attach(stream) {
+      const ac = new AudioContext();
+      analyser = ac.createAnalyser(); analyser.fftSize = 512;
+      ac.createMediaStreamSource(stream).connect(analyser);
+      buf = new Uint8Array(analyser.frequencyBinCount);
+      live = true;
+    },
+    setLive(v) { live = v; }
+  };
+})();
+
+// ── TTS — browser Web Speech API ──────────────────────────────────────
+function speak(raw) {
+  if (!S.ttsEnabled || !window.speechSynthesis) return;
+  const text = raw
+    .replace(/^\[.*?\]\s*::\s*/, '')
+    .replace(/[*_`#\[\]>]/g, '')
+    .replace(/\n+/g, '. ')
+    .replace(/\s+/g, ' ')
+    .trim().slice(0, 500);
+  if (!text) return;
+
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  orb.set('speaking'); updateTtsLed(true);
+  utt.onend   = () => { orb.set(S.running ? 'running' : 'idle'); updateTtsLed(false); };
+  utt.onerror = () => { orb.set(S.running ? 'running' : 'idle'); updateTtsLed(false); };
+  speechSynthesis.speak(utt);
+}
+
+function updateTtsLed(on) {
+  document.getElementById('tts-led').className = `led ${on ? 'purple' : 'off'}`;
+}
+
+if (window.speechSynthesis) speechSynthesis.cancel();
+
+// ── SPEECH RECOGNITION ─────────────────────────────────────────────────
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+
+function initSR() {
+  const srSt = document.getElementById('sr-st');
+  const srAv = document.getElementById('sr-avail');
+  if (!SR) {
+    srSt.textContent = srAv.textContent = 'N/A';
+    srSt.className = srAv.className = 'sval r';
+    document.getElementById('mic-btn').disabled = true;
+    return;
+  }
+  srSt.textContent = 'READY'; srSt.className = 'sval g';
+  srAv.textContent = 'READY'; srAv.className = 'sval g';
+
+  rec = new SR();
+  rec.continuous = true; rec.interimResults = true; rec.lang = 'en-US';
+  rec.onresult = e => {
+    let text = '';
+    for (const r of e.results) {
+      text += r[0].transcript + (r.isFinal ? ' ' : '');
+    }
+    document.getElementById('task-input').value = text.trim();
+  };
+  rec.onerror = e => { stopMic(); if (e.error !== 'no-speech') addLine(`[ ERROR ] :: SR: ${e.error}`, 'error'); };
+  rec.onend   = () => { if (S.listening) stopMic(); };
+}
+
+async function startMic() {
+  if (S.running || S.listening) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    waveform.attach(stream); waveform.setLive(true);
+  } catch { addLine('[ ERROR ] :: Microphone access denied.', 'error', true); return; }
+  rec.start(); S.listening = true;
+  const mb = document.getElementById('mic-btn');
+  mb.textContent = '■ STOP'; mb.className = 'cbtn mic-on';
+  document.getElementById('mic-led').className = 'led orange';
+  document.getElementById('mic-label').textContent = 'LISTENING';
+  orb.set('listening');
+  addLine('[ JARVIS ] :: Listening, Sir.', 'jarvis', true);
+}
+
+function stopMic() {
+  S.listening = false;
+  if (rec) rec.stop();
+  waveform.setLive(false);
+  const mb = document.getElementById('mic-btn');
+  mb.textContent = '⬤ MIC'; mb.className = 'cbtn';
+  document.getElementById('mic-led').className = 'led off';
+  document.getElementById('mic-label').textContent = 'MIC OFF';
+  orb.set(S.running ? 'running' : 'idle');
+  const inp = document.getElementById('task-input');
+  if (inp.value.trim()) submitTask();
+}
+
+// ── TERMINAL ───────────────────────────────────────────────────────────
+function addLine(text, cls = 'system', doSpeak = false) {
+  const term = document.getElementById('term');
+  const el = document.createElement('div');
+  el.className = `tline ${cls}`;
+  el.innerHTML = esc(text);
+  term.appendChild(el); term.scrollTop = 9e9;
+  if (cls !== 'system') {
+    const af = document.getElementById('activity-feed');
+    const a = document.createElement('div');
+    a.className = 'activity-item';
+    a.textContent = text.slice(0, 80);
+    af.appendChild(a); af.scrollTop = 9e9;
+  }
+  if (doSpeak) speak(text);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// ── WEBSOCKET ──────────────────────────────────────────────────────────
+let ws;
+function wsConnect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => {
+    S.reconnecting = false;
+    document.getElementById('conn-badge').textContent = 'ONLINE';
+    document.getElementById('conn-badge').className = 'hud-badge on';
+    document.getElementById('sys-st').textContent = 'ONLINE';
+    document.getElementById('sys-st').className = 'sval g';
+    addLine('[ JARVIS ] :: Connection established. All systems nominal, Sir.', 'jarvis', true);
+  };
+  ws.onclose = () => {
+    document.getElementById('conn-badge').textContent = 'OFFLINE';
+    document.getElementById('conn-badge').className = 'hud-badge warn';
+    document.getElementById('sys-st').textContent = 'OFFLINE';
+    document.getElementById('sys-st').className = 'sval r';
+    if (!S.reconnecting) { S.reconnecting = true; addLine('[ SYSTEM ] :: Connection lost. Reconnecting...', 'warn'); }
+    setTimeout(wsConnect, 3000);
+  };
+  ws.onmessage = e => handleEvent(JSON.parse(e.data));
+}
+function wsSend(obj) { if (ws?.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+// ── EVENTS ─────────────────────────────────────────────────────────────
+function handleEvent(ev) {
+  const t = ev.type;
+  if (t === 'task_queued') {
+    addLine(`[ YOU ] :: ${ev.text}`, 'you');
+    addTaskItem(ev.text, 'running');
+    S.streamedContent = false; setRunning(true);
+  } else if (t === 'task_started') {
+    orb.set('running');
+    addLine('[ JARVIS ] :: Understood, Sir. Initiating task sequence.', 'jarvis', true);
+  } else if (t === 'task_done') {
+    setRunning(false);
+    const msg = (ev.text || 'Task complete.').slice(0, 800);
+    addLine(`[ JARVIS ] :: ${msg}`, 'jarvis', !S.streamedContent);
+    S.taskCount++;
+    document.getElementById('tc-val').textContent = S.taskCount;
+    document.getElementById('task-bar').style.width = `${Math.min(S.taskCount * 8, 100)}%`;
+    updateLastTask('done');
+  } else if (t === 'task_error') {
+    setRunning(false);
+    addLine(`[ ERROR ] :: ${ev.text}`, 'error', true);
+    updateLastTask('error');
+  } else if (t === 'approval_request') {
+    addLine('[ JARVIS ] :: Authorization required before proceeding, Sir.', 'warn', true);
+    showApproval(ev.id, ev.text);
+  } else if (t === 'approved') {
+    addLine('[ SYSTEM ] :: Authorized. Continuing operation.', 'system');
+    clearApproval(ev.id); orb.set('running');
+  } else if (t === 'denied') {
+    addLine('[ SYSTEM ] :: Action denied. Standing down.', 'warn', true);
+    clearApproval(ev.id);
+  } else if (t === 'assistant') {
+    for (const b of ev.message?.content || []) {
+      if (b.type === 'text' && b.text?.trim().length > 50) {
+        addLine(`[ JARVIS ] :: ${b.text.trim()}`, 'jarvis', true);
+        S.streamedContent = true;
+      } else if (b.type === 'tool_use') {
+        addLine(`[ EXEC ] :: ${b.name} → ${toolSummary(b.name, b.input || {})}`, 'tool');
+      }
+    }
+  } else if (t === 'tool') {
+    addLine(`[ EXEC ] :: ${ev.name} → ${toolSummary(ev.name, ev.input || {})}`, 'tool');
+  } else if (t === 'usage_update') {
+    updateUsage(ev.session_tokens, ev.weekly_tokens);
+  }
+}
+
+// ── APPROVAL ───────────────────────────────────────────────────────────
+function showApproval(id, text) {
+  document.getElementById('no-appr').style.display = 'none';
+  const c = document.createElement('div');
+  c.className = 'appr-card'; c.id = `ap-${id}`;
+  c.innerHTML = `
+    <div class="appr-title">⚠ AUTHORIZATION REQUIRED</div>
+    <div class="appr-text">${esc(text.slice(0,200))}</div>
+    <div class="appr-btns">
+      <button class="cbtn tts-on" style="font-size:8px;padding:4px 10px" onclick="resolveAppr('${id}',true)">APPROVE</button>
+      <button class="cbtn danger"  style="font-size:8px;padding:4px 10px" onclick="resolveAppr('${id}',false)">DENY</button>
+    </div>`;
+  document.getElementById('appr-list').appendChild(c);
+  document.getElementById('ap-cnt').textContent = document.getElementById('appr-list').children.length;
+  document.getElementById('ap-cnt').className = 'sval o';
+}
+function clearApproval(id) {
+  document.getElementById(`ap-${id}`)?.remove();
+  const n = document.getElementById('appr-list').children.length;
+  document.getElementById('ap-cnt').textContent = n;
+  document.getElementById('ap-cnt').className = n > 0 ? 'sval o' : 'sval';
+  if (!n) document.getElementById('no-appr').style.display = '';
+}
+function resolveAppr(id, ok) { wsSend({ type: ok ? 'approve' : 'deny', id }); }
+
+// ── TASK LIST ──────────────────────────────────────────────────────────
+function addTaskItem(text, status) {
+  S.tasks.unshift({ text, status, time: new Date().toLocaleTimeString('en-US', { hour12:true, hour:'2-digit', minute:'2-digit' }) });
+  renderTasks();
+}
+function updateLastTask(status) { if (S.tasks.length) S.tasks[0].status = status; renderTasks(); }
+function renderTasks() {
+  document.getElementById('task-list').innerHTML = S.tasks.slice(0,30).map(t =>
+    `<div class="task-mini"><div class="mini-dot ${t.status}"></div><div class="mini-text">${esc(t.text)}</div><div class="mini-time">${t.time}</div></div>`
+  ).join('');
+}
+
+// ── SUBMIT ─────────────────────────────────────────────────────────────
+function submitTask() {
+  const inp  = document.getElementById('task-input');
+  const text = inp.value.trim();
+  if (!text || S.running) return;
+  inp.value = '';
+  wsSend({ type: 'task', text });
+}
+
+function quickTask(text) {
+  if (S.running) { addLine('[ JARVIS ] :: A task is already in progress, Sir.', 'warn', true); return; }
+  document.getElementById('task-input').value = text;
+  submitTask();
+}
+
+function setRunning(v) {
+  S.running = v;
+  document.getElementById('run-led').className   = `led ${v ? 'orange' : ''}`;
+  document.getElementById('run-label').textContent = v ? 'RUNNING' : 'STANDBY';
+  document.getElementById('send-btn').disabled    = v;
+  document.getElementById('q-val').textContent   = v ? '1' : '0';
+  orb.set(v ? 'running' : 'idle');
+}
+
+// ── TOOL SUMMARY ───────────────────────────────────────────────────────
+function toolSummary(name, input) {
+  if (name === 'Bash')      return (input.command || '').slice(0, 72);
+  if (name === 'Read')      return input.file_path || input.path || '';
+  if (name === 'Write')     return `write → ${input.file_path || ''}`;
+  if (name === 'Edit')      return `edit → ${input.file_path || ''}`;
+  if (name === 'WebSearch') return `search: "${input.query || ''}"`;
+  if (name === 'WebFetch')  return (input.url || '').slice(0, 60);
+  return JSON.stringify(input).slice(0, 60);
+}
+
+// ── USAGE ──────────────────────────────────────────────────────────────
+const SESS_LIMIT = 100000;   // estimated session token budget
+const WEEK_LIMIT = 1000000;  // estimated weekly token budget
+
+function fmtTokens(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1) + 'K';
+  return String(Math.max(n, 0));
+}
+
+function updateUsage(sessionTokens, weeklyTokens) {
+  const setBar = (barId, valId, used, limit) => {
+    const pct = Math.min(used / limit, 1);
+    const left = Math.max(1 - pct, 0);
+    const bar = document.getElementById(barId);
+    const val = document.getElementById(valId);
+    bar.style.width = `${left * 100}%`;
+    bar.className = 'bar-fill' + (left < 0.2 ? ' danger' : left < 0.5 ? ' warn' : '');
+    val.textContent = Math.round(left * 100) + '%';
+    val.className = 'sval' + (left < 0.2 ? ' r' : left < 0.5 ? ' o' : ' dim');
+  };
+  setBar('usage-sess-bar', 'usage-sess-val', sessionTokens, SESS_LIMIT);
+  setBar('usage-week-bar', 'usage-week-val', weeklyTokens, WEEK_LIMIT);
+}
+
+// ── STATUS POLL ────────────────────────────────────────────────────────
+async function poll() {
+  try {
+    const d = await (await fetch('/api/status')).json();
+    if (!S.running && d.running) setRunning(true);
+    if (S.running && !d.running) setRunning(false);
+    document.getElementById('q-val').textContent = d.queued;
+    if (d.session_tokens !== undefined) updateUsage(d.session_tokens, d.weekly_tokens);
+  } catch {}
+}
+setInterval(poll, 6000);
+
+// ── CONTROLS ───────────────────────────────────────────────────────────
+document.getElementById('send-btn').addEventListener('click', submitTask);
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitTask(); }
+});
+document.getElementById('mic-btn').addEventListener('click', () => {
+  if (S.listening) stopMic(); else startMic();
+});
+document.getElementById('tts-btn').addEventListener('click', () => {
+  S.ttsEnabled = !S.ttsEnabled;
+  const b = document.getElementById('tts-btn');
+  b.textContent = S.ttsEnabled ? 'TTS' : 'TTS OFF';
+  b.className   = S.ttsEnabled ? 'cbtn tts-on' : 'cbtn';
+  document.getElementById('tts-label').textContent = S.ttsEnabled ? 'TTS ON' : 'TTS OFF';
+  // No browser speech to cancel — macOS say is fire-and-forget
+});
+
+
+// ── BOOT ───────────────────────────────────────────────────────────────
+initSR();
+updateUsage(0, 0);
+poll();
+wsConnect();
+setTimeout(() => addLine('[ JARVIS ] :: Good day, Sir. All systems operational and standing by.', 'jarvis', true), 900);
+</script>
+</body>
+</html>
