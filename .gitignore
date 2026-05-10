@@ -1,0 +1,25 @@
+# Secrets — never commit
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Runtime / temp
+tmp/
+usage.json
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAREER OPS — J.A.R.V.I.S</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#05080f; --bg2:#070b14;
+  --panel:rgba(0,210,255,0.030); --panel2:rgba(0,210,255,0.058);
+  --border:rgba(0,210,255,0.14);
+  --c:#00d4ff; --c2:#7dd8e8;
+  --g:#00ff7f; --g2:#00cc66;
+  --o:#ffb700; --r:#ff4d4d; --p:#b06eff;
+  --text:#cce6f5; --dim:#7aabbf; --bright:#eef7ff; --muted:#1a3544;
+  --mono:'Share Tech Mono','JetBrains Mono',monospace;
+  --sans:'Rajdhani','Segoe UI',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+
+body {
+  background:var(--bg);color:var(--text);
+  font-family:var(--mono);font-size:11px;
+  display:flex;flex-direction:column;
+  background-image:
+    radial-gradient(ellipse at 50% 0%,rgba(0,140,255,.07) 0%,transparent 55%),
+    radial-gradient(ellipse at 0% 100%,rgba(0,80,180,.04) 0%,transparent 40%);
+}
+body::after {
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0px,rgba(0,0,0,.05) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:9999;
+}
+
+@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.2);opacity:.8}}
+@keyframes flow{0%{left:-40%}100%{left:110%}}
+@keyframes glow-sweep{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* ── TOP BAR ────────────────────────────────────────────────────── */
+.top-bar {
+  flex-shrink:0;height:42px;
+  background:rgba(2,6,14,.98);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:10px;
+  position:relative;
+}
+.top-bar::after {
+  content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--c) 20%,var(--c) 80%,transparent);
+  opacity:.22;
+}
+.back-link {
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.18em;
+  color:var(--dim);text-decoration:none;text-transform:uppercase;
+  border:1px solid var(--muted);padding:3px 9px;border-radius:2px;
+  transition:all .15s;flex-shrink:0;
+}
+.back-link:hover{color:var(--c);border-color:var(--c)}
+.page-title {
+  font-family:var(--sans);font-size:17px;font-weight:700;letter-spacing:.28em;
+  color:var(--c);text-shadow:0 0 18px var(--c),0 0 38px rgba(0,210,255,.25);
+}
+.status-pill {
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.18em;
+  padding:3px 9px;border:1px solid var(--muted);border-radius:2px;
+  color:var(--muted);transition:all .3s;
+}
+.status-pill.live{border-color:var(--o);color:var(--o);animation:blink .8s infinite}
+.status-pill.ready{border-color:var(--g);color:var(--g)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.stat-chip{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--dim);display:flex;align-items:center;gap:4px}
+.stat-n{font-size:11px;color:var(--c)}
+
+/* ── SEARCH BAR ─────────────────────────────────────────────────── */
+.search-bar {
+  flex-shrink:0;padding:9px 16px;
+  background:rgba(2,6,14,.85);border-bottom:1px solid var(--border);
+  display:flex;gap:7px;align-items:center;
+}
+#kw-input {
+  flex:1;background:rgba(0,210,255,.05);border:1px solid var(--border);
+  color:var(--bright);font-family:var(--mono);font-size:11.5px;
+  padding:8px 13px;outline:none;border-radius:3px;
+  transition:border-color .2s,box-shadow .2s;
+}
+#kw-input:focus{border-color:var(--c);box-shadow:0 0 14px rgba(0,210,255,.1)}
+#kw-input::placeholder{color:var(--muted)}
+.sbtn {
+  font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:8px 20px;cursor:pointer;border-radius:3px;transition:all .15s;flex-shrink:0;
+}
+.sbtn.launch{background:rgba(0,210,255,.09);border:1px solid var(--c);color:var(--c)}
+.sbtn.launch:hover{background:rgba(0,210,255,.18);box-shadow:0 0 16px rgba(0,210,255,.16)}
+.sbtn.launch:disabled{opacity:.35;cursor:not-allowed}
+.sbtn.stop{background:rgba(255,77,77,.07);border:1px solid var(--r);color:var(--r);display:none}
+.sbtn.stop:hover{background:rgba(255,77,77,.14)}
+
+/* ── PIPELINE SECTION ───────────────────────────────────────────── */
+.pipeline-section {
+  flex-shrink:0;
+  background:rgba(2,6,14,.7);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px 12px;
+}
+.pipeline-label {
+  font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.3em;
+  color:var(--c);text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.pipeline-label::before{content:'';width:14px;height:1px;background:linear-gradient(90deg,var(--c),transparent);box-shadow:0 0 4px var(--c)}
+.pipeline-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,210,255,.1),transparent)}
+
+.pipeline-row {
+  display:flex;align-items:stretch;gap:0;
+}
+
+/* ── AGENT CARDS ────────────────────────────────────────────────── */
+.agent-card {
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
+  border:1px solid var(--muted);border-radius:5px;
+  padding:9px 10px 8px;
+  background:rgba(0,0,0,.25);
+  transition:all .35s;
+  position:relative;
+  overflow:hidden;
+}
+/* shimmer on active */
+.agent-card::before {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.03) 50%,transparent 60%);
+  opacity:0;transition:opacity .3s;
+}
+.agent-card.active::before{opacity:1;animation:glow-sweep 2s ease-in-out infinite}
+
+.agent-card.scout  {border-left:3px solid var(--c)}
+.agent-card.tailor {border-left:3px solid var(--o)}
+.agent-card.apply  {border-left:3px solid var(--p)}
+.agent-card.review {border-left:3px solid var(--g)}
+
+.agent-card.active.scout  {border-color:var(--c);background:rgba(0,210,255,.06);box-shadow:0 0 18px rgba(0,210,255,.1)}
+.agent-card.active.tailor {border-color:var(--o);background:rgba(255,183,0,.05);box-shadow:0 0 18px rgba(255,183,0,.08)}
+.agent-card.active.apply  {border-color:var(--p);background:rgba(176,110,255,.05);box-shadow:0 0 18px rgba(176,110,255,.08)}
+.agent-card.active.review {border-color:var(--g);background:rgba(0,255,127,.04);box-shadow:0 0 18px rgba(0,255,127,.08)}
+
+.agent-card.done.scout  {border-color:var(--g);background:rgba(0,255,127,.025)}
+.agent-card.done.tailor {border-color:var(--g);background:rgba(0,255,127,.025)}
+.agent-card.done.apply  {border-color:var(--g);background:rgba(0,255,127,.025)}
+.agent-card.done.review {border-color:var(--g);background:rgba(0,255,127,.025)}
+
+.ac-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.ac-icon {
+  font-size:13px;color:var(--muted);transition:all .35s;line-height:1;flex-shrink:0;
+}
+.agent-card.active.scout  .ac-icon{color:var(--c);text-shadow:0 0 10px var(--c);animation:pulse 1.3s infinite}
+.agent-card.active.tailor .ac-icon{color:var(--o);text-shadow:0 0 10px var(--o);animation:pulse 1.3s infinite}
+.agent-card.active.apply  .ac-icon{color:var(--p);text-shadow:0 0 10px var(--p);animation:pulse 1.3s infinite}
+.agent-card.active.review .ac-icon{color:var(--g);text-shadow:0 0 10px var(--g);animation:pulse 1.3s infinite}
+.agent-card.done .ac-icon{color:var(--g)}
+
+.ac-name{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);transition:color .35s}
+.agent-card.active.scout  .ac-name{color:var(--c)}
+.agent-card.active.tailor .ac-name{color:var(--o)}
+.agent-card.active.apply  .ac-name{color:var(--p)}
+.agent-card.active.review .ac-name{color:var(--g)}
+.agent-card.done .ac-name{color:var(--g)}
+
+.ac-desc{font-size:8px;color:var(--muted);line-height:1.5;margin-bottom:5px;transition:color .35s;flex:1}
+.agent-card.active .ac-desc{color:var(--dim)}
+
+.ac-io{display:flex;flex-direction:column;gap:1px;margin-bottom:5px}
+.ac-in,.ac-out{font-size:7px;letter-spacing:.05em;color:var(--muted)}
+.ac-in::before{content:'IN  ';font-weight:700;color:var(--muted);opacity:.5}
+.ac-out::before{content:'OUT ';font-weight:700;color:var(--muted);opacity:.5}
+.agent-card.active .ac-in,.agent-card.active .ac-out{color:var(--dim)}
+
+.ac-badge{
+  align-self:flex-start;
+  font-family:var(--sans);font-size:7px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 7px;border:1px solid var(--muted);border-radius:10px;color:var(--muted);transition:all .35s;
+}
+.agent-card.active.scout  .ac-badge{border-color:var(--c);color:var(--c)}
+.agent-card.active.tailor .ac-badge{border-color:var(--o);color:var(--o)}
+.agent-card.active.apply  .ac-badge{border-color:var(--p);color:var(--p);animation:blink .8s infinite}
+.agent-card.active.review .ac-badge{border-color:var(--g);color:var(--g)}
+.agent-card.done .ac-badge{border-color:var(--g);color:var(--g)}
+
+/* ── CONNECTORS ─────────────────────────────────────────────────── */
+.connector-wrap{flex-shrink:0;width:28px;display:flex;align-items:center;justify-content:center;position:relative}
+.conn-line{width:100%;height:2px;background:rgba(0,210,255,.08);border-radius:1px;position:relative;overflow:hidden}
+.conn-line::before{
+  content:'';position:absolute;top:0;left:-50%;
+  width:40%;height:100%;
+  background:linear-gradient(90deg,transparent,var(--c),transparent);
+  opacity:0;
+}
+.conn-line.flowing::before{opacity:1;animation:flow 1s linear infinite}
+.conn-line.done-line{background:rgba(0,255,127,.3)}
+.conn-arrow{
+  position:absolute;right:-1px;
+  font-size:11px;color:var(--muted);line-height:1;
+  font-family:var(--sans);
+}
+.conn-line.flowing ~ .conn-arrow,.conn-line.done-line ~ .conn-arrow{color:var(--g)}
+
+/* ── MAIN CONTENT ───────────────────────────────────────────────── */
+.main-content{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── JOBS PANE ──────────────────────────────────────────────────── */
+.jobs-pane{width:54%;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
+.pane-hdr{
+  flex-shrink:0;padding:7px 13px;border-bottom:1px solid var(--border);
+  background:rgba(2,6,14,.5);display:flex;align-items:center;
+}
+.pane-title{
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--c);
+  display:flex;align-items:center;gap:6px;
+}
+.pane-title::before{content:'';width:10px;height:1px;background:linear-gradient(90deg,var(--c),transparent);box-shadow:0 0 4px var(--c)}
+.job-count{margin-left:auto;font-family:var(--sans);font-size:9px;font-weight:600;color:var(--dim);letter-spacing:.08em}
+
+.jobs-grid{
+  flex:1;overflow-y:auto;padding:9px;
+  display:grid;grid-template-columns:1fr 1fr;gap:7px;align-content:start;
+}
+.jobs-grid::-webkit-scrollbar{width:2px}
+.jobs-grid::-webkit-scrollbar-thumb{background:rgba(0,210,255,.14)}
+
+.job-card{
+  border:1px solid var(--border);border-radius:4px;
+  padding:9px 10px;background:rgba(0,210,255,.018);
+  cursor:pointer;transition:all .15s;animation:fadein .2s ease;
+}
+.job-card:hover{background:rgba(0,210,255,.055);border-color:var(--c2)}
+.job-card.sel{border-color:var(--c);background:rgba(0,210,255,.07);box-shadow:0 0 10px rgba(0,210,255,.08)}
+.jc-co{font-family:var(--sans);font-size:10.5px;font-weight:700;color:var(--bright);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jc-role{font-size:8.5px;color:var(--c2);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jc-loc{font-size:7.5px;color:var(--dim);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jc-foot{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.jc-score-wrap{flex:1}
+.jc-score-lbl{font-family:var(--sans);font-size:8px;font-weight:700;margin-bottom:2px}
+.jc-bar{height:3px;border-radius:2px;background:rgba(0,210,255,.08);border:1px solid rgba(0,210,255,.1);overflow:hidden}
+.jc-fill{height:100%;border-radius:2px;transition:width .8s ease}
+.jc-st{
+  font-size:7px;font-family:var(--sans);font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 5px;border:1px solid var(--muted);border-radius:10px;color:var(--muted);white-space:nowrap;flex-shrink:0;transition:all .3s;
+}
+.jc-st.found{border-color:var(--dim);color:var(--dim)}
+.jc-st.tailoring{border-color:var(--o);color:var(--o)}
+.jc-st.tailored{border-color:var(--c2);color:var(--c2)}
+.jc-st.filling{border-color:var(--p);color:var(--p);animation:blink .8s infinite}
+.jc-st.needs_review{border-color:var(--g);color:var(--g)}
+.jc-st.no_url{border-color:var(--muted);color:var(--muted)}
+
+.jobs-empty{
+  grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px 20px;gap:8px;color:var(--muted);
+}
+.empty-icon{font-size:26px;opacity:.35}
+.empty-txt{font-family:var(--sans);font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.45;text-align:center}
+
+/* ── DETAIL PANE ────────────────────────────────────────────────── */
+.detail-pane{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+.detail-scroll{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:11px}
+.detail-scroll::-webkit-scrollbar{width:2px}
+.detail-scroll::-webkit-scrollbar-thumb{background:rgba(0,210,255,.12)}
+
+.d-company{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--bright);letter-spacing:.04em}
+.d-role{font-size:10px;color:var(--c2);margin-top:2px}
+.d-meta{display:flex;gap:10px;margin-top:5px;flex-wrap:wrap}
+.d-meta-item{font-family:var(--sans);font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+
+.sec-lbl{
+  font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--c);
+  margin-bottom:5px;display:flex;align-items:center;gap:6px;
+}
+.sec-lbl::before{content:'';width:8px;height:1px;background:var(--c);box-shadow:0 0 4px var(--c)}
+
+.match-reason{
+  font-size:9.5px;color:var(--text);line-height:1.6;
+  background:rgba(0,210,255,.025);border:1px solid var(--border);border-radius:4px;padding:9px 11px;
+}
+.diff-block{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:4px;
+  padding:7px 9px;display:flex;flex-direction:column;gap:3px;margin-bottom:5px;
+}
+.diff-old{font-size:9px;color:var(--r);font-family:var(--mono);line-height:1.5;padding:2px 5px;background:rgba(255,77,77,.05);border-radius:2px;word-break:break-word}
+.diff-old::before{content:'− ';opacity:.6}
+.diff-new{font-size:9px;color:var(--g);font-family:var(--mono);line-height:1.5;padding:2px 5px;background:rgba(0,255,127,.05);border-radius:2px;word-break:break-word}
+.diff-new::before{content:'+ ';opacity:.6}
+
+.cover-hook{
+  font-size:9.5px;color:var(--o);line-height:1.6;font-style:italic;
+  background:rgba(255,183,0,.04);border:1px solid rgba(255,183,0,.18);
+  border-left:3px solid var(--o);border-radius:0 4px 4px 0;padding:8px 11px;
+}
+.shot-img{
+  width:100%;max-height:150px;object-fit:cover;border-radius:4px;
+  border:1px solid var(--border);cursor:pointer;transition:all .2s;
+}
+.shot-img:hover{border-color:var(--c);box-shadow:0 0 12px rgba(0,210,255,.1)}
+.open-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(0,210,255,.08);border:1px solid var(--c);color:var(--c);
+  font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:7px 16px;border-radius:3px;text-decoration:none;cursor:pointer;transition:all .15s;align-self:flex-start;
+}
+.open-btn:hover{background:rgba(0,210,255,.16);box-shadow:0 0 12px rgba(0,210,255,.12)}
+
+.detail-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--muted);padding:30px;text-align:center;
+}
+.de-icon{font-size:30px;opacity:.3}
+.de-txt{font-family:var(--sans);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.4}
+
+/* ── ACTIVITY BAR ───────────────────────────────────────────────── */
+.act-bar{
+  flex-shrink:0;height:68px;background:rgba(2,6,14,.97);border-top:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.act-hdr{
+  flex-shrink:0;padding:4px 13px 2px;
+  display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(0,210,255,.06);
+}
+.act-title{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.act-led{width:5px;height:5px;border-radius:50%;background:var(--muted);margin-left:auto}
+.act-led.live{background:var(--g);box-shadow:0 0 5px var(--g);animation:blink .8s infinite}
+.act-scroll{flex:1;overflow-y:auto;padding:2px 13px 4px;display:flex;flex-direction:column;gap:0}
+.act-scroll::-webkit-scrollbar{width:2px}
+.act-scroll::-webkit-scrollbar-thumb{background:rgba(0,210,255,.1)}
+.act-line{font-size:8.5px;color:var(--dim);line-height:1.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:fadein .15s ease;flex-shrink:0}
+.act-line.ok{color:var(--g)}.act-line.warn{color:var(--o)}.act-line.err{color:var(--r)}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <a href="/" class="back-link">‹ Dashboard</a>
+  <span style="color:var(--muted);font-size:12px">//</span>
+  <span class="page-title">CAREER OPS</span>
+  <span class="status-pill" id="status-pill">STANDBY</span>
+  <div class="top-right">
+    <div class="stat-chip">Found <span class="stat-n" id="sn-found">0</span></div>
+    <div class="stat-chip">Tailored <span class="stat-n" id="sn-tailored">0</span></div>
+    <div class="stat-chip" style="color:var(--g)">Ready <span class="stat-n" id="sn-ready">0</span></div>
+  </div>
+</div>
+
+<!-- SEARCH BAR -->
+<div class="search-bar">
+  <input id="kw-input" type="text"
+    placeholder="[ e.g.  AI Engineering Intern summer 2026 remote  ·  SWE Intern Pittsburgh  ·  ML Engineer ]"
+    autocomplete="off"
+    onkeydown="if(event.key==='Enter')launchSearch()">
+  <button class="sbtn launch" id="btn-launch" onclick="launchSearch()">▶ LAUNCH SEARCH</button>
+  <button class="sbtn stop"   id="btn-stop"   onclick="stopSearch()">■ STOP</button>
+</div>
+
+<!-- PIPELINE SECTION -->
+<div class="pipeline-section">
+  <div class="pipeline-label">Agent Pipeline — How It Works</div>
+  <div class="pipeline-row">
+
+    <!-- SCOUT -->
+    <div class="agent-card scout" id="node-scout">
+      <div class="ac-header">
+        <div class="ac-icon">◈</div>
+        <div class="ac-name">Scout</div>
+      </div>
+      <div class="ac-desc">Searches 50+ job boards &amp; company careers pages. Scores each listing against your resume profile.</div>
+      <div class="ac-io">
+        <div class="ac-in">keywords + resume</div>
+        <div class="ac-out">ranked job list</div>
+      </div>
+      <div class="ac-badge" id="badge-scout">Idle</div>
+    </div>
+
+    <div class="connector-wrap">
+      <div class="conn-line" id="conn-1"></div>
+      <div class="conn-arrow">›</div>
+    </div>
+
+    <!-- TAILOR -->
+    <div class="agent-card tailor" id="node-tailor">
+      <div class="ac-header">
+        <div class="ac-icon">✦</div>
+        <div class="ac-name">Tailor</div>
+      </div>
+      <div class="ac-desc">Rewrites your resume bullets using the JD's exact language. Never invents — only reframes real experience.</div>
+      <div class="ac-io">
+        <div class="ac-in">resume + job description</div>
+        <div class="ac-out">diff + cover hook</div>
+      </div>
+      <div class="ac-badge" id="badge-tailor">Idle</div>
+    </div>
+
+    <div class="connector-wrap">
+      <div class="conn-line" id="conn-2"></div>
+      <div class="conn-arrow">›</div>
+    </div>
+
+    <!-- APPLY -->
+    <div class="agent-card apply" id="node-apply">
+      <div class="ac-header">
+        <div class="ac-icon">⬡</div>
+        <div class="ac-name">Apply</div>
+      </div>
+      <div class="ac-desc">Opens Chromium on your screen, navigates the application form, fills 10+ fields. Stops before Submit.</div>
+      <div class="ac-io">
+        <div class="ac-in">contact info + URL</div>
+        <div class="ac-out">filled form + screenshot</div>
+      </div>
+      <div class="ac-badge" id="badge-apply">Idle</div>
+    </div>
+
+    <div class="connector-wrap">
+      <div class="conn-line" id="conn-3"></div>
+      <div class="conn-arrow">›</div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="agent-card review" id="node-review">
+      <div class="ac-header">
+        <div class="ac-icon">★</div>
+        <div class="ac-name">Review</div>
+      </div>
+      <div class="ac-desc">Browser stays open on your screen. Sends you a Telegram notification with screenshot. You click Submit.</div>
+      <div class="ac-io">
+        <div class="ac-in">filled browser tab</div>
+        <div class="ac-out">your submission</div>
+      </div>
+      <div class="ac-badge" id="badge-review">Idle</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- JOB GRID -->
+  <div class="jobs-pane">
+    <div class="pane-hdr">
+      <div class="pane-title">Job Results</div>
+      <div class="job-count" id="job-count">0 jobs</div>
+    </div>
+    <div class="jobs-grid" id="jobs-grid">
+      <div class="jobs-empty">
+        <div class="empty-icon">◎</div>
+        <div class="empty-txt">Enter keywords above and launch a search</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL PANE -->
+  <div class="detail-pane">
+    <div class="pane-hdr">
+      <div class="pane-title">Job Detail</div>
+    </div>
+    <div id="detail-content" class="detail-scroll">
+      <div class="detail-empty">
+        <div class="de-icon">◈</div>
+        <div class="de-txt">Select a job card to see resume diff, cover hook, and application screenshot</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ACTIVITY BAR -->
+<div class="act-bar">
+  <div class="act-hdr">
+    <div class="act-title">Live Activity</div>
+    <div class="act-led" id="act-led"></div>
+  </div>
+  <div class="act-scroll" id="act-log"></div>
+</div>
+
+<script>
+const C = { jobs:{}, selected:null, searching:false, found:0, tailored:0, ready:0 };
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function ts(){ return new Date().toLocaleTimeString('en-US',{hour12:true,hour:'2-digit',minute:'2-digit',second:'2-digit'}) }
+
+// ── ACTIVITY ──────────────────────────────────────────────────────
+function actLog(text, cls='') {
+  const log = document.getElementById('act-log');
+  const el  = document.createElement('div');
+  el.className = 'act-line' + (cls ? ' '+cls : '');
+  el.textContent = `[${ts()}]  ${text}`;
+  log.appendChild(el);
+  log.scrollTop = 9e9;
+  while (log.children.length > 300) log.removeChild(log.firstChild);
+}
+
+// ── PIPELINE ──────────────────────────────────────────────────────
+const ORDER    = ['scout','tailor','apply','review'];
+const STAGE_TO = {search:'scout',tailor:'tailor',fill:'apply',review:'review'};
+
+function setNode(id, state) {
+  const el = document.getElementById(`node-${id}`);
+  const bd = document.getElementById(`badge-${id}`);
+  if (!el || !bd) return;
+  // reset classes then add type + state
+  const type = id; // scout | tailor | apply | review
+  el.className = `agent-card ${type}` + (state ? ` ${state}` : '');
+  bd.textContent = state === 'active' ? 'Active' : state === 'done' ? 'Done ✓' : 'Idle';
+}
+
+function setConn(id, state) {
+  const el = document.getElementById(`conn-${id}`);
+  if (!el) return;
+  el.className = 'conn-line' + (state ? ` ${state}` : '');
+}
+
+function setPipelineStage(stage) {
+  const nodeId = STAGE_TO[stage] || stage;
+  const idx = ORDER.indexOf(nodeId);
+  ORDER.forEach((n,i) => {
+    setNode(n, i < idx ? 'done' : i === idx ? 'active' : '');
+  });
+  ['1','2','3'].forEach((c,i) => {
+    setConn(c, i < idx-1 ? 'done-line' : i === idx-1 ? 'flowing' : '');
+  });
+}
+
+function completePipeline() {
+  ORDER.forEach(n => setNode(n,'done'));
+  ['1','2','3'].forEach(c => setConn(c,'done-line'));
+}
+function resetPipeline() {
+  ORDER.forEach(n => setNode(n,''));
+  ['1','2','3'].forEach(c => setConn(c,''));
+}
+
+// ── SEARCH CONTROL ────────────────────────────────────────────────
+function launchSearch() {
+  const kw = document.getElementById('kw-input').value.trim();
+  if (!kw)           { actLog('Enter keywords first.','warn'); return; }
+  if (C.searching)   { actLog('Already running.','warn'); return; }
+
+  C.jobs={}; C.selected=null; C.found=0; C.tailored=0; C.ready=0;
+  updateStats();
+  document.getElementById('jobs-grid').innerHTML = `
+    <div class="jobs-empty"><div class="empty-icon">◎</div><div class="empty-txt">Searching...</div></div>`;
+  renderDetail(null);
+  resetPipeline();
+  setSearching(true);
+  actLog(`Launching: "${kw}"`, 'ok');
+  wsSend({type:'career_start', keywords:kw});
+}
+
+function stopSearch() { setSearching(false); actLog('Stopped.','warn'); }
+
+function setSearching(v) {
+  C.searching = v;
+  document.getElementById('btn-launch').disabled = v;
+  document.getElementById('btn-stop').style.display = v ? '' : 'none';
+  document.getElementById('act-led').className = 'act-led' + (v ? ' live' : '');
+  const pill = document.getElementById('status-pill');
+  pill.textContent = v ? 'RUNNING' : (C.ready > 0 ? 'REVIEW' : 'STANDBY');
+  pill.className   = 'status-pill' + (v ? ' live' : C.ready > 0 ? ' ready' : '');
+}
+
+// ── STATS ─────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('sn-found').textContent    = C.found;
+  document.getElementById('sn-tailored').textContent = C.tailored;
+  document.getElementById('sn-ready').textContent    = C.ready;
+  const n = Object.keys(C.jobs).length;
+  document.getElementById('job-count').textContent   = `${n} job${n===1?'':'s'}`;
+}
+
+// ── JOB CARDS ─────────────────────────────────────────────────────
+const ST_LABEL = {found:'FOUND',tailoring:'TAILORING…',tailored:'TAILORED',filling:'FILLING…',needs_review:'REVIEW ✓',no_url:'NO URL'};
+
+function scoreColor(s){ return s>=85?'var(--g)':s>=70?'var(--c)':s>=50?'var(--o)':'var(--r)' }
+function scoreGrad(s) { return s>=85?'linear-gradient(90deg,var(--g),#00cc66)':s>=70?'linear-gradient(90deg,var(--c),#00ffe0)':s>=50?'linear-gradient(90deg,var(--o),#ffd700)':'linear-gradient(90deg,var(--r),#ff8855)' }
+
+function renderJobCard(job) {
+  const grid = document.getElementById('jobs-grid');
+  const ph   = grid.querySelector('.jobs-empty');
+  if (ph) ph.remove();
+
+  let el = document.getElementById(`jc-${job.id}`);
+  const fresh = !el;
+  if (fresh) { el = document.createElement('div'); el.id = `jc-${job.id}`; }
+
+  const s = job.match_score||0, st = job.status||'found';
+  el.className = 'job-card' + (C.selected===job.id?' sel':'');
+  el.onclick   = () => selectJob(job.id);
+  el.innerHTML = `
+    <div class="jc-co">${esc(job.company)}</div>
+    <div class="jc-role">${esc(job.role)}</div>
+    <div class="jc-loc">${esc(job.location||'—')}</div>
+    <div class="jc-foot">
+      <div class="jc-score-wrap">
+        <div class="jc-score-lbl" style="color:${scoreColor(s)}">${s}% match</div>
+        <div class="jc-bar"><div class="jc-fill" style="width:${s}%;background:${scoreGrad(s)}"></div></div>
+      </div>
+      <div class="jc-st ${st}">${ST_LABEL[st]||st.toUpperCase()}</div>
+    </div>`;
+  if (fresh) grid.appendChild(el);
+}
+
+function selectJob(id) {
+  if (C.selected) document.getElementById(`jc-${C.selected}`)?.classList.remove('sel');
+  C.selected = id;
+  document.getElementById(`jc-${id}`)?.classList.add('sel');
+  renderDetail(C.jobs[id]);
+}
+
+// ── DETAIL PANE ───────────────────────────────────────────────────
+function renderDetail(job) {
+  const pane = document.getElementById('detail-content');
+  if (!job) {
+    pane.innerHTML = `<div class="detail-empty"><div class="de-icon">◈</div><div class="de-txt">Select a job card to see resume diff, cover hook &amp; application screenshot</div></div>`;
+    return;
+  }
+  const s       = job.match_score||0;
+  const bullets = job.tailored?.bullets||[];
+  const hook    = job.tailored?.hook||job.tailored?.cover_hook||'';
+  const reason  = job.match_reason||'';
+  const shot    = job.screenshot_b64||'';
+  const url     = job.url||'';
+  const st      = job.status||'found';
+
+  let html = `
+    <div>
+      <div class="d-company">${esc(job.company)}</div>
+      <div class="d-role">${esc(job.role)}</div>
+      <div class="d-meta">
+        <div class="d-meta-item">◎ ${esc(job.location||'?')}</div>
+        <div class="d-meta-item" style="color:${scoreColor(s)}">◈ ${s}% match</div>
+        <div class="d-meta-item jc-st ${st}" style="font-size:7px;padding:2px 6px">${ST_LABEL[st]||st}</div>
+      </div>
+    </div>`;
+
+  if (reason) html += `<div><div class="sec-lbl">Why It Matches</div><div class="match-reason">${esc(reason)}</div></div>`;
+
+  if (bullets.length) {
+    html += `<div><div class="sec-lbl">Resume Diff — ${esc(job.company)}</div>`;
+    bullets.slice(0,6).forEach(b => {
+      html += `<div class="diff-block"><div class="diff-old">${esc(b.original)}</div><div class="diff-new">${esc(b.tailored)}</div></div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (hook) html += `<div><div class="sec-lbl">Cover Letter Hook</div><div class="cover-hook">${esc(hook)}</div></div>`;
+
+  if (shot) html += `<div><div class="sec-lbl">Application Preview</div><img class="shot-img" src="data:image/png;base64,${shot}" alt="screenshot" onclick="this.style.maxHeight=this.style.maxHeight?'':'none'"></div>`;
+
+  if (url) html += `<div><a class="open-btn" href="${esc(url)}" target="_blank" rel="noopener">↗ Open Application</a></div>`;
+
+  pane.innerHTML = html;
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────
+let ws;
+function wsConnect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen  = () => { actLog('Connected to JARVIS.','ok'); };
+  ws.onclose = () => { actLog('Connection lost — reconnecting…','warn'); setTimeout(wsConnect,3000); };
+  ws.onmessage = e => { try { handleEvent(JSON.parse(e.data)); } catch(err) { console.error(err); } };
+}
+function wsSend(obj) { if (ws?.readyState===1) ws.send(JSON.stringify(obj)); }
+
+// ── EVENTS ────────────────────────────────────────────────────────
+function handleEvent(ev) {
+  const t = ev.type;
+  if (!t.startsWith('career_')) return;
+
+  if (t === 'career_stage') {
+    setPipelineStage(ev.stage);
+    actLog(`Stage → ${ev.stage.toUpperCase()}`);
+
+  } else if (t === 'career_activity') {
+    actLog(ev.text);
+
+  } else if (t === 'career_job_found') {
+    const j = ev.job; C.jobs[j.id]=j; C.found++; updateStats(); renderJobCard(j);
+    actLog(`Found: ${j.company} — ${j.role} (${j.match_score||'?'}% match)`,'ok');
+    if (!C.selected) selectJob(j.id);
+
+  } else if (t === 'career_job_update') {
+    if (C.jobs[ev.job_id]) { C.jobs[ev.job_id].status=ev.status; renderJobCard(C.jobs[ev.job_id]); if(C.selected===ev.job_id) renderDetail(C.jobs[ev.job_id]); }
+
+  } else if (t === 'career_tailored') {
+    if (C.jobs[ev.job_id]) {
+      C.jobs[ev.job_id].tailored=ev.tailored; C.jobs[ev.job_id].status='tailored';
+      C.tailored++; updateStats(); renderJobCard(C.jobs[ev.job_id]);
+      if (C.selected===ev.job_id) renderDetail(C.jobs[ev.job_id]);
+      actLog(`Tailored: ${C.jobs[ev.job_id].company}`,'ok');
+    }
+
+  } else if (t === 'career_filling') {
+    if (C.jobs[ev.job_id]) { C.jobs[ev.job_id].status='filling'; renderJobCard(C.jobs[ev.job_id]); if(C.selected===ev.job_id) renderDetail(C.jobs[ev.job_id]); actLog(`Filling form: ${C.jobs[ev.job_id].company}`); }
+
+  } else if (t === 'career_needs_review') {
+    if (C.jobs[ev.job_id]) {
+      C.jobs[ev.job_id].status='needs_review'; C.jobs[ev.job_id].screenshot_b64=ev.screenshot_b64;
+      C.ready++; updateStats(); renderJobCard(C.jobs[ev.job_id]); selectJob(ev.job_id);
+      completePipeline(); setSearching(false);
+      actLog(`Ready for review: ${C.jobs[ev.job_id].company} — check browser to submit`,'ok');
+    }
+
+  } else if (t === 'career_error') {
+    actLog(`ERROR: ${ev.text}`,'err'); setSearching(false);
+  }
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+wsConnect();
+actLog('Career Ops ready. Enter keywords above to begin.');
+</script>
+</body>
+</html>
