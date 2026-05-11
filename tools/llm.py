@@ -12,22 +12,24 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 
 AGENTIC_DIR = Path(__file__).parent.parent
-_active_proc: asyncio.subprocess.Process | None = None
+_active_procs: list = []
 _preferred_provider: str = "auto"  # "auto", "claude", or "gemini"
 
 def get_active_proc():
-    return _active_proc
+    return _active_procs[0] if _active_procs else None
 
 def stop_active_proc():
-    global _active_proc
-    if _active_proc:
+    if not _active_procs:
+        return False
+    stopped = False
+    for proc in list(_active_procs):
         try:
-            _active_proc.terminate()
-            log.info("Process terminated by user.")
-            return True
+            proc.terminate()
+            stopped = True
         except Exception as e:
             log.warning(f"Failed to terminate process: {e}")
-    return False
+    log.info(f"Terminated {len(_active_procs)} active process(es).")
+    return stopped
 
 def set_preferred_provider(provider: str):
     global _preferred_provider
@@ -107,40 +109,41 @@ async def _run_gemini(prompt, broadcast, session_id, send_telegram):
     return res
 
 def _extract_json_objects(text):
-    """Extracts all valid JSON objects from a string that might contain mixed text."""
+    """Extracts outermost JSON objects from a string that might contain mixed text."""
     objs = []
-    # Simple regex to find potential JSON objects
-    for match in re.finditer(r'\{[^{}]*\}', text):
-        try:
-            objs.append(json.loads(match.group(0)))
-        except:
-            pass
+    # Stack-based approach captures outermost objects, handling nested braces correctly
+    stack = 0
+    start = -1
+    for i, char in enumerate(text):
+        if char == '{':
+            if stack == 0: start = i
+            stack += 1
+        elif char == '}':
+            stack -= 1
+            if stack == 0 and start != -1:
+                try:
+                    objs.append(json.loads(text[start:i+1]))
+                except:
+                    pass
+    # Fall back to simple regex only if stack approach found nothing
     if not objs:
-        stack = 0
-        start = -1
-        for i, char in enumerate(text):
-            if char == '{':
-                if stack == 0: start = i
-                stack += 1
-            elif char == '}':
-                stack -= 1
-                if stack == 0 and start != -1:
-                    try:
-                        objs.append(json.loads(text[start:i+1]))
-                    except:
-                        pass
+        for match in re.finditer(r'\{[^{}]*\}', text):
+            try:
+                objs.append(json.loads(match.group(0)))
+            except:
+                pass
     return objs
 
 async def _run_cli_process(cmd, broadcast, send_telegram):
-    global _active_proc
+    global _active_procs
     log.info(f"EXEC: {' '.join(cmd[:3])} ...")
-    
+
     proc = await asyncio.create_subprocess_exec(
         *cmd, cwd=str(AGENTIC_DIR),
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         limit=10 * 1024 * 1024
     )
-    _active_proc = proc
+    _active_procs.append(proc)
 
     assistant_text = ""
     garbage_text = ""
@@ -184,7 +187,10 @@ async def _run_cli_process(cmd, broadcast, send_telegram):
 
     await asyncio.gather(read_stream(proc.stdout), read_stream(proc.stderr, is_stderr=True))
     await proc.wait()
-    _active_proc = None
+    try:
+        _active_procs.remove(proc)
+    except ValueError:
+        pass
     
     res_text = assistant_text.strip()
     if not res_text:

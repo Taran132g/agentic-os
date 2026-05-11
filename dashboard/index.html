@@ -616,7 +616,7 @@ body::after {
 
     <div class="cmd-bar">
       <div class="cmd-row">
-        <textarea id="task-input" placeholder="[ Speak or type a command... ]" autocomplete="off"></textarea>
+        <textarea id="task-input" placeholder="[ Type a task... Ctrl+Enter to send, Enter for new line ]" autocomplete="off"></textarea>
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <button class="cbtn primary" id="send-btn">SEND</button>
           <button class="cbtn danger" id="stop-btn">STOP</button>
@@ -703,12 +703,15 @@ body::after {
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────
 const S = {
-  running: false, listening: false,
-  ttsEnabled: true, ttsMode: 'system',
+  activeAgents: new Set(), // tracks which agents are currently running
+  listening: false,
+  ttsEnabled: true,
   taskCount: 0, voice: null,
   tasks: [], streamedContent: false, reconnecting: false,
   startTime: Date.now(),
 };
+// Derived: any agent running?
+Object.defineProperty(S, 'running', { get() { return S.activeAgents.size > 0; } });
 
 // ── CLOCK / UPTIME ─────────────────────────────────────────────────────
 setInterval(() => {
@@ -951,13 +954,17 @@ function handleEvent(ev) {
     }
   }
 
-  if (t === 'task_queued') {
-    addLine(`[ YOU ] :: ${ev.text}`, 'you');
-    addTaskItem(ev.text, 'running');
-    S.streamedContent = false; setRunning(true);
+  if (t === 'task_dispatched') {
+    const lbl = (ev.agent || 'agent').toUpperCase();
+    addLine(`[ ROUTING ] :: "${esc((ev.text||'').slice(0,60))}" → ${lbl}`, 'system');
+    clearApproval(ev.id);
+    addTaskItem(ev.text || 'Task', 'running');
+    S.streamedContent = false;
   } else if (t === 'task_started') {
-    orb.set('running');
-    addLine('[ JARVIS ] :: Understood, Sir. Initiating task sequence.', 'jarvis', true);
+    const ag = ev.agent || 'general';
+    S.activeAgents.add(ag);
+    setRunning(true, ag);
+    addLine(`[ JARVIS ] :: Starting ${ag.toUpperCase()} task — "${esc((ev.text||'').slice(0,60))}"`, 'jarvis', true);
   } else if (t === 'task_progress') {
     document.getElementById('task-bar').style.width = `${ev.percentage}%`;
     document.getElementById('orb-label').textContent = `${ev.percentage}%`;
@@ -968,23 +975,35 @@ function handleEvent(ev) {
   } else if (t === 'task_verification_required') {
     showVerification(ev.id, ev.text, ev.prompt);
   } else if (t === 'task_done') {
-    setRunning(false);
-    document.getElementById('task-bar').style.width = `100%`;
-    document.getElementById('orb-label').textContent = `100%`;
+    // Remove agent from active set first so LED/label reflect the correct state
+    if (ev.agent) { S.activeAgents.delete(ev.agent); updateAgentStatus(ev.agent, 'IDLE', false); }
+    const anyRunning = S.activeAgents.size > 0;
+    document.getElementById('run-led').className = `led ${anyRunning ? 'orange' : ''}`;
+    document.getElementById('run-label').textContent = anyRunning ? `RUNNING (${S.activeAgents.size})` : 'STANDBY';
+    if (!anyRunning) orb.set('idle');
     const msg = (ev.text || 'Task complete.').slice(0, 800);
     addLine(`[ JARVIS ] :: ${msg}`, 'jarvis', !S.streamedContent);
+    S.streamedContent = false;
     S.taskCount++;
     document.getElementById('tc-val').textContent = S.taskCount;
     document.getElementById('task-bar').style.width = `${Math.min(S.taskCount * 8, 100)}%`;
     updateLastTask('done');
     clearVerification(ev.id);
   } else if (t === 'task_error') {
-    setRunning(false);
+    if (ev.agent) { S.activeAgents.delete(ev.agent); updateAgentStatus(ev.agent, 'ERROR', false); }
+    const anyRunning2 = S.activeAgents.size > 0;
+    document.getElementById('run-led').className = `led ${anyRunning2 ? 'orange' : ''}`;
+    document.getElementById('run-label').textContent = anyRunning2 ? `RUNNING (${S.activeAgents.size})` : 'STANDBY';
+    if (!anyRunning2) orb.set('idle');
     addLine(`[ ERROR ] :: ${ev.text}`, 'error', true);
     updateLastTask('error');
     if (ev.id) clearVerification(ev.id);
   } else if (t === 'approval_request') {
-    addLine('[ JARVIS ] :: Authorization required before proceeding, Sir.', 'warn', true);
+    if (ev.action === 'route') {
+      addLine(`[ JARVIS ] :: Choose agent for: "${esc((ev.text||'').slice(0,60))}"`, 'warn', false);
+    } else {
+      addLine('[ JARVIS ] :: Authorization required, Taran.', 'warn', true);
+    }
     showApproval(ev.id, ev.text, ev.action);
   } else if (t === 'approved' || t === 'routed') {
     addLine('[ SYSTEM ] :: Authorized. Continuing operation.', 'system');
@@ -1019,11 +1038,23 @@ function showApproval(id, text, action = 'approve') {
   let btns = '';
   if (action === 'route') {
     btns = `
-      <div class="appr-btns" style="flex-wrap: wrap; gap: 4px;">
-        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','career')">CAREER</button>
-        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','personal')">PERSONAL</button>
-        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','review')">REVIEW</button>
-        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','general')">GENERAL</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px">
+        <button class="cbtn" style="font-size:8px;padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:1px" onclick="resolveRoute('${id}','career')">
+          <span style="font-weight:700">💼 CAREER</span>
+          <span style="font-size:7px;opacity:.6">Job search · resume</span>
+        </button>
+        <button class="cbtn" style="font-size:8px;padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:1px" onclick="resolveRoute('${id}','personal')">
+          <span style="font-weight:700">🏠 PERSONAL</span>
+          <span style="font-size:7px;opacity:.6">Projects · planning</span>
+        </button>
+        <button class="cbtn" style="font-size:8px;padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:1px" onclick="resolveRoute('${id}','review')">
+          <span style="font-weight:700">🔍 REVIEW</span>
+          <span style="font-size:7px;opacity:.6">Code · security</span>
+        </button>
+        <button class="cbtn" style="font-size:8px;padding:5px 4px;display:flex;flex-direction:column;align-items:center;gap:1px" onclick="resolveRoute('${id}','general')">
+          <span style="font-weight:700">🤖 GENERAL</span>
+          <span style="font-size:7px;opacity:.6">Research · anything</span>
+        </button>
       </div>`;
   } else {
     btns = `
@@ -1116,8 +1147,9 @@ function renderTasks() {
 function submitTask() {
   const inp  = document.getElementById('task-input');
   const text = inp.value.trim();
-  if (!text || S.running) return;
+  if (!text) return;
   inp.value = '';
+  addLine(`[ YOU ] :: ${esc(text)}`, 'you');
   wsSend({ type: 'task', text });
 }
 
@@ -1126,18 +1158,18 @@ function stopTask() {
 }
 
 function quickTask(text) {
-  if (S.running) { addLine('[ JARVIS ] :: A task is already in progress, Sir.', 'warn', true); return; }
   document.getElementById('task-input').value = text;
   submitTask();
 }
 
-function setRunning(v) {
-  S.running = v;
-  document.getElementById('run-led').className   = `led ${v ? 'orange' : ''}`;
-  document.getElementById('run-label').textContent = v ? 'RUNNING' : 'STANDBY';
-  document.getElementById('send-btn').disabled    = v;
-  document.getElementById('q-val').textContent   = v ? '1' : '0';
-  orb.set(v ? 'running' : 'idle');
+function setRunning(v, agent) {
+  if (v && agent) S.activeAgents.add(agent);
+  const anyRunning = S.activeAgents.size > 0;
+  document.getElementById('run-led').className     = `led ${anyRunning ? 'orange' : ''}`;
+  document.getElementById('run-label').textContent = anyRunning ? `RUNNING (${S.activeAgents.size})` : 'STANDBY';
+  // Never disable send — allow parallel task submission
+  document.getElementById('send-btn').disabled = false;
+  orb.set(anyRunning ? 'running' : 'idle');
 }
 
 // ── TOOL SUMMARY ───────────────────────────────────────────────────────
@@ -1191,15 +1223,24 @@ function updateProviderUI(provider) {
 async function poll() {
   try {
     const d = await (await fetch('/api/status')).json();
-    if (!S.running && d.running) setRunning(true);
-    if (S.running && !d.running) setRunning(false);
-    document.getElementById('q-val').textContent = d.queued;
+    document.getElementById('q-val').textContent = d.queued || 0;
     if (d.tasks_done !== undefined) {
       S.taskCount = d.tasks_done;
       document.getElementById('tc-val').textContent = S.taskCount;
     }
     if (d.session_tokens !== undefined) updateUsage(d.session_tokens, d.weekly_tokens);
     if (d.provider) updateProviderUI(d.provider);
+    // Sync per-agent status from server
+    if (d.queued_by_agent) {
+      ['career','personal','review'].forEach(a => {
+        const q = d.queued_by_agent[a] || 0;
+        const el = document.getElementById(`st-${a}`);
+        if (el && !S.activeAgents.has(a)) {
+          el.textContent = q > 0 ? `QUEUED (${q})` : 'IDLE';
+          el.className = 'sval' + (q > 0 ? ' o' : '');
+        }
+      });
+    }
   } catch {}
 }
 setInterval(poll, 6000);
@@ -1221,7 +1262,8 @@ async function fetchHistory() {
 document.getElementById('send-btn').addEventListener('click', submitTask);
 document.getElementById('stop-btn').addEventListener('click', stopTask);
 document.getElementById('task-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitTask(); }
+  // Ctrl+Enter or Cmd+Enter submits; plain Enter adds a new line
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitTask(); }
 });
 document.getElementById('mic-btn').addEventListener('click', () => {
   if (S.listening) stopMic(); else startMic();
@@ -1242,12 +1284,6 @@ updateUsage(0, 0);
 fetchHistory();
 poll();
 wsConnect();
-setTimeout(() => addLine('[ JARVIS ] :: Good day, Sir. All systems operational and standing by.', 'jarvis', true), 900);
-</script>
-</body>
-</html>
->
-, 900);
 </script>
 </body>
 </html>

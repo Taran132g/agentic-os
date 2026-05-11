@@ -515,12 +515,9 @@ actLog("Code Review Agent initialized.");
 async function poll() {
   try {
     const d = await (await fetch('/api/status')).json();
-    if (d.running) {
+    const reviewRunning = (d.running_by_agent?.review) || (d.queued_by_agent?.review > 0);
+    if (reviewRunning) {
         if (!running) setRunning(true);
-        if (d.active_task && d.active_task !== runningTaskName) {
-            runningTaskName = d.active_task;
-            renderGrid();
-        }
     } else if (running) {
         setRunning(false);
     }

@@ -690,11 +690,9 @@ actLog('Career Ops ready. Enter keywords above to begin.');
 async function poll() {
   try {
     const d = await (await fetch('/api/status')).json();
-    setSearching(d.running);
+    const careerRunning = (d.running_by_agent?.career) || (d.queued_by_agent?.career > 0);
+    setSearching(careerRunning);
     if (d.provider) updateProviderUI(d.provider);
-    if (d.running && d.active_task) {
-        // Optional: show active task name in career dashboard if desired
-    }
   } catch {}
 }
 setInterval(poll, 6000);

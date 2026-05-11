@@ -502,12 +502,9 @@ actLog("Personal Task Agent initialized.");
 async function poll() {
   try {
     const d = await (await fetch('/api/status')).json();
-    if (d.running) {
+    const personalRunning = (d.running_by_agent?.personal) || (d.queued_by_agent?.personal > 0);
+    if (personalRunning) {
         if (!running) setRunning(true);
-        if (d.active_task && d.active_task !== runningTaskName) {
-            runningTaskName = d.active_task;
-            renderGrid();
-        }
     } else if (running) {
         setRunning(false);
     }
