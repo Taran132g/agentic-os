@@ -71,14 +71,13 @@ body::after {
   background:linear-gradient(90deg,transparent,var(--c) 20%,var(--c) 80%,transparent);
   opacity:.22;
 }
-
 .jarvis-title {
-  font-family:var(--sans);
-  font-size:19px;
-  font-weight:700;
-  letter-spacing:.32em;
-  color:var(--c);
-  text-shadow:0 0 18px var(--c),0 0 38px rgba(0,210,255,.25);
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.35em;
+  color: var(--c);
+  text-shadow: 0 0 18px var(--c), 0 0 38px rgba(0, 210, 255, 0.25);
   white-space:nowrap;
 }
 
@@ -149,6 +148,31 @@ body::after {
   transition:background .15s;
 }
 .panel:hover{background:var(--panel2)}
+
+.provider-btn {
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  flex: 1;
+  text-transform: uppercase;
+  transition: all .2s;
+}
+.provider-btn:hover {
+  border-color: var(--c);
+  color: var(--c);
+}
+.provider-btn.active {
+  background: rgba(0,210,255,0.1);
+  border-color: var(--c);
+  color: var(--c);
+  box-shadow: 0 0 8px rgba(0,210,255,0.15);
+}
 
 .ptitle {
   font-family:var(--sans);
@@ -231,7 +255,7 @@ body::after {
 }
 
 .orb-label {
-  font-family:var(--sans);font-size:9px;font-weight:700;
+  font-family:var(--sans);font-size:12px;font-weight:700;
   letter-spacing:.42em;text-transform:uppercase;
   color:var(--c);text-shadow:0 0 10px var(--c);
   margin-bottom:8px;
@@ -241,7 +265,7 @@ body::after {
 
 .orb-sub {
   margin-top:7px;
-  font-family:var(--sans);font-size:7.5px;font-weight:500;
+  font-family:var(--sans);font-size:10px;font-weight:500;
   letter-spacing:.2em;color:var(--muted);text-transform:uppercase;
 }
 
@@ -250,12 +274,98 @@ body::after {
 
 .term {
   flex:1;overflow-y:auto;
-  padding:8px 15px 6px;
+  padding:8px 15px 0px;
   display:flex;flex-direction:column;gap:2px;
-  max-height:220px;
 }
 .term::-webkit-scrollbar{width:2px}
-.term::-webkit-scrollbar-thumb{background:rgba(0,210,255,.12)}
+.term::-webkit-scrollbar-thumb{background:rgba(0,210,255,0.12)}
+
+/* ── JARVIS CIRCLE ───────────────────────────────────────────────── */
+.jarvis-container {
+  width: 400px;
+  height: 400px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 5px 0;
+}
+
+.jarvis-circle {
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 210, 255, 0.4);
+  background: rgba(0, 210, 255, 0.05);
+  transition: all 0.5s ease;
+  z-index: 2;
+}
+
+.jarvis-circle::before {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  border-radius: 50%;
+  border: 1px dashed var(--c);
+  opacity: 0.5;
+  animation: rotate 10s linear infinite;
+}
+
+.jarvis-circle::after {
+  content: '';
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  border: 1px solid var(--c);
+  opacity: 0.2;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.jarvis-text {
+  font-family: var(--sans);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--c);
+  text-shadow: 0 0 10px var(--c);
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.1); opacity: 0.4; }
+}
+
+.jarvis-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--c);
+  opacity: 0.3;
+  animation: rotate-reverse 15s linear infinite;
+}
+
+.ring-1 { width: 300px; height: 300px; border-style: dashed; }
+.ring-2 { width: 360px; height: 360px; opacity: 0.1; }
+
+@keyframes rotate-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Status Colors */
+.jarvis-container.idle { --c: #00d4ff; }
+.jarvis-container.listening { --c: #ffb700; }
+.jarvis-container.speaking { --c: #b06eff; }
+.jarvis-container.running { --c: #00ff7f; }
 
 .tline{line-height:1.65;word-break:break-word;animation:fadein .18s ease;font-size:11px}
 @keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
@@ -283,11 +393,11 @@ body::after {
   flex-shrink:0;
   background:rgba(2,6,14,.97);
   border-top:1px solid var(--border);
-  padding:8px 13px 10px;
+  padding:2px 13px 2px;
   display:flex;flex-direction:column;gap:6px;
 }
 
-.cmd-row{display:flex;align-items:center;gap:7px}
+.cmd-row{display:flex;align-items:flex-end;gap:7px}
 
 #task-input {
   flex:1;min-width:0;
@@ -297,6 +407,8 @@ body::after {
   font-family:var(--mono);font-size:11.5px;
   padding:8px 12px;outline:none;border-radius:3px;
   transition:border-color .2s,box-shadow .2s;
+  resize: none;
+  height: 60px;
 }
 #task-input:focus{border-color:var(--c);box-shadow:0 0 12px rgba(0,210,255,.1)}
 #task-input::placeholder{color:var(--muted)}
@@ -332,6 +444,42 @@ body::after {
 .appr-text {font-size:9px;color:var(--text);line-height:1.5;margin-bottom:7px}
 .appr-btns {display:flex;gap:6px}
 
+/* ── VERIFICATION ────────────────────────────────────────────────── */
+.verify-card {
+  padding:12px;
+  background:rgba(0,210,255,0.08);
+  border:1px solid var(--c);
+  border-radius:4px;
+  margin: 8px 15px;
+  animation: glow-border 2s infinite alternate;
+}
+@keyframes glow-border {
+  from { border-color: rgba(0,210,255,0.3); box-shadow: 0 0 5px rgba(0,210,255,0.1); }
+  to { border-color: rgba(0,210,255,1); box-shadow: 0 0 15px rgba(0,210,255,0.3); }
+}
+.verify-title {
+  font-family: var(--sans); font-size: 11px; font-weight: 700; 
+  letter-spacing: .2em; color: var(--c); margin-bottom: 8px;
+  text-transform: uppercase; display: flex; align-items: center; gap: 8px;
+}
+.verify-title::before { content: '◈'; color: var(--c); }
+.verify-body {
+  font-size: 11px; color: var(--bright); line-height: 1.6;
+  margin-bottom: 12px; max-height: 250px; overflow-y: auto;
+  padding: 10px; background: rgba(0,0,0,0.3); border-radius: 2px;
+  border-left: 2px solid var(--c);
+  white-space: pre-wrap;
+}
+.verify-controls { display: flex; flex-direction: column; gap: 8px; }
+.verify-chat-row { display: flex; gap: 6px; }
+.verify-chat-input {
+  flex: 1; background: rgba(0,210,255,0.05); border: 1px solid var(--border);
+  color: var(--bright); font-family: var(--mono); font-size: 10.5px;
+  padding: 6px 10px; border-radius: 2px; outline: none;
+}
+.verify-chat-input:focus { border-color: var(--c); }
+.verify-btn-row { display: flex; gap: 6px; }
+
 /* ── ACTIVITY ────────────────────────────────────────────────────── */
 .activity-item{
   padding:5px 12px;
@@ -360,8 +508,19 @@ body::after {
 .clb-title{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--c);text-transform:uppercase}
 .clb-sub{font-size:8px;color:var(--dim);margin-top:2px;letter-spacing:.05em}
 .clb-arrow{font-size:20px;color:var(--c);opacity:.6;font-family:var(--sans)}
-</style>
-</head>
+
+.agent-link {
+  text-decoration: none;
+  display: block;
+  transition: background 0.15s;
+  padding: 2px 4px;
+  margin: 0 -4px;
+  border-radius: 2px;
+}
+.agent-link:hover {
+  background: rgba(0, 210, 255, 0.08);
+}
+</style></head>
 <body>
 
 <!-- TOP BAR -->
@@ -392,11 +551,31 @@ body::after {
     </div>
 
     <div class="panel">
+      <div class="ptitle">Active Agents</div>
+      <a href="/career" class="agent-link">
+        <div class="srow"><span class="slabel">Career Ops</span><span class="sval" id="st-career">IDLE</span></div>
+      </a>
+      <a href="/personal" class="agent-link">
+        <div class="srow"><span class="slabel">Personal</span><span class="sval" id="st-personal">IDLE</span></div>
+      </a>
+      <a href="/review" class="agent-link">
+        <div class="srow"><span class="slabel">Code Review</span><span class="sval" id="st-review">IDLE</span></div>
+      </a>
+    </div>
+
+    <div class="panel">
       <div class="ptitle">Usage</div>
       <div class="srow"><span class="slabel">Session Left</span><span class="sval dim" id="usage-sess-val">—</span></div>
       <div class="bar"><div class="bar-fill" id="usage-sess-bar" style="width:100%"></div></div>
       <div class="srow" style="margin-top:6px"><span class="slabel">Week Left</span><span class="sval dim" id="usage-week-val">—</span></div>
       <div class="bar"><div class="bar-fill" id="usage-week-bar" style="width:100%"></div></div>
+
+      <div class="ptitle" style="margin-top:16px; border-top: 1px solid #333; padding-top: 12px;">LLM Provider</div>
+      <div style="display: flex; gap: 4px; margin-top: 8px;">
+        <button id="btn-prov-auto" class="provider-btn active" onclick="setProvider('auto')">Auto</button>
+        <button id="btn-prov-claude" class="provider-btn" onclick="setProvider('claude')">Claude</button>
+        <button id="btn-prov-gemini" class="provider-btn" onclick="setProvider('gemini')">Gemini</button>
+      </div>
     </div>
 
     <div class="panel">
@@ -405,14 +584,6 @@ body::after {
       <div class="srow"><span class="slabel">Voice</span><span class="sval dim" id="tts-voice" style="font-size:9px">—</span></div>
       <div class="srow"><span class="slabel">SR Engine</span><span class="sval" id="sr-st">—</span></div>
       <div class="bar"><div class="bar-fill" id="task-bar" style="width:0%"></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="ptitle">Quick Fire</div>
-      <button class="qbtn" onclick="quickTask('Check my vault index and tell me what pages need updating, are missing links, or are stale.')">◈ Vault Check</button>
-      <button class="qbtn" onclick="quickTask('Look at my summer goals and to-do list, then tell me the single highest-priority item to tackle right now and why.')">★ Top Priority</button>
-      <button class="qbtn" onclick="quickTask('Search for open AI engineering or software engineering internships for summer 2026. Summarize the top 5 with company, role, and how to apply.')">◎ Internships</button>
-      <button class="qbtn" onclick="quickTask('What is the current status of my agentic OS project, what phase are we in, and what should I build next?')">⬡ Project Status</button>
     </div>
 
     <div class="panel" style="flex:1;overflow:hidden;padding:0;display:flex;flex-direction:column">
@@ -429,7 +600,13 @@ body::after {
 
     <div class="orb-section">
       <div class="orb-label" id="orb-label">STANDBY</div>
-      <canvas id="orb-canvas" width="260" height="260"></canvas>
+      <div id="jarvis-container" class="jarvis-container idle">
+        <div class="jarvis-ring ring-1"></div>
+        <div class="jarvis-ring ring-2"></div>
+        <div class="jarvis-circle">
+          <span class="jarvis-text">JARVIS</span>
+        </div>
+      </div>
       <div class="orb-sub">JUST · A · RATHER · VERY · INTELLIGENT · SYSTEM</div>
     </div>
 
@@ -437,24 +614,30 @@ body::after {
       <div class="term" id="term"></div>
     </div>
 
+    <div class="cmd-bar">
+      <div class="cmd-row">
+        <textarea id="task-input" placeholder="[ Speak or type a command... ]" autocomplete="off"></textarea>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <button class="cbtn primary" id="send-btn">SEND</button>
+          <button class="cbtn danger" id="stop-btn">STOP</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <button class="cbtn" id="mic-btn">⬤ MIC</button>
+          <button class="cbtn tts-on" id="tts-btn">TTS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Auth -->
+    <div class="panel" style="border-top:1px solid var(--border); border-bottom:none">
+      <div class="ptitle">Pending Auth</div>
+      <div id="appr-list"></div>
+      <div id="no-appr" style="font-size:9px;color:var(--muted)">None pending.</div>
+    </div>
+
     <div class="wave-row">
       <span class="wave-label">Audio Input</span>
       <canvas id="wave-canvas"></canvas>
-    </div>
-
-    <div class="cmd-bar">
-      <div class="cmd-row">
-        <input id="task-input" type="text" placeholder="[ Speak or type a command... ]" autocomplete="off">
-        <button class="cbtn primary" id="send-btn">SEND</button>
-        <button class="cbtn" id="mic-btn">⬤ MIC</button>
-        <button class="cbtn tts-on" id="tts-btn">TTS</button>
-      </div>
-      <div class="action-row">
-        <button class="cbtn" onclick="quickTask('Check my vault index and tell me what pages need updating.')">VAULT</button>
-        <button class="cbtn" onclick="quickTask('Search for open AI engineering internships for summer 2026. Summarize the top 5.')">INTERNSHIPS</button>
-        <button class="cbtn" onclick="quickTask('What is the current status of the agentic OS project and what should I build next?')">STATUS</button>
-        <button class="cbtn" onclick="quickTask('Summarize my summer to-do list and tell me the single highest priority item right now.')">PRIORITIES</button>
-      </div>
     </div>
 
   </div>
@@ -474,11 +657,28 @@ body::after {
       </a>
     </div>
 
-    <!-- Pending Auth -->
+    <!-- Personal Projects Launch -->
     <div class="panel">
-      <div class="ptitle">Pending Auth</div>
-      <div id="appr-list"></div>
-      <div id="no-appr" style="font-size:9px;color:var(--muted)">None pending.</div>
+      <div class="ptitle">Personal Tasks</div>
+      <a href="/personal" class="career-launch" style="background:rgba(176,110,255,0.04); border-color:rgba(176,110,255,0.14)">
+        <div class="clb-content">
+          <div class="clb-title" style="color:var(--p)">PERSONAL TASKS</div>
+          <div class="clb-sub">Project scan · status reports · next steps</div>
+        </div>
+        <span class="clb-arrow" style="color:var(--p)">›</span>
+      </a>
+    </div>
+
+    <!-- Code Review Launch -->
+    <div class="panel">
+      <div class="ptitle">Code Review</div>
+      <a href="/review" class="career-launch" style="background:rgba(0,255,127,0.04); border-color:rgba(0,255,127,0.14)">
+        <div class="clb-left">
+          <div class="clb-title" style="color:var(--g)">CODE REVIEW</div>
+          <div class="clb-sub">Logic review · security check · diff analysis</div>
+        </div>
+        <span class="clb-arrow" style="color:var(--g)">›</span>
+      </a>
     </div>
 
     <!-- Voice Config -->
@@ -500,7 +700,6 @@ body::after {
   </div>
 </div>
 
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 <script>
 // ── STATE ─────────────────────────────────────────────────────────────
 const S = {
@@ -521,116 +720,19 @@ setInterval(() => {
     `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
 }, 1000);
 
-// ── THREE.JS ORB ───────────────────────────────────────────────────────
+// ── JARVIS CIRCLE CONTROLLER ───────────────────────────────────────────
 const orb = (() => {
-  const canvas = document.getElementById('orb-canvas');
-  const lbl    = document.getElementById('orb-label');
-  let mode = 'idle';
+  const container = document.getElementById('jarvis-container');
+  const lbl       = document.getElementById('orb-label');
+  const LABELS    = { idle: 'STANDBY', listening: 'LISTENING', speaking: 'SPEAKING', running: 'PROCESSING' };
 
-  const COLORS = { idle: 0x00d4ff, listening: 0xffb700, speaking: 0xb06eff, running: 0x00ff7f };
-  const LABELS = { idle: 'STANDBY', listening: 'LISTENING', speaking: 'SPEAKING', running: 'PROCESSING' };
-
-  if (typeof THREE !== 'undefined') {
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setSize(260, 260);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
-
-    const scene  = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 100);
-    camera.position.z = 2.9;
-
-    // Fibonacci-lattice particle sphere
-    const COUNT = 440;
-    const pos   = new Float32Array(COUNT * 3);
-    const PHI   = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < COUNT; i++) {
-      const y = 1 - (i / (COUNT - 1)) * 2;
-      const r = Math.sqrt(1 - y * y);
-      const t = PHI * i;
-      pos[i*3]   = Math.cos(t) * r;
-      pos[i*3+1] = y;
-      pos[i*3+2] = Math.sin(t) * r;
+  return {
+    set(m) {
+      if (!container) return;
+      container.className = `jarvis-container ${m}`;
+      lbl.textContent = LABELS[m] || 'STANDBY';
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-
-    const mat = new THREE.PointsMaterial({
-      size: 0.033, color: COLORS.idle,
-      transparent: true, opacity: 0.78, sizeAttenuation: true,
-    });
-    const pts = new THREE.Points(geo, mat);
-    scene.add(pts);
-
-    // Glow shell
-    const glowGeo = new THREE.SphereGeometry(0.9, 32, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: COLORS.idle, transparent: true, opacity: 0.028, side: THREE.BackSide,
-    });
-    scene.add(new THREE.Mesh(glowGeo, glowMat));
-
-    // Equatorial ring
-    const ringGeo = new THREE.TorusGeometry(1.05, 0.005, 8, 80);
-    const ringMat = new THREE.MeshBasicMaterial({ color: COLORS.idle, transparent: true, opacity: 0.18 });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = Math.PI / 2.2;
-    scene.add(ring);
-
-    let frame = 0;
-    const tgt = new THREE.Color(COLORS.idle);
-    const cur = new THREE.Color(COLORS.idle);
-
-    (function animate() {
-      requestAnimationFrame(animate);
-      frame++;
-
-      cur.lerp(tgt, 0.05);
-      mat.color.copy(cur);
-      glowMat.color.copy(cur);
-      ringMat.color.copy(cur);
-
-      const speed = mode === 'idle' ? 0.0032 : 0.009;
-      pts.rotation.y += speed;
-      pts.rotation.x  = Math.sin(frame * 0.007) * 0.14;
-      ring.rotation.y += speed * 0.6;
-
-      const amp = mode === 'idle' ? 0.022 : 0.045;
-      const freq = mode === 'idle' ? 0.04 : 0.1;
-      const pulse = 1 + Math.sin(frame * freq) * amp;
-      pts.scale.setScalar(pulse);
-
-      mat.opacity = 0.62 + Math.sin(frame * 0.05) * 0.16;
-      glowMat.opacity = 0.022 + Math.sin(frame * 0.04) * 0.012;
-      ringMat.opacity = 0.14 + Math.sin(frame * 0.06) * 0.06;
-
-      renderer.render(scene, camera);
-    })();
-
-    return {
-      set(m) {
-        mode = m;
-        lbl.textContent = LABELS[m] || 'STANDBY';
-        tgt.setHex(COLORS[m] || COLORS.idle);
-      }
-    };
-  }
-
-  // ── Canvas 2D fallback ──
-  const ctx = canvas.getContext('2d');
-  const C2D = { idle:'#00d4ff', listening:'#ffb700', speaking:'#b06eff', running:'#00ff7f' };
-  let f2 = 0, col = C2D.idle;
-  (function draw() {
-    requestAnimationFrame(draw);
-    const w = canvas.width, h = canvas.height, cx = w/2, cy = h/2;
-    ctx.clearRect(0, 0, w, h);
-    const r = 34 + Math.sin(f2 * 0.045) * 4.5;
-    const g = ctx.createRadialGradient(cx-9, cy-9, 0, cx, cy, r);
-    g.addColorStop(0, '#fff'); g.addColorStop(.3, col); g.addColorStop(1, col + '30');
-    ctx.shadowColor = col; ctx.shadowBlur = 24;
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0; f2++;
-  })();
-  return { set(m) { mode = m; lbl.textContent = LABELS[m] || 'STANDBY'; col = C2D[m] || C2D.idle; } };
+  };
 })();
 
 // ── WAVEFORM ───────────────────────────────────────────────────────────
@@ -790,7 +892,7 @@ function wsConnect() {
     document.getElementById('conn-badge').className = 'hud-badge on';
     document.getElementById('sys-st').textContent = 'ONLINE';
     document.getElementById('sys-st').className = 'sval g';
-    addLine('[ JARVIS ] :: Connection established. All systems nominal, Sir.', 'jarvis', true);
+    addLine('[ JARVIS ] :: Welcome Taran. How\'s it going? What do you want to work on today?', 'jarvis', true);
   };
   ws.onclose = () => {
     document.getElementById('conn-badge').textContent = 'OFFLINE';
@@ -805,8 +907,50 @@ function wsConnect() {
 function wsSend(obj) { if (ws?.readyState === 1) ws.send(JSON.stringify(obj)); }
 
 // ── EVENTS ─────────────────────────────────────────────────────────────
+function updateAgentStatus(agent, status, active) {
+  const el = document.getElementById(`st-${agent}`);
+  if (!el) return;
+  el.textContent = status.toUpperCase();
+  el.className = 'sval' + (active ? ' o' : '');
+}
+
 function handleEvent(ev) {
   const t = ev.type;
+
+  // Agent Activity in Terminal
+  if (t.endsWith('_activity')) {
+    addLine(`[ WORKFLOW ] :: ${ev.text}`, 'system');
+  }
+
+  // Agent Status Updates
+  if (t.startsWith('career_')) {
+    if (t === 'career_stage') {
+      updateAgentStatus('career', ev.stage, true);
+      if (ev.stage === 'review') {
+        addLine('[ JARVIS ] :: Career workflow complete, Sir. Application ready for review.', 'jarvis', true);
+      }
+    }
+    if (t === 'career_error') updateAgentStatus('career', 'ERROR', false);
+  }
+  if (t.startsWith('personal_')) {
+    if (t === 'personal_stage') {
+      updateAgentStatus('personal', ev.stage, true);
+      if (ev.stage === 'report') {
+        addLine('[ JARVIS ] :: Personal task workflow complete, Sir. Plan saved to vault.', 'jarvis', true);
+      }
+    }
+    if (t === 'personal_error') updateAgentStatus('personal', 'ERROR', false);
+  }
+  if (t.startsWith('review_')) {
+    if (t === 'review_stage') updateAgentStatus('review', ev.stage, true);
+    if (t === 'review_error' || t === 'review_complete') {
+      updateAgentStatus('review', t === 'review_complete' ? 'DONE' : 'ERROR', false);
+      if (t === 'review_complete') {
+        addLine('[ JARVIS ] :: Code review complete, Sir. Analysis ready.', 'jarvis', true);
+      }
+    }
+  }
+
   if (t === 'task_queued') {
     addLine(`[ YOU ] :: ${ev.text}`, 'you');
     addTaskItem(ev.text, 'running');
@@ -814,22 +958,35 @@ function handleEvent(ev) {
   } else if (t === 'task_started') {
     orb.set('running');
     addLine('[ JARVIS ] :: Understood, Sir. Initiating task sequence.', 'jarvis', true);
+  } else if (t === 'task_progress') {
+    document.getElementById('task-bar').style.width = `${ev.percentage}%`;
+    document.getElementById('orb-label').textContent = `${ev.percentage}%`;
+    if (ev.title) {
+        addLine(`[ PROGRESS ] :: ${ev.title}`, 'system');
+        if (ev.summary) addLine(`${ev.summary}`, 'system');
+    }
+  } else if (t === 'task_verification_required') {
+    showVerification(ev.id, ev.text, ev.prompt);
   } else if (t === 'task_done') {
     setRunning(false);
+    document.getElementById('task-bar').style.width = `100%`;
+    document.getElementById('orb-label').textContent = `100%`;
     const msg = (ev.text || 'Task complete.').slice(0, 800);
     addLine(`[ JARVIS ] :: ${msg}`, 'jarvis', !S.streamedContent);
     S.taskCount++;
     document.getElementById('tc-val').textContent = S.taskCount;
     document.getElementById('task-bar').style.width = `${Math.min(S.taskCount * 8, 100)}%`;
     updateLastTask('done');
+    clearVerification(ev.id);
   } else if (t === 'task_error') {
     setRunning(false);
     addLine(`[ ERROR ] :: ${ev.text}`, 'error', true);
     updateLastTask('error');
+    if (ev.id) clearVerification(ev.id);
   } else if (t === 'approval_request') {
     addLine('[ JARVIS ] :: Authorization required before proceeding, Sir.', 'warn', true);
-    showApproval(ev.id, ev.text);
-  } else if (t === 'approved') {
+    showApproval(ev.id, ev.text, ev.action);
+  } else if (t === 'approved' || t === 'routed') {
     addLine('[ SYSTEM ] :: Authorized. Continuing operation.', 'system');
     clearApproval(ev.id); orb.set('running');
   } else if (t === 'denied') {
@@ -848,21 +1005,41 @@ function handleEvent(ev) {
     addLine(`[ EXEC ] :: ${ev.name} → ${toolSummary(ev.name, ev.input || {})}`, 'tool');
   } else if (t === 'usage_update') {
     updateUsage(ev.session_tokens, ev.weekly_tokens);
+  } else if (t === 'provider_updated') {
+    updateProviderUI(ev.provider);
   }
 }
 
 // ── APPROVAL ───────────────────────────────────────────────────────────
-function showApproval(id, text) {
+function showApproval(id, text, action = 'approve') {
   document.getElementById('no-appr').style.display = 'none';
   const c = document.createElement('div');
   c.className = 'appr-card'; c.id = `ap-${id}`;
+  
+  let btns = '';
+  if (action === 'route') {
+    btns = `
+      <div class="appr-btns" style="flex-wrap: wrap; gap: 4px;">
+        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','career')">CAREER</button>
+        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','personal')">PERSONAL</button>
+        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','review')">REVIEW</button>
+        <button class="cbtn" style="font-size:8px;padding:4px 8px;flex:1 1 40%" onclick="resolveRoute('${id}','general')">GENERAL</button>
+      </div>`;
+  } else {
+    btns = `
+      <div class="appr-btns">
+        <button class="cbtn tts-on" style="font-size:8px;padding:4px 10px;flex:1" onclick="resolveAppr('${id}',true)">APPROVE</button>
+        <button class="cbtn danger"  style="font-size:8px;padding:4px 10px;flex:1" onclick="resolveAppr('${id}',false)">DENY</button>
+      </div>`;
+  }
+
+  const title = action === 'route' ? 'TASK ROUTING' : 'AUTHORIZATION REQUIRED';
+  const icon = action === 'route' ? '🚀' : '⚠';
+
   c.innerHTML = `
-    <div class="appr-title">⚠ AUTHORIZATION REQUIRED</div>
+    <div class="appr-title">${icon} ${title}</div>
     <div class="appr-text">${esc(text.slice(0,200))}</div>
-    <div class="appr-btns">
-      <button class="cbtn tts-on" style="font-size:8px;padding:4px 10px" onclick="resolveAppr('${id}',true)">APPROVE</button>
-      <button class="cbtn danger"  style="font-size:8px;padding:4px 10px" onclick="resolveAppr('${id}',false)">DENY</button>
-    </div>`;
+    ${btns}`;
   document.getElementById('appr-list').appendChild(c);
   document.getElementById('ap-cnt').textContent = document.getElementById('appr-list').children.length;
   document.getElementById('ap-cnt').className = 'sval o';
@@ -875,6 +1052,53 @@ function clearApproval(id) {
   if (!n) document.getElementById('no-appr').style.display = '';
 }
 function resolveAppr(id, ok) { wsSend({ type: ok ? 'approve' : 'deny', id }); }
+function resolveRoute(id, choice) { wsSend({ type: 'route', id, choice }); }
+
+// ── VERIFICATION ───────────────────────────────────────────────────────
+function showVerification(id, text, prompt) {
+  // Clear any existing verification cards
+  const existing = document.getElementById(`v-${id}`);
+  if (existing) existing.remove();
+  
+  const term = document.getElementById('term');
+  const c = document.createElement('div');
+  c.className = 'verify-card'; c.id = `v-${id}`;
+  
+  c.innerHTML = `
+    <div class="verify-title">Task Verification Required</div>
+    <div class="verify-body">${esc(text)}</div>
+    <div class="verify-controls">
+      <div class="verify-chat-row">
+        <input type="text" class="verify-chat-input" id="vi-${id}" placeholder="Type follow-up or changes..." onkeydown="if(event.key==='Enter') resolveInteract('${id}','followup')">
+        <button class="cbtn primary" style="font-size:8px;padding:4px 8px" onclick="resolveInteract('${id}','followup')">SEND</button>
+      </div>
+      <div class="verify-btn-row">
+        <button class="cbtn tts-on" style="font-size:9px;padding:6px 12px;flex:1" onclick="resolveInteract('${id}','complete')">COMPLETE TASK</button>
+      </div>
+    </div>`;
+  
+  term.appendChild(c);
+  term.scrollTop = 9e9;
+  orb.set('listening');
+  addLine('[ JARVIS ] :: Task sequence complete. Awaiting your verification, Sir.', 'jarvis', true);
+}
+
+function clearVerification(id) {
+  document.getElementById(`v-${id}`)?.remove();
+}
+
+function resolveInteract(id, action) {
+  const inp = document.getElementById(`vi-${id}`);
+  const text = inp ? inp.value.trim() : '';
+  if (action === 'followup' && !text) return;
+  
+  wsSend({ type: 'task_interact', id, action, text });
+  if (action === 'followup') {
+      addLine(`[ YOU ] :: ${text}`, 'you');
+      if (inp) inp.value = '';
+      orb.set('running');
+  }
+}
 
 // ── TASK LIST ──────────────────────────────────────────────────────────
 function addTaskItem(text, status) {
@@ -895,6 +1119,10 @@ function submitTask() {
   if (!text || S.running) return;
   inp.value = '';
   wsSend({ type: 'task', text });
+}
+
+function stopTask() {
+  wsSend({ type: 'stop' });
 }
 
 function quickTask(text) {
@@ -920,6 +1148,7 @@ function toolSummary(name, input) {
   if (name === 'Edit')      return `edit → ${input.file_path || ''}`;
   if (name === 'WebSearch') return `search: "${input.query || ''}"`;
   if (name === 'WebFetch')  return (input.url || '').slice(0, 60);
+  if (name === 'update_topic') return `Topic: ${input.title || ''}`;
   return JSON.stringify(input).slice(0, 60);
 }
 
@@ -948,6 +1177,16 @@ function updateUsage(sessionTokens, weeklyTokens) {
   setBar('usage-week-bar', 'usage-week-val', weeklyTokens, WEEK_LIMIT);
 }
 
+function setProvider(provider) {
+  wsSend({ type: 'set_provider', provider: provider });
+  updateProviderUI(provider);
+}
+
+function updateProviderUI(provider) {
+  document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`btn-prov-${provider}`)?.classList.add('active');
+}
+
 // ── STATUS POLL ────────────────────────────────────────────────────────
 async function poll() {
   try {
@@ -955,13 +1194,32 @@ async function poll() {
     if (!S.running && d.running) setRunning(true);
     if (S.running && !d.running) setRunning(false);
     document.getElementById('q-val').textContent = d.queued;
+    if (d.tasks_done !== undefined) {
+      S.taskCount = d.tasks_done;
+      document.getElementById('tc-val').textContent = S.taskCount;
+    }
     if (d.session_tokens !== undefined) updateUsage(d.session_tokens, d.weekly_tokens);
+    if (d.provider) updateProviderUI(d.provider);
   } catch {}
 }
 setInterval(poll, 6000);
 
+async function fetchHistory() {
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    if (data.history && data.history.length) {
+      S.tasks = data.history;
+      renderTasks();
+    }
+  } catch (err) {
+    console.error('Failed to fetch history:', err);
+  }
+}
+
 // ── CONTROLS ───────────────────────────────────────────────────────────
 document.getElementById('send-btn').addEventListener('click', submitTask);
+document.getElementById('stop-btn').addEventListener('click', stopTask);
 document.getElementById('task-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitTask(); }
 });
@@ -981,9 +1239,15 @@ document.getElementById('tts-btn').addEventListener('click', () => {
 // ── BOOT ───────────────────────────────────────────────────────────────
 initSR();
 updateUsage(0, 0);
+fetchHistory();
 poll();
 wsConnect();
 setTimeout(() => addLine('[ JARVIS ] :: Good day, Sir. All systems operational and standing by.', 'jarvis', true), 900);
+</script>
+</body>
+</html>
+>
+, 900);
 </script>
 </body>
 </html>

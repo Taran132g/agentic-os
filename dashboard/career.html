@@ -74,6 +74,13 @@ body::after {
 .status-pill.live{border-color:var(--o);color:var(--o);animation:blink .8s infinite}
 .status-pill.ready{border-color:var(--g);color:var(--g)}
 .top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.provider-group { display:flex; gap:3px; background:rgba(0,0,0,.2); padding:2px; border-radius:3px; border:1px solid var(--muted); }
+.provider-btn {
+  font-family:var(--sans); font-size:8px; font-weight:700; letter-spacing:.1em;
+  color:var(--dim); padding:3px 8px; border-radius:2px; cursor:pointer; text-transform:uppercase; transition:all .15s;
+}
+.provider-btn:hover { color:var(--c); }
+.provider-btn.active { background:rgba(0,210,255,.12); color:var(--c); text-shadow:0 0 5px var(--c); }
 .stat-chip{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--dim);display:flex;align-items:center;gap:4px}
 .stat-n{font-size:11px;color:var(--c)}
 
@@ -349,6 +356,11 @@ body::after {
   <span class="page-title">CAREER OPS</span>
   <span class="status-pill" id="status-pill">STANDBY</span>
   <div class="top-right">
+    <div class="provider-group" style="margin-right:10px">
+      <div id="btn-prov-auto" class="provider-btn active" onclick="setProvider('auto')">Auto</div>
+      <div id="btn-prov-claude" class="provider-btn" onclick="setProvider('claude')">Claude</div>
+      <div id="btn-prov-gemini" class="provider-btn" onclick="setProvider('gemini')">Gemini</div>
+    </div>
     <div class="stat-chip">Found <span class="stat-n" id="sn-found">0</span></div>
     <div class="stat-chip">Tailored <span class="stat-n" id="sn-tailored">0</span></div>
     <div class="stat-chip" style="color:var(--g)">Ready <span class="stat-n" id="sn-ready">0</span></div>
@@ -365,95 +377,46 @@ body::after {
   <button class="sbtn stop"   id="btn-stop"   onclick="stopSearch()">■ STOP</button>
 </div>
 
-<!-- PIPELINE SECTION -->
+<!-- PIPELINE -->
 <div class="pipeline-section">
-  <div class="pipeline-label">Agent Pipeline — How It Works</div>
+  <div class="pipeline-label">Operation Pipeline</div>
   <div class="pipeline-row">
-
-    <!-- SCOUT -->
-    <div class="agent-card scout" id="node-scout">
-      <div class="ac-header">
-        <div class="ac-icon">◈</div>
-        <div class="ac-name">Scout</div>
-      </div>
-      <div class="ac-desc">Searches 50+ job boards &amp; company careers pages. Scores each listing against your resume profile.</div>
-      <div class="ac-io">
-        <div class="ac-in">keywords + resume</div>
-        <div class="ac-out">ranked job list</div>
-      </div>
-      <div class="ac-badge" id="badge-scout">Idle</div>
+    <div class="agent-card scout" id="stage-search">
+      <div class="ac-header"><div class="ac-icon">🔍</div><div class="ac-name">Search</div></div>
+      <div class="ac-desc">Claude finds matching opportunities</div>
+      <div class="ac-badge">Scout Agent</div>
     </div>
-
-    <div class="connector-wrap">
-      <div class="conn-line" id="conn-1"></div>
-      <div class="conn-arrow">›</div>
+    <div class="connector-wrap"><div class="conn-line" id="conn-search"></div></div>
+    <div class="agent-card tailor" id="stage-tailor">
+      <div class="ac-header"><div class="ac-icon">📝</div><div class="ac-name">Tailor</div></div>
+      <div class="ac-desc">Optimizing resume & cover hook</div>
+      <div class="ac-badge">Tailor Agent</div>
     </div>
-
-    <!-- TAILOR -->
-    <div class="agent-card tailor" id="node-tailor">
-      <div class="ac-header">
-        <div class="ac-icon">✦</div>
-        <div class="ac-name">Tailor</div>
-      </div>
-      <div class="ac-desc">Rewrites your resume bullets using the JD's exact language. Never invents — only reframes real experience.</div>
-      <div class="ac-io">
-        <div class="ac-in">resume + job description</div>
-        <div class="ac-out">diff + cover hook</div>
-      </div>
-      <div class="ac-badge" id="badge-tailor">Idle</div>
+    <div class="connector-wrap"><div class="conn-line" id="conn-tailor"></div></div>
+    <div class="agent-card apply" id="stage-fill">
+      <div class="ac-header"><div class="ac-icon">🤖</div><div class="ac-name">Autofill</div></div>
+      <div class="ac-desc">Playwright staging application</div>
+      <div class="ac-badge">Apply Agent</div>
     </div>
-
-    <div class="connector-wrap">
-      <div class="conn-line" id="conn-2"></div>
-      <div class="conn-arrow">›</div>
+    <div class="connector-wrap"><div class="conn-line" id="conn-fill"></div></div>
+    <div class="agent-card review" id="stage-review">
+      <div class="ac-header"><div class="ac-icon">👁</div><div class="ac-name">Review</div></div>
+      <div class="ac-desc">Final manual check & submit</div>
+      <div class="ac-badge">Manual Review</div>
     </div>
-
-    <!-- APPLY -->
-    <div class="agent-card apply" id="node-apply">
-      <div class="ac-header">
-        <div class="ac-icon">⬡</div>
-        <div class="ac-name">Apply</div>
-      </div>
-      <div class="ac-desc">Opens Chromium on your screen, navigates the application form, fills 10+ fields. Stops before Submit.</div>
-      <div class="ac-io">
-        <div class="ac-in">contact info + URL</div>
-        <div class="ac-out">filled form + screenshot</div>
-      </div>
-      <div class="ac-badge" id="badge-apply">Idle</div>
-    </div>
-
-    <div class="connector-wrap">
-      <div class="conn-line" id="conn-3"></div>
-      <div class="conn-arrow">›</div>
-    </div>
-
-    <!-- REVIEW -->
-    <div class="agent-card review" id="node-review">
-      <div class="ac-header">
-        <div class="ac-icon">★</div>
-        <div class="ac-name">Review</div>
-      </div>
-      <div class="ac-desc">Browser stays open on your screen. Sends you a Telegram notification with screenshot. You click Submit.</div>
-      <div class="ac-io">
-        <div class="ac-in">filled browser tab</div>
-        <div class="ac-out">your submission</div>
-      </div>
-      <div class="ac-badge" id="badge-review">Idle</div>
-    </div>
-
   </div>
 </div>
 
 <!-- MAIN CONTENT -->
-<div class="main-content">
+<div class="main-content" style="padding-top: 10px;">
 
   <!-- JOB GRID -->
-  <div class="jobs-pane">
+  <div class="jobs-pane" style="width: 40%; border-right: 1px solid var(--border);">
     <div class="pane-hdr">
       <div class="pane-title">Job Results</div>
       <div class="job-count" id="job-count">0 jobs</div>
     </div>
-    <div class="jobs-grid" id="jobs-grid">
+    <div class="jobs-grid" id="jobs-grid" style="grid-template-columns: 1fr;">
       <div class="jobs-empty">
         <div class="empty-icon">◎</div>
         <div class="empty-txt">Enter keywords above and launch a search</div>
@@ -479,10 +442,10 @@ body::after {
 <!-- ACTIVITY BAR -->
 <div class="act-bar">
   <div class="act-hdr">
-    <div class="act-title">Live Activity</div>
+    <div class="act-title">Activity Feed</div>
     <div class="act-led" id="act-led"></div>
   </div>
-  <div class="act-scroll" id="act-log"></div>
+  <div class="act-scroll" id="act-scroll"></div>
 </div>
 
 <script>
@@ -493,53 +456,51 @@ function ts(){ return new Date().toLocaleTimeString('en-US',{hour12:true,hour:'2
 
 // ── ACTIVITY ──────────────────────────────────────────────────────
 function actLog(text, cls='') {
-  const log = document.getElementById('act-log');
-  const el  = document.createElement('div');
-  el.className = 'act-line' + (cls ? ' '+cls : '');
-  el.textContent = `[${ts()}]  ${text}`;
-  log.appendChild(el);
-  log.scrollTop = 9e9;
-  while (log.children.length > 300) log.removeChild(log.firstChild);
+  const scroll = document.getElementById('act-scroll');
+  if (!scroll) { console.log(text); return; }
+  const line = document.createElement('div');
+  line.className = 'act-line ' + cls;
+  line.innerHTML = `<span style="opacity:.3">[${ts()}]</span> ${text}`;
+  scroll.prepend(line);
 }
 
 // ── PIPELINE ──────────────────────────────────────────────────────
-const ORDER    = ['scout','tailor','apply','review'];
-const STAGE_TO = {search:'scout',tailor:'tailor',fill:'apply',review:'review'};
-
-function setNode(id, state) {
-  const el = document.getElementById(`node-${id}`);
-  const bd = document.getElementById(`badge-${id}`);
-  if (!el || !bd) return;
-  // reset classes then add type + state
-  const type = id; // scout | tailor | apply | review
-  el.className = `agent-card ${type}` + (state ? ` ${state}` : '');
-  bd.textContent = state === 'active' ? 'Active' : state === 'done' ? 'Done ✓' : 'Idle';
-}
-
-function setConn(id, state) {
-  const el = document.getElementById(`conn-${id}`);
-  if (!el) return;
-  el.className = 'conn-line' + (state ? ` ${state}` : '');
-}
-
 function setPipelineStage(stage) {
-  const nodeId = STAGE_TO[stage] || stage;
-  const idx = ORDER.indexOf(nodeId);
-  ORDER.forEach((n,i) => {
-    setNode(n, i < idx ? 'done' : i === idx ? 'active' : '');
-  });
-  ['1','2','3'].forEach((c,i) => {
-    setConn(c, i < idx-1 ? 'done-line' : i === idx-1 ? 'flowing' : '');
+  const stages = ['search', 'tailor', 'fill', 'review'];
+  stages.forEach(s => {
+    const el = document.getElementById(`stage-${s}`);
+    const conn = document.getElementById(`conn-${s}`);
+    if (!el) return;
+    
+    el.classList.remove('active', 'done');
+    if (conn) conn.classList.remove('flowing', 'done-line');
+    
+    if (s === stage) {
+      el.classList.add('active');
+      if (conn) conn.classList.add('flowing');
+    } else if (stages.indexOf(s) < stages.indexOf(stage)) {
+      el.classList.add('done');
+      if (conn) conn.classList.add('done-line');
+    }
   });
 }
-
 function completePipeline() {
-  ORDER.forEach(n => setNode(n,'done'));
-  ['1','2','3'].forEach(c => setConn(c,'done-line'));
+  const stages = ['search', 'tailor', 'fill', 'review'];
+  stages.forEach(s => {
+    const el = document.getElementById(`stage-${s}`);
+    const conn = document.getElementById(`conn-${s}`);
+    if (el) { el.classList.remove('active'); el.classList.add('done'); }
+    if (conn) { conn.classList.remove('flowing'); conn.classList.add('done-line'); }
+  });
 }
 function resetPipeline() {
-  ORDER.forEach(n => setNode(n,''));
-  ['1','2','3'].forEach(c => setConn(c,''));
+  const stages = ['search', 'tailor', 'fill', 'review'];
+  stages.forEach(s => {
+    const el = document.getElementById(`stage-${s}`);
+    const conn = document.getElementById(`conn-${s}`);
+    if (el) el.classList.remove('active', 'done');
+    if (conn) conn.classList.remove('flowing', 'done-line');
+  });
 }
 
 // ── SEARCH CONTROL ────────────────────────────────────────────────
@@ -677,6 +638,10 @@ function wsSend(obj) { if (ws?.readyState===1) ws.send(JSON.stringify(obj)); }
 // ── EVENTS ────────────────────────────────────────────────────────
 function handleEvent(ev) {
   const t = ev.type;
+  if (t === 'provider_updated') {
+    updateProviderUI(ev.provider);
+    return;
+  }
   if (!t.startsWith('career_')) return;
 
   if (t === 'career_stage') {
@@ -721,6 +686,29 @@ function handleEvent(ev) {
 // ── BOOT ──────────────────────────────────────────────────────────
 wsConnect();
 actLog('Career Ops ready. Enter keywords above to begin.');
+
+async function poll() {
+  try {
+    const d = await (await fetch('/api/status')).json();
+    setSearching(d.running);
+    if (d.provider) updateProviderUI(d.provider);
+    if (d.running && d.active_task) {
+        // Optional: show active task name in career dashboard if desired
+    }
+  } catch {}
+}
+setInterval(poll, 6000);
+poll();
+
+function setProvider(provider) {
+  wsSend({ type: 'set_provider', provider: provider });
+  updateProviderUI(provider);
+}
+
+function updateProviderUI(provider) {
+  document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`btn-prov-${provider}`)?.classList.add('active');
+}
 </script>
 </body>
 </html>

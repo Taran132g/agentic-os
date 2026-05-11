@@ -1,16 +1,5 @@
 """
 Agentic OS — entry point.
-
-Runs three things concurrently:
-  1. Telegram bot (polling)
-  2. FastAPI dashboard (localhost:8000)
-  3. Orchestrator worker (processes task queue)
-  4. Approval watcher (polls for Claude approval requests)
-
-Usage:
-    python main.py
-    Then open http://localhost:8000 in your browser.
-    Or send /task <anything> to @Trading_Taran_bot on Telegram.
 """
 
 import asyncio
@@ -34,28 +23,36 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# ── Global State ────────────────────────────────────────────────────────────
+
+_ws_clients: list[WebSocket] = []
+_session_id: str | None = None
+_session_tokens: int = 0
+_weekly_tokens: int = 0
+_session_tasks_done: int = 0
+_pending_interactions: dict[str, asyncio.Future] = {}
+
+USAGE_FILE = Path(__file__).parent / "usage.json"
+
 # ── FastAPI app ─────────────────────────────────────────────────────────────
 
 api = FastAPI(title="Agentic OS")
 
 DASHBOARD_HTML = Path(__file__).parent / "dashboard" / "index.html"
 CAREER_HTML = Path(__file__).parent / "dashboard" / "career.html"
-
+PERSONAL_HTML = Path(__file__).parent / "dashboard" / "personal.html"
+REVIEW_HTML = Path(__file__).parent / "dashboard" / "review.html"
 
 @api.get("/")
-async def serve_dashboard():
-    return HTMLResponse(DASHBOARD_HTML.read_text())
-
-
+async def serve_dashboard(): return HTMLResponse(DASHBOARD_HTML.read_text())
 @api.get("/career")
-async def serve_career():
-    return HTMLResponse(CAREER_HTML.read_text())
-
+async def serve_career(): return HTMLResponse(CAREER_HTML.read_text())
+@api.get("/personal")
+async def serve_personal(): return HTMLResponse(PERSONAL_HTML.read_text())
+@api.get("/review")
+async def serve_review(): return HTMLResponse(REVIEW_HTML.read_text())
 
 # ── WebSocket broadcast ──────────────────────────────────────────────────────
-
-_ws_clients: list[WebSocket] = []
-
 
 async def broadcast(event: dict):
     dead = []
@@ -65,8 +62,7 @@ async def broadcast(event: dict):
         except Exception:
             dead.append(ws)
     for ws in dead:
-        _ws_clients.remove(ws)
-
+        if ws in _ws_clients: _ws_clients.remove(ws)
 
 @api.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
@@ -76,198 +72,218 @@ async def websocket_endpoint(ws: WebSocket):
         while True:
             data = await ws.receive_text()
             msg = json.loads(data)
-            if msg.get("type") == "task":
+            t = msg.get("type")
+            
+            if t == "task":
                 from telegram_bot import task_queue
                 await task_queue.put(msg["text"])
                 await broadcast({"type": "task_queued", "text": msg["text"]})
-            elif msg.get("type") == "career_start":
-                from career_workflow import run_career_search, is_running as career_running
-                from telegram_bot import send_message
-                if not career_running():
-                    asyncio.create_task(
-                        run_career_search(msg.get("keywords", ""), broadcast, send_message),
-                        name="career_workflow",
-                    )
-                else:
-                    await broadcast({"type": "career_activity", "text": "Career search already in progress."})
-            elif msg.get("type") == "approve":
+            elif t == "stop":
+                from tools.llm import stop_active_proc
+                if stop_active_proc():
+                    await broadcast({"type": "task_error", "text": "Task stopped by user."})
+            elif t == "set_provider":
+                from tools.llm import set_preferred_provider
+                set_preferred_provider(msg["provider"])
+                await broadcast({"type": "provider_updated", "provider": msg["provider"]})
+            elif t == "approve":
                 import tools.approval as ag
                 ag.resolve(msg["id"], True)
                 await broadcast({"type": "approved", "id": msg["id"]})
-            elif msg.get("type") == "deny":
+            elif t == "deny":
                 import tools.approval as ag
                 ag.resolve(msg["id"], False)
                 await broadcast({"type": "denied", "id": msg["id"]})
+            elif t == "task_interact":
+                tid = msg.get("id")
+                if tid in _pending_interactions:
+                    _pending_interactions[tid].set_result(msg)
+            elif t == "route":
+                import tools.approval as ag
+                ag.resolve(msg["id"], msg["choice"])
+                await broadcast({"type": "routed", "id": msg["id"], "choice": msg["choice"]})
     except WebSocketDisconnect:
-        _ws_clients.remove(ws)
+        if ws in _ws_clients: _ws_clients.remove(ws)
+    except Exception as e:
+        log.warning(f"WS error: {e}")
 
-
-@api.post("/api/speak")
-async def api_speak(request: Request):
-    body = await request.json()
-    text = str(body.get("text", ""))[:600].strip()
-    if not text:
-        return {"ok": False, "reason": "empty text"}
-    voice = body.get("voice", "Reed (English (UK))")
-    try:
-        asyncio.create_task(
-            asyncio.create_subprocess_exec("say", "-v", voice, text,
-                                           stdout=asyncio.subprocess.DEVNULL,
-                                           stderr=asyncio.subprocess.DEVNULL)
-        )
-        return {"ok": True}
-    except (FileNotFoundError, OSError):
-        # `say` is macOS-only; on Windows/Linux this is a silent no-op
-        return {"ok": False, "reason": "say not available on this OS"}
-
-
-@api.get("/api/voices")
-async def api_voices():
-    try:
-        result = subprocess.run(["say", "-v", "?"], capture_output=True, text=True)
-    except (FileNotFoundError, OSError):
-        return {"voices": [], "reason": "say not available on this OS"}
-    voices = []
-    for line in result.stdout.strip().split("\n"):
-        parts = line.split()
-        for i, part in enumerate(parts):
-            if len(part) == 5 and "_" in part:
-                name = " ".join(parts[:i])
-                if part.startswith("en") and name:
-                    voices.append(name)
-                break
-    return {"voices": voices}
-
+# ── API Endpoints ───────────────────────────────────────────────────────────
 
 @api.get("/api/status")
 async def api_status():
     from orchestrator import is_running
     from telegram_bot import task_queue
+    from tools.llm import get_preferred_provider
     import tools.approval as ag
+    from personal_tasks_workflow import is_running as p_run
+    from code_review_workflow import is_running as r_run
+    from career_workflow import is_running as c_run
+
     return {
-        "running": is_running(),
+        "running": is_running() or p_run() or r_run() or c_run(),
         "queued": task_queue.qsize(),
         "pending_approvals": ag.pending_ids(),
         "session_tokens": _session_tokens,
         "weekly_tokens": _weekly_tokens,
+        "tasks_done": _session_tasks_done,
+        "provider": get_preferred_provider(),
     }
 
-
-# ── Usage tracking ───────────────────────────────────────────────────────────
-
-USAGE_FILE = Path(__file__).parent / "usage.json"
-
-_session_tokens: int = 0   # tokens used since this server process started
-_weekly_tokens: int = 0    # tokens used this calendar week (persisted)
-
+# ── Utils ───────────────────────────────────────────────────────────────────
 
 def _current_week() -> str:
     return datetime.date.today().strftime("%Y-W%W")
 
-
-def _load_weekly():
-    global _weekly_tokens
+def _load_usage():
+    global _weekly_tokens, _session_tasks_done
     if USAGE_FILE.exists():
         try:
             data = json.loads(USAGE_FILE.read_text())
             if data.get("week") == _current_week():
                 _weekly_tokens = data.get("tokens", 0)
-        except Exception:
-            pass
+            _session_tasks_done = data.get("tasks_done", 0)
+        except Exception: pass
 
-
-def _save_weekly():
+def _save_usage():
     try:
-        USAGE_FILE.write_text(json.dumps({"week": _current_week(), "tokens": _weekly_tokens}))
+        USAGE_FILE.write_text(json.dumps({
+            "week": _current_week(), 
+            "tokens": _weekly_tokens,
+            "tasks_done": _session_tasks_done
+        }))
     except Exception as e:
         log.warning("Failed to save usage: %s", e)
 
-
-# ── Orchestrator worker ──────────────────────────────────────────────────────
-
-_session_id: str | None = None
-
-
 def _escape_md(text: str) -> str:
-    """Escape Telegram Markdown V1 special characters."""
     for ch in ("_", "*", "`", "["):
         text = text.replace(ch, f"\\{ch}")
     return text
 
-
 async def _tg_safe(send_telegram, text: str):
-    """Send to Telegram, suppressing errors so the bot never crashes on send failures."""
-    try:
-        await send_telegram(text)
-    except Exception as e:
-        log.warning("Telegram send failed: %s", e)
+    try: await send_telegram(text)
+    except Exception as e: log.warning("Telegram send failed: %s", e)
 
+async def _wait_for_interaction(task_id: str):
+    fut = asyncio.get_running_loop().create_future()
+    _pending_interactions[task_id] = fut
+    try:
+        return await fut
+    finally:
+        _pending_interactions.pop(task_id, None)
+
+# ── Orchestrator worker ──────────────────────────────────────────────────────
+
+async def handle_queued_task(task, send_telegram, broadcast):
+    global _session_id, _session_tokens, _weekly_tokens, _session_tasks_done
+    from orchestrator import run_task
+    import tools.approval as ag
+
+    log.info("Processing task: %s", task)
+    await broadcast({"type": "task_started", "text": task})
+    task_id = f"task_{int(datetime.datetime.now().timestamp())}"
+    current_prompt = task
+    last_result = ""
+
+    try:
+        # ── Step 1: Routing ─────────────────────────────────────────────
+        from tools.approval import ask_routing
+        category = await ask_routing(task)
+        
+        while True:
+            if category in ["career", "personal", "review"]:
+                await _tg_safe(send_telegram, f"Delegating to *{category.title()}* workflow...")
+                if category == "career":
+                    from career_workflow import run_career_search
+                    await run_career_search(current_prompt, broadcast, send_telegram)
+                elif category == "personal":
+                    from personal_tasks_workflow import run_personal_task
+                    await run_personal_task(current_prompt, broadcast, send_telegram)
+                elif category == "review":
+                    from code_review_workflow import run_code_review
+                    await run_code_review(current_prompt, broadcast, send_telegram)
+                
+                last_result = f"Completed {category.title()} workflow."
+                category = "general" # Switch to general for follow-ups
+            else:
+                # General Orchestrator
+                await _tg_safe(send_telegram, f"Running Orchestrator: _{_escape_md(current_prompt)}_")
+                result, _session_id, usage = await run_task(
+                    current_prompt, send_telegram=send_telegram,
+                    session_id=_session_id, broadcast=broadcast,
+                )
+                last_result = result
+                
+                tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+                _session_tokens += tokens
+                _weekly_tokens += tokens
+                _save_usage()
+                await broadcast({"type": "usage_update", "session_tokens": _session_tokens, "weekly_tokens": _weekly_tokens})
+
+            # ── Step 2: Verification Loop ───────────────────────────────
+            await broadcast({
+                "type": "task_verification_required",
+                "id": task_id,
+                "text": last_result,
+                "prompt": current_prompt
+            })
+            await _tg_safe(send_telegram, f"Task completed. Awaiting verification...\n\nResult preview: {last_result[:200]}...")
+
+            interaction = await _wait_for_interaction(task_id)
+            
+            if interaction.get("action") == "complete":
+                from tools.logger import log_completed_task
+                log_completed_task(task[:40], f"Original Task: {task}\n\nFinal Result: {last_result}", actions=["User verified and completed."])
+                
+                _session_tasks_done += 1
+                _save_usage()
+                await broadcast({"type": "usage_update", "tasks_done": _session_tasks_done})
+                await broadcast({"type": "task_done", "id": task_id, "text": last_result})
+                await _tg_safe(send_telegram, f"✅ Task verified and completed.")
+                break
+            elif interaction.get("action") == "followup":
+                current_prompt = interaction.get("text")
+                await _tg_safe(send_telegram, f"Follow-up received: _{_escape_md(current_prompt)}_")
+                continue # Loop back
+            else:
+                break
+
+    except Exception as e:
+        log.exception("Task failed: %s", task)
+        await broadcast({"type": "task_error", "id": task_id, "text": str(e)})
 
 async def orchestrator_worker(task_queue, send_telegram):
-    global _session_id, _session_tokens, _weekly_tokens
-    from orchestrator import run_task
-
     while True:
         task = await task_queue.get()
-        log.info("Starting task: %s", task)
-
-        await broadcast({"type": "task_started", "text": task})
-
         try:
-            await _tg_safe(send_telegram, f"Starting: _{_escape_md(task)}_")
-            result, _session_id, usage = await run_task(
-                task,
-                send_telegram=send_telegram,
-                session_id=_session_id,
-                broadcast=broadcast,
-            )
-            tokens = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
-            _session_tokens += tokens
-            _weekly_tokens += tokens
-            _save_weekly()
-            await broadcast({"type": "usage_update", "session_tokens": _session_tokens, "weekly_tokens": _weekly_tokens})
-            short = result[:3000] if result else "(done)"
-            await broadcast({"type": "task_done", "text": short})
-            await _tg_safe(send_telegram, f"Done:\n\n{short}")
+            await handle_queued_task(task, send_telegram, broadcast)
         except Exception as e:
-            log.exception("Task failed: %s", task)
-            err = str(e)
-            await broadcast({"type": "task_error", "text": err})
-            await _tg_safe(send_telegram, f"Task failed: {err}")
+            log.exception("Worker error: %s", e)
         finally:
             task_queue.task_done()
-
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 async def main():
     from telegram_bot import build_app, task_queue, send_message
     import tools.approval as ag
-    _load_weekly()
+    _load_usage()
 
     tg_app = build_app()
 
-    async def approval_sender(action_id: str, text: str):
-        from telegram_bot import send_approval_request
-        await send_approval_request(action_id, text)
-        await broadcast({"type": "approval_request", "id": action_id, "text": text})
+    async def approval_sender(action_id: str, text: str, action: str = "approve"):
+        from telegram_bot import send_approval_request, send_routing_request
+        if action == "route": await send_routing_request(action_id, text)
+        else: await send_approval_request(action_id, _escape_md(text))
+        await broadcast({"type": "approval_request", "id": action_id, "text": text, "action": action})
 
     ag.register_sender(approval_sender)
 
-    uvicorn_config = uvicorn.Config(
-        api,
-        host="127.0.0.1",
-        port=DASHBOARD_PORT,
-        log_level="warning",
-    )
+    uvicorn_config = uvicorn.Config(api, host="127.0.0.1", port=DASHBOARD_PORT, log_level="warning")
     uvicorn_server = uvicorn.Server(uvicorn_config)
 
-    # Initialize and start telegram app manually so we control shutdown order
     await tg_app.initialize()
     await tg_app.start()
     await tg_app.updater.start_polling(drop_pending_updates=True)
-    log.info("Telegram bot started.")
-    log.info("Dashboard: http://localhost:%d", DASHBOARD_PORT)
 
     tasks = [
         asyncio.create_task(uvicorn_server.serve(), name="uvicorn"),
@@ -277,22 +293,14 @@ async def main():
 
     try:
         await asyncio.gather(*tasks)
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        pass
-    except Exception as e:
-        log.exception("Fatal error: %s", e)
+    except (KeyboardInterrupt, asyncio.CancelledError): pass
     finally:
-        for t in tasks:
-            t.cancel()
+        for t in tasks: t.cancel()
         uvicorn_server.should_exit = True
         await tg_app.updater.stop()
         await tg_app.stop()
         await tg_app.shutdown()
-        log.info("Shut down cleanly.")
-
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        log.info("Shutting down.")
+    try: asyncio.run(main())
+    except KeyboardInterrupt: pass

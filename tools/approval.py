@@ -33,40 +33,90 @@ def pending_ids() -> list[str]:
     return []
 
 
-def resolve(request_id: str, approved: bool) -> bool:
+def resolve(request_id: str, status: str) -> bool:
     """Called by Telegram callback to write the response file."""
     TMP_DIR.mkdir(exist_ok=True)
     RESPONSE_FILE.write_text(json.dumps({
         "id": request_id,
-        "status": "approved" if approved else "denied",
+        "status": status,
     }))
     return True
 
 
 async def watch_approvals():
-    """Background task — polls for new approval requests and fires Telegram messages."""
-    TMP_DIR.mkdir(exist_ok=True)
-    seen_id = None
+    """Background task in main.py that polls REQUEST_FILE for Claude's requests."""
+    while True:
+        await asyncio.sleep(1.0)
+        if REQUEST_FILE.exists():
+            try:
+                data = json.loads(REQUEST_FILE.read_text())
+                if data.get("status") == "pending":
+                    # Mark as 'sent' so we don't spam
+                    data["status"] = "sent"
+                    REQUEST_FILE.write_text(json.dumps(data))
+                    
+                    if _send_approval_message:
+                        # Call the registered sender with extra metadata
+                        await _send_approval_message(
+                            action_id=data["id"],
+                            text=data["details"],
+                            action=data.get("action", "approve")
+                        )
+            except Exception as e:
+                log.warning(f"Watcher error: {e}")
 
+
+async def ask(action: str, details: str) -> bool:
+    """Internal async helper to prompt Taran and wait for response."""
+    import uuid
+    request_id = str(uuid.uuid4())[:8]
+    
+    # Write the request
+    REQUEST_FILE.write_text(json.dumps({
+        "id": request_id,
+        "action": action,
+        "details": details,
+        "status": "pending",
+    }))
+    
+    # Poll for response
     while True:
         await asyncio.sleep(0.5)
-        if not REQUEST_FILE.exists():
+        if not RESPONSE_FILE.exists():
             continue
         try:
-            data = json.loads(REQUEST_FILE.read_text())
+            data = json.loads(RESPONSE_FILE.read_text())
+            if data.get("id") == request_id:
+                RESPONSE_FILE.unlink(missing_ok=True)
+                REQUEST_FILE.unlink(missing_ok=True)
+                return data.get("status") == "approved"
         except Exception:
-            continue
+            pass
 
-        if data.get("status") != "pending":
-            continue
-        if data.get("id") == seen_id:
-            continue
 
-        seen_id = data["id"]
-        if _send_approval_message:
-            await _send_approval_message(
-                action_id=data["id"],
-                text=f"*Action:* {data['action']}\n\n{data['details']}",
-            )
-        else:
-            log.warning("No approval sender registered")
+async def ask_routing(task: str) -> str:
+    """Prompts Taran to choose a workflow for the task."""
+    import uuid
+    request_id = str(uuid.uuid4())[:8]
+    
+    # Write the request
+    REQUEST_FILE.write_text(json.dumps({
+        "id": request_id,
+        "action": "route",
+        "details": task,
+        "status": "pending",
+    }))
+    
+    # Poll for response
+    while True:
+        await asyncio.sleep(0.5)
+        if not RESPONSE_FILE.exists():
+            continue
+        try:
+            data = json.loads(RESPONSE_FILE.read_text())
+            if data.get("id") == request_id:
+                RESPONSE_FILE.unlink(missing_ok=True)
+                REQUEST_FILE.unlink(missing_ok=True)
+                return data.get("status") # e.g. 'career', 'personal', 'review', 'general'
+        except Exception:
+            pass
