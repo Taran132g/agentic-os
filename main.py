@@ -18,10 +18,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 from config import DASHBOARD_PORT
 
+_LOG_FILE = Path(__file__).parent / "jarvis.log"
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    stream=sys.stdout,
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler(_LOG_FILE, encoding="utf-8"),
+    ],
 )
 log = logging.getLogger(__name__)
 
@@ -339,6 +343,28 @@ async def api_task_details(id: str):
             if f.stem == id or id in f.stem:
                 return JSONResponse({"ok": True, "content": f.read_text(encoding="utf-8")})
     return JSONResponse({"ok": False, "reason": "Task not found in vault."})
+
+
+@api.get("/api/logs")
+async def api_logs(lines: int = 100, level: str = "all"):
+    """Return recent log lines. level=all|error|warning"""
+    entries = []
+    for log_path in (_LOG_FILE, Path(__file__).parent / "server.log"):
+        if not log_path.exists():
+            continue
+        try:
+            text = log_path.read_text(encoding="utf-8", errors="ignore")
+            all_lines = text.splitlines()
+            for line in all_lines:
+                if level == "error" and " ERROR " not in line and "Traceback" not in line and "Error" not in line:
+                    continue
+                if level == "warning" and " WARNING " not in line and " ERROR " not in line:
+                    continue
+                entries.append(line)
+            break  # only read first found file
+        except Exception:
+            continue
+    return JSONResponse({"lines": entries[-lines:]})
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

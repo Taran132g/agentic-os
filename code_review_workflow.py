@@ -28,15 +28,61 @@ async def _claude(prompt: str, broadcast) -> str:
     )
     return res["result"]
 
+def _looks_like_path(text: str) -> bool:
+    """Return True if text looks like a file/dir path rather than natural language."""
+    if not text:
+        return False
+    stripped = text.strip()
+    # Paths are short, have no spaces (or very few), and start with /, ~, ./, ../
+    if len(stripped) > 200:
+        return False
+    if " " in stripped and not stripped.startswith(("~/", "/", "./")):
+        return False
+    path_indicators = (stripped.startswith(("/", "~", "./", "../")) or
+                       (len(stripped.split()) == 1 and ("/" in stripped or "." in stripped)))
+    return path_indicators
+
+
+async def _fetch_code_for_description(description: str, broadcast) -> tuple[str, str]:
+    """
+    Use Claude to find and read the relevant code from a natural language description.
+    Returns (code_content, resolved_target_label).
+    """
+    await broadcast({"type": "review_activity", "text": "Locating code from description..."})
+    result = await _claude(f"""
+You are helping locate code to review. The user said:
+"{description}"
+
+Your job:
+1. Find the relevant project/files on this Mac (search ~/Desktop, ~/Documents, ~, common dev folders)
+2. If GitHub is mentioned, use WebFetch or Bash (git) to get the remote code
+3. Read the key source files (not node_modules, .git, build artifacts)
+4. Return a JSON object with:
+   - "target": short name/label of what you found (e.g. "TNFund Trading Bot")
+   - "code": the concatenated relevant source code (max 8000 chars)
+   - "found": true/false
+   - "note": any important context (e.g. "compared local vs GitHub main branch")
+
+Use Bash commands like: find ~/ -name "*.py" -path "*trading*" 2>/dev/null | head -20
+""", broadcast)
+
+    from tools.utils import extract_json
+    data = extract_json(result)
+    if data and data.get("found") and data.get("code"):
+        return data["code"], data.get("target", description[:60])
+    return result, description[:60]  # fallback: use raw output as code
+
+
 async def run_code_review(path_or_project: str, broadcast, send_telegram):
     """
     Orchestrates a multi-agent code review.
-    
+    Handles both file paths and natural language task descriptions.
+
     Stages:
-      1. Diff: Fetches changes from git or reads files.
-      2. Security: Checks for vulnerabilities using an LLM.
-      3. Efficiency: Checks for performance issues using an LLM.
-      4. Logic: Checks for bugs and general logic using an LLM.
+      1. Diff: Fetches code — from path/git diff, or via Claude if natural language.
+      2. Security: Checks for vulnerabilities.
+      3. Efficiency: Checks for performance issues.
+      4. Logic: Checks for bugs and general logic.
       5. Report: Compiles findings, sends to Telegram, and saves to Vault.
     """
     global _running, _review_results
@@ -44,49 +90,57 @@ async def run_code_review(path_or_project: str, broadcast, send_telegram):
     _review_results = {"issues": [], "score": 100, "summary": ""}
 
     try:
-        # ── Stage 1: Diff ─────────────────────────────────────────────
+        # ── Stage 1: Code Collection ──────────────────────────────────
         await broadcast({"type": "review_stage", "stage": "diff"})
-        
+
         target = path_or_project or "current changes"
-        await broadcast({"type": "review_activity", "text": f"Analyzing project/path: {target}"})
+        await broadcast({"type": "review_activity", "text": f"Analyzing: {target[:80]}"})
 
         diff_content = ""
+
         if not path_or_project:
-            # Current staged changes
+            # No target given — use current staged/recent git changes
             res = subprocess.run(["git", "diff", "--staged"], capture_output=True, text=True)
             diff_content = res.stdout
             if not diff_content:
                 res = subprocess.run(["git", "diff", "HEAD~1"], capture_output=True, text=True)
                 diff_content = res.stdout
-        else:
-            # Check if it's a directory (project)
-            p = Path(path_or_project)
-            if p.exists() and p.is_dir():
-                # If it's a project, maybe we want to see recent changes or just review the whole thing
-                # For now, let's assume we want to review the latest commit in that dir if it's a git repo
-                try:
-                    res = subprocess.run(["git", "-C", str(p), "diff", "HEAD~1"], capture_output=True, text=True)
+            target = "current git changes"
+
+        elif _looks_like_path(path_or_project):
+            # Looks like a file or directory path
+            try:
+                p = Path(path_or_project).expanduser()
+                if p.is_dir():
+                    res = subprocess.run(["git", "-C", str(p), "diff", "HEAD~1"],
+                                         capture_output=True, text=True)
                     diff_content = res.stdout
-                except:
-                    # Fallback: read a few key files if it's not a git repo or diff fails
-                    diff_content = "Project review requested. Files analyzed."
-            elif p.exists() and p.is_file():
-                diff_content = p.read_text()
-            else:
-                # Search for a directory matching the project name
-                await broadcast({"type": "review_activity", "text": f"Searching for project: {path_or_project}"})
-                # Simple heuristic: look in current parent
-                parent = Path(__file__).parent.parent
-                for item in parent.iterdir():
-                    if item.is_dir() and path_or_project.lower() in item.name.lower():
-                        await broadcast({"type": "review_activity", "text": f"Found project at: {item.name}"})
-                        res = subprocess.run(["git", "-C", str(item), "diff", "HEAD~1"], capture_output=True, text=True)
-                        diff_content = res.stdout
-                        break
-        
-        if not diff_content:
-            await broadcast({"type": "review_activity", "text": "No code found to review."})
-            return
+                    if not diff_content:
+                        # Read key files from the directory
+                        files = list(p.rglob("*.py"))[:10] + list(p.rglob("*.js"))[:5]
+                        diff_content = "\n\n".join(
+                            f"# {f.name}\n{f.read_text(errors='ignore')[:1000]}"
+                            for f in files if f.stat().st_size < 100_000
+                        )
+                    target = p.name
+                elif p.is_file():
+                    diff_content = p.read_text(errors="ignore")
+                    target = p.name
+                else:
+                    raise FileNotFoundError(f"Path not found: {path_or_project}")
+            except OSError as e:
+                log.warning("Path lookup failed (%s), falling back to description search", e)
+                diff_content, target = await _fetch_code_for_description(path_or_project, broadcast)
+
+        else:
+            # Natural language description — let Claude find the code
+            diff_content, target = await _fetch_code_for_description(path_or_project, broadcast)
+
+        if not diff_content or not diff_content.strip():
+            raise RuntimeError(
+                f"Could not find any code to review for: {path_or_project[:100]!r}. "
+                "Try providing a file path or project directory."
+            )
 
         await broadcast({"type": "review_activity", "text": f"Content size: {len(diff_content)} chars."})
 
