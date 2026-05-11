@@ -5,7 +5,7 @@ BASE_VAULT = Path.home() / "Library/Mobile Documents/iCloud~md~obsidian/Document
 HUB_DIR = "Jarvis Hub"
 TASKS_DIR = f"{HUB_DIR}/Tasks"
 
-def log_completed_task(task_name, description, status="COMPLETED", actions=None):
+def log_completed_task(task_name, description, status="COMPLETED", actions=None, task_type="general"):
     date_str = datetime.date.today().strftime("%Y-%m-%d")
     safe_name = "".join([c if c.isalnum() or c in " _-" else "" for c in task_name]).strip()
     task_path = BASE_VAULT / TASKS_DIR / f"{date_str} {safe_name}.md"
@@ -13,6 +13,7 @@ def log_completed_task(task_name, description, status="COMPLETED", actions=None)
     content = f"# {date_str} {task_name}\n\n"
     content += f"## Description\n{description}\n\n"
     content += f"## Status: {status}\n\n"
+    content += f"## Type: {task_type}\n\n"
     if actions:
         content += "## Actions Taken\n"
         for action in actions:
