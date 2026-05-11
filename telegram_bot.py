@@ -72,19 +72,36 @@ async def handle_approval_callback(update: Update, context: ContextTypes.DEFAULT
     if update.effective_chat.id != TELEGRAM_CHAT_ID:
         return
 
-    data = query.data  # e.g. "approve:abc12345" or "deny:abc12345"
+    data = query.data  # e.g. "approve:abc12345", "deny:abc12345", "route_career:abc12345"
+    
+    if data.startswith("route_"):
+        route_choice, action_id = data[len("route_"):].split(":", 1)
+        resolved = approval_gate.resolve(action_id, route_choice)
+        if resolved:
+            status = f"Routed to {route_choice.title()} 🚀"
+            await query.edit_message_text(
+                text=query.message.text + f"\n\n{status}",
+                parse_mode="Markdown",
+            )
+        else:
+            await query.edit_message_text(
+                text=query.message.text + "\n\n(Already resolved or timed out)",
+                parse_mode="Markdown",
+            )
+        return
+
     parts = data.split(":", 1)
     if len(parts) != 2:
         return
 
     action, action_id = parts
-    approved = action == "approve"
-    resolved = approval_gate.resolve(action_id, approved)
+    status = "approved" if action == "approve" else "denied"
+    resolved = approval_gate.resolve(action_id, status)
 
     if resolved:
-        status = "Approved ✅" if approved else "Denied ❌"
+        status_text = "Approved ✅" if action == "approve" else "Denied ❌"
         await query.edit_message_text(
-            text=query.message.text + f"\n\n{status}",
+            text=query.message.text + f"\n\n{status_text}",
             parse_mode="Markdown",
         )
     else:
@@ -120,6 +137,29 @@ async def send_approval_request(action_id: str, text: str):
     await _app.bot.send_message(
         chat_id=TELEGRAM_CHAT_ID,
         text=f"*Approval required* (ID: `{action_id}`)\n\n{text}",
+        reply_markup=keyboard,
+        parse_mode="Markdown",
+    )
+
+
+async def send_routing_request(action_id: str, task: str):
+    """Send a routing request with multiple buttons."""
+    if _app is None:
+        log.warning("Bot not ready, cannot send routing request")
+        return
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("💼 Career", callback_data=f"route_career:{action_id}"),
+            InlineKeyboardButton("🏠 Personal", callback_data=f"route_personal:{action_id}"),
+        ],
+        [
+            InlineKeyboardButton("🔍 Review", callback_data=f"route_review:{action_id}"),
+            InlineKeyboardButton("🤖 General", callback_data=f"route_general:{action_id}"),
+        ]
+    ])
+    await _app.bot.send_message(
+        chat_id=TELEGRAM_CHAT_ID,
+        text=f"*Where should I route this task?*\n\n`{task}`",
         reply_markup=keyboard,
         parse_mode="Markdown",
     )

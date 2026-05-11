@@ -16,54 +16,73 @@ CONTACT = {
     "last_name": "Singh",
     "full_name": "Taranveer Singh",
     "email": "***REDACTED***",
+    "phone": "484-555-0123",  # Placeholder, Royersford area code is 484/610
+    "location": "Royersford, PA",
+    "city": "Royersford",
+    "state": "PA",
+    "zip": "19468",
     "university": "Pennsylvania State University",
     "major": "Artificial Intelligence Engineering",
     "grad_year": "2027",
     "linkedin": "https://linkedin.com/in/taranveersingh",
+    "github": "https://github.com/taranveersingh",
+    "portfolio": "https://taran.ai",
 }
 
 # Field selectors — ordered most-specific to least-specific
 FIELD_MAP = {
     "first_name": [
-        'input[autocomplete="given-name"]',
-        'input[name="first_name"]', 'input[name="firstName"]',
+        'input[autocomplete="given-name"]', 'input[name="first_name"]', 'input[name="firstName"]',
         'input[id*="firstName" i]', 'input[id*="first_name" i]',
         'input[placeholder*="First name" i]', 'input[aria-label*="First name" i]',
     ],
     "last_name": [
-        'input[autocomplete="family-name"]',
-        'input[name="last_name"]', 'input[name="lastName"]',
+        'input[autocomplete="family-name"]', 'input[name="last_name"]', 'input[name="lastName"]',
         'input[id*="lastName" i]', 'input[id*="last_name" i]',
         'input[placeholder*="Last name" i]', 'input[aria-label*="Last name" i]',
     ],
     "full_name": [
-        'input[autocomplete="name"]',
-        'input[name="name"]',
+        'input[autocomplete="name"]', 'input[name="name"]', 'input[id*="full_name" i]',
         'input[placeholder*="Full name" i]', 'input[aria-label*="Full name" i]',
     ],
     "email": [
-        'input[type="email"]', 'input[autocomplete="email"]',
-        'input[name="email"]', 'input[id*="email" i]',
+        'input[type="email"]', 'input[autocomplete="email"]', 'input[name="email"]', 'input[id*="email" i]',
         'input[placeholder*="Email" i]',
     ],
+    "phone": [
+        'input[type="tel"]', 'input[autocomplete="tel"]', 'input[name*="phone" i]', 'input[id*="phone" i]',
+        'input[placeholder*="Phone" i]', 'input[aria-label*="Phone" i]',
+    ],
+    "location": [
+        'input[name*="location" i]', 'input[id*="location" i]', 'input[placeholder*="Location" i]',
+        'input[aria-label*="Location" i]', 'input[placeholder*="City, State" i]',
+    ],
+    "city": ['input[name*="city" i]', 'input[id*="city" i]', 'input[placeholder*="City" i]'],
+    "state": ['input[name*="state" i]', 'input[id*="state" i]', 'input[placeholder*="State" i]'],
+    "zip": ['input[name*="zip" i]', 'input[name*="postal" i]', 'input[id*="zip" i]', 'input[placeholder*="Zip" i]'],
     "university": [
-        'input[name*="school" i]', 'input[name*="university" i]',
-        'input[id*="school" i]', 'input[id*="university" i]',
+        'input[name*="school" i]', 'input[name*="university" i]', 'input[id*="school" i]', 'input[id*="university" i]',
         'input[placeholder*="University" i]', 'input[placeholder*="School" i]',
         'input[aria-label*="School" i]', 'input[aria-label*="University" i]',
     ],
     "major": [
-        'input[name*="major" i]', 'input[name*="degree" i]',
-        'input[name*="field_of_study" i]',
+        'input[name*="major" i]', 'input[name*="degree" i]', 'input[name*="field_of_study" i]',
         'input[placeholder*="Major" i]', 'input[placeholder*="Field of study" i]',
     ],
     "grad_year": [
-        'input[name*="graduation" i]', 'input[id*="graduation" i]',
-        'input[placeholder*="Graduation year" i]',
+        'input[name*="graduation" i]', 'input[id*="graduation" i]', 'input[placeholder*="Graduation year" i]',
     ],
     "linkedin": [
-        'input[name*="linkedin" i]', 'input[id*="linkedin" i]',
-        'input[placeholder*="LinkedIn" i]', 'input[aria-label*="LinkedIn" i]',
+        'input[name*="linkedin" i]', 'input[id*="linkedin" i]', 'input[placeholder*="LinkedIn" i]',
+        'input[aria-label*="LinkedIn" i]',
+    ],
+    "github": [
+        'input[name*="github" i]', 'input[id*="github" i]', 'input[placeholder*="GitHub" i]',
+        'input[aria-label*="GitHub" i]',
+    ],
+    "portfolio": [
+        'input[name*="portfolio" i]', 'input[name*="website" i]', 'input[id*="portfolio" i]',
+        'input[placeholder*="Portfolio" i]', 'input[placeholder*="Website" i]',
     ],
 }
 

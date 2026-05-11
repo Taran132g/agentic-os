@@ -1,14 +1,14 @@
 """Obsidian vault read/write — always writes via filesystem, never MCP (iCloud sync)."""
 
 import os
+import subprocess
 from pathlib import Path
 from config import VAULT_PATH
 
 
 def _resolve(relative_path: str) -> Path:
-    path = VAULT_PATH / relative_path
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return path
+    # We still need the Path object for existence checks, but we'll use string paths for Bash
+    return VAULT_PATH / relative_path
 
 
 def read(relative_path: str) -> str:
@@ -20,15 +20,29 @@ def read(relative_path: str) -> str:
 
 def write(relative_path: str, content: str) -> str:
     path = _resolve(relative_path)
-    path.write_text(content, encoding="utf-8")
-    return f"Written: {relative_path}"
+    # Use Bash to write file to avoid iCloud sync issues
+    try:
+        subprocess.run([
+            "bash", "-c",
+            f"mkdir -p \"$(dirname \"$BASE/{relative_path}\")\" && cat > \"$BASE/{relative_path}\" << 'EOF'\n{content}\nEOF\n"
+        ], check=True, env={**os.environ, "BASE": str(VAULT_PATH)})
+        return f"Written: {relative_path}"
+    except Exception as e:
+        return f"Error writing {relative_path}: {e}"
 
 
 def append(relative_path: str, content: str) -> str:
     path = _resolve(relative_path)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write("\n" + content)
-    return f"Appended to: {relative_path}"
+    # Use Bash to append to file to avoid iCloud sync issues
+    try:
+        # We use printf to append with a newline
+        subprocess.run([
+            "bash", "-c",
+            f"mkdir -p \"$(dirname \"$BASE/{relative_path}\")\" && printf \"\\n%s\" \"{content}\" >> \"$BASE/{relative_path}\""
+        ], check=True, env={**os.environ, "BASE": str(VAULT_PATH)})
+        return f"Appended to: {relative_path}"
+    except Exception as e:
+        return f"Error appending to {relative_path}: {e}"
 
 
 def list_dir(relative_path: str) -> str:

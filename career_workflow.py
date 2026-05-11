@@ -33,65 +33,21 @@ def get_jobs() -> list[dict]:
     return list(_jobs)
 
 
-def _extract_json(text: str) -> list | dict | None:
-    m = re.search(r"```(?:json)?\s*([\s\S]+?)```", text)
-    if m:
-        try:
-            return json.loads(m.group(1))
-        except json.JSONDecodeError:
-            pass
-    for ch in ("[", "{"):
-        start = text.find(ch)
-        if start == -1:
-            continue
-        for end in range(len(text), start, -1):
-            try:
-                return json.loads(text[start:end])
-            except json.JSONDecodeError:
-                continue
-    return None
-
-
 async def _claude(prompt: str, broadcast) -> str:
-    cmd = [
-        "claude", "-p", prompt,
-        "--output-format", "stream-json",
-        "--verbose",
-        "--strict-mcp-config",
-        "--mcp-config", '{"mcpServers":{}}',
-        "--allowedTools", "WebSearch,WebFetch,Read",
-        "--dangerously-skip-permissions",
-    ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        cwd=str(AGENTIC_DIR),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        limit=10 * 1024 * 1024,
+    from tools.llm import run_llm_command
+    res = await run_llm_command(
+        prompt=prompt,
+        broadcast=broadcast,
+        allowed_tools="WebSearch,WebFetch,Read"
     )
-    result = ""
-    async for raw in proc.stdout:
-        line = raw.decode().strip()
-        if not line:
-            continue
-        try:
-            ev = json.loads(line)
-            if ev.get("type") == "result":
-                result = ev.get("result", "")
-            elif ev.get("type") == "assistant":
-                for b in ev.get("message", {}).get("content", []):
-                    if b.get("type") == "text" and b["text"].strip():
-                        await broadcast({"type": "career_activity", "text": b["text"].strip()[:400]})
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            pass
-    await proc.wait()
-    return result
+    return res["result"]
 
 
 async def run_career_search(keywords: str, broadcast, send_telegram):
     global _running, _jobs
     _running = True
     _jobs = []
+    from tools.utils import extract_json
 
     try:
         resume = VAULT_RESUME.read_text() if VAULT_RESUME.exists() else "Resume not found."
@@ -122,7 +78,7 @@ Find 4 strong matches for Taran's profile. Output ONLY a JSON array — no other
 Taran's profile: Penn State AI Engineering student (2024–2027), Python/AWS/Firebase/Flask/Django/React/ROS2, built trading bots on Schwab, EV charging IoT intern (AWS+ROS2), Penn State DeFi Club Trading Lead, co-founded Piontrix tech consulting startup. Looking for AI/ML/software engineering internships.
 """, broadcast)
 
-        jobs_raw = _extract_json(search_result)
+        jobs_raw = extract_json(search_result)
         if not isinstance(jobs_raw, list):
             jobs_raw = []
 
@@ -163,7 +119,7 @@ Output ONLY JSON:
 ```
 """, broadcast)
 
-            tailored = _extract_json(tailor_result)
+            tailored = extract_json(tailor_result)
             job["tailored"] = tailored or {}
             job["status"] = "tailored"
             await broadcast({"type": "career_tailored", "job_id": job["id"], "tailored": job["tailored"]})
@@ -217,6 +173,21 @@ Output ONLY JSON:
                 f"Fields filled: {n_filled}\n"
                 f"Browser is open on your screen. Review and click Submit when ready."
             )
+
+        # Log completion to Jarvis Hub
+        try:
+            from tools.logger import log_completed_task
+            log_completed_task(
+                task_name=f"Career Search: {keywords}",
+                description=f"Automated job search and resume tailoring for: {keywords}",
+                actions=[
+                    f"Found {len(_jobs)} jobs",
+                    "Tailored resumes for all matches",
+                    "Filled applications in browser (stopped before submit)"
+                ]
+            )
+        except Exception as le:
+            log.warning(f"Failed to log career search to Hub: {le}")
 
         await broadcast({"type": "career_stage", "stage": "review"})
 
