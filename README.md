@@ -1,6 +1,6 @@
 # Agentic OS
 
-A personal autonomous AI agent system running locally on macOS. JARVIS handles tasks end-to-end — research, job applications, personal organization — via a web dashboard or Telegram, with full computer use capabilities.
+A personal autonomous AI agent system running locally on macOS. PAIS handles tasks end-to-end — research, job applications, personal organization — via a web dashboard or Telegram, with full computer use capabilities.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -9,7 +9,7 @@ A personal autonomous AI agent system running locally on macOS. JARVIS handles t
 ## How It Works
 
 1. Submit a task via Telegram (`/task ...`) or the web dashboard
-2. JARVIS routes it to the right agent: **Career**, **Personal**, or **General**
+2. PAIS routes it to the right agent: **Career**, **Personal**, or **General**
 3. The agent runs autonomously using Claude Code CLI
 4. Results are logged to your Obsidian vault; you're notified on Telegram
 5. Sensitive actions (sending emails, pushing to GitHub) require your explicit approval
@@ -22,16 +22,16 @@ A personal autonomous AI agent system running locally on macOS. JARVIS handles t
 Four independent async workers run in parallel — career, personal, general, and a Telegram intake worker. Workers are freed immediately after a task completes; verification and self-correction run asynchronously so the queue never stalls.
 
 ### Claude-Only LLM Runner
-Runs Claude Code CLI exclusively. On usage limit errors, JARVIS waits 30 seconds and retries automatically — no Gemini dependency, no manual intervention needed.
+Runs Claude Code CLI exclusively. On usage limit errors, PAIS waits 30 seconds and retries automatically — no Gemini dependency, no manual intervention needed.
 
 ### Self-Correction Loop
-When a task doesn't complete correctly, click "Didn't complete correctly" and type what went wrong. JARVIS reads its own source code, identifies the root cause, patches the file, writes a lesson to `lessons.md`, hot-reloads the module, and re-queues the original task — all without a restart.
+When a task doesn't complete correctly, click "Didn't complete correctly" and type what went wrong. PAIS reads its own source code, identifies the root cause, patches the file, writes a lesson to `lessons.md`, hot-reloads the module, and re-queues the original task — all without a restart.
 
 ### Persistent Learning (`lessons.md`)
-An append-only self-correction log stored at the project root. Every agent reads the most recent lessons before executing a task, so JARVIS improves from past mistakes across sessions.
+An append-only self-correction log stored at the project root. Every agent reads the most recent lessons before executing a task, so PAIS improves from past mistakes across sessions.
 
 ### Computer Use
-JARVIS can control your Mac desktop: take screenshots, click, type, scroll, drag, run AppleScript, OCR the screen, and open apps. Useful for automating GUI-only workflows.
+PAIS can control your Mac desktop: take screenshots, click, type, scroll, drag, run AppleScript, OCR the screen, and open apps. Useful for automating GUI-only workflows.
 
 ### Career Workflow
 Searches for jobs matching keywords, tailors resume bullets per job description, and uses Playwright to open application forms and pre-fill them — stopping before submit so you review before anything is sent. Search results are cached to disk so the Career Ops page restores them on page load.
@@ -57,13 +57,13 @@ All completed tasks, career search results, and personal plans are written as Ma
 Any action with external side effects (sending email, pushing code, posting online) is paused and a request is sent to both Telegram and the dashboard. Nothing irreversible happens without your explicit approval.
 
 ### Always-On Mac
-JARVIS runs via a macOS LaunchAgent wrapped with `caffeinate -i -s` so the machine never sleeps while the agent is active.
+PAIS runs via a macOS LaunchAgent wrapped with `caffeinate -i -s` so the machine never sleeps while the agent is active.
 
 ---
 
 ## Task Log Audit (May 2026)
 
-After the May 11 build session, a 7-task end-to-end audit was run to stress-test JARVIS after the worker stall fix and self-correction loop were introduced. Each task was queued live and verified:
+After the May 11 build session, a 7-task end-to-end audit was run to stress-test PAIS after the worker stall fix and self-correction loop were introduced. Each task was queued live and verified:
 
 | Task | Result |
 |------|--------|
@@ -138,8 +138,8 @@ python main.py
 
 To reload the LaunchAgent after config changes:
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.taran.jarvis.plist
-launchctl load ~/Library/LaunchAgents/com.taran.jarvis.plist
+launchctl unload ~/Library/LaunchAgents/com.taran.pais.plist
+launchctl load ~/Library/LaunchAgents/com.taran.pais.plist
 ```
 
 ---

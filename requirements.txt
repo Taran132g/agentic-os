@@ -11,3 +11,6 @@ websockets>=12.0
 playwright>=1.40.0
 pyautogui>=0.9.54
 pillow>=10.0.0
+chromadb>=1.5.0
+captacity>=0.3.1
+moviepy<2
