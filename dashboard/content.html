@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PAIS · Content</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent:     #8b5cf6;
+  --accent-l:   #c4b5fd;
+  --accent-dim: rgba(139,92,246,0.15);
+  --green:      #34d399;
+  --green-dim:  rgba(52,211,153,0.13);
+  --pink:       #f472b6;
+  --text:       rgba(255,255,255,0.92);
+  --muted:      rgba(255,255,255,0.52);
+  --dim:        rgba(255,255,255,0.28);
+  --card:       rgba(255,255,255,0.05);
+  --card-h:     rgba(255,255,255,0.08);
+  --border:     rgba(255,255,255,0.10);
+  --border-l:   rgba(255,255,255,0.06);
+  --font:       'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(900px 600px at 12% -5%, rgba(139,92,246,0.18), transparent 60%),
+    radial-gradient(800px 600px at 95% 8%, rgba(244,114,182,0.10), transparent 55%),
+    #07031a;
+  background-attachment: fixed;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 26px;
+  border-bottom: 1px solid var(--border-l);
+  background: rgba(6,3,22,0.55);
+  backdrop-filter: blur(20px);
+  position: sticky; top: 0; z-index: 20;
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--muted); text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  padding: 7px 12px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card); transition: all .18s;
+  white-space: nowrap;
+}
+.back-link:hover { color: var(--text); background: var(--card-h); }
+.topbar-titles { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.topbar-title { font-size: 16px; font-weight: 700; letter-spacing: -.2px; }
+.topbar-sub   { font-size: 12px; color: var(--muted); }
+.refresh-btn {
+  margin-left: auto;
+  color: var(--accent-l); background: var(--accent-dim);
+  border: 1px solid rgba(139,92,246,0.35);
+  border-radius: 8px; padding: 7px 13px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  font-family: var(--font); transition: all .18s;
+}
+.refresh-btn:hover { background: rgba(139,92,246,0.25); }
+
+/* ── Layout ── */
+.wrap { max-width: 1120px; margin: 0 auto; padding: 26px 26px 64px; }
+.section-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .7px;
+  text-transform: uppercase; color: var(--accent-l);
+  margin-bottom: 14px;
+}
+
+/* ── Channel cards ── */
+.channel-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+.channel-card {
+  text-align: left; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 16px;
+  background: var(--card); padding: 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  transition: all .2s; font-family: var(--font);
+}
+.channel-card:hover {
+  background: var(--card-h);
+  border-color: rgba(139,92,246,0.45);
+  transform: translateY(-2px);
+}
+.cc-top { display: flex; align-items: center; gap: 13px; }
+.cc-icon {
+  width: 50px; height: 50px; flex-shrink: 0;
+  display: grid; place-items: center;
+  font-size: 24px; border-radius: 13px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(139,92,246,0.3);
+}
+.cc-name { font-size: 17px; font-weight: 700; }
+.cc-desc { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.cc-foot { display: flex; align-items: center; justify-content: space-between; }
+.cc-count {
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.cc-count span { color: var(--muted); font-weight: 400; }
+.cc-arrow { color: var(--accent-l); font-size: 18px; }
+.cc-handle {
+  font-size: 11.5px; color: var(--accent-l);
+  background: var(--accent-dim); border-radius: 6px;
+  padding: 3px 8px; text-decoration: none;
+}
+.cc-handle:hover { text-decoration: underline; }
+
+/* ── Channel detail header ── */
+.detail-head {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 22px; flex-wrap: wrap;
+}
+.detail-head .cc-icon { width: 46px; height: 46px; font-size: 22px; }
+.detail-name { font-size: 19px; font-weight: 700; }
+.detail-meta { font-size: 12.5px; color: var(--muted); }
+.tt-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-left: auto;
+  color: var(--text); text-decoration: none;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 9px; padding: 8px 13px;
+  font-size: 12.5px; font-weight: 500; transition: all .18s;
+}
+.tt-link:hover { border-color: var(--pink); color: #fff; }
+
+/* ── Video grid ── */
+.video-grid {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.video-card {
+  border: 1px solid var(--border); border-radius: 14px;
+  background: var(--card); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.video-card video {
+  width: 100%; aspect-ratio: 9 / 16;
+  background: #000; display: block;
+  object-fit: contain;
+}
+.vc-body { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 10px; }
+.vc-title {
+  font-size: 13px; font-weight: 600; line-height: 1.35;
+  word-break: break-word;
+}
+.vc-meta { font-size: 11px; color: var(--muted); }
+.vc-actions { display: flex; gap: 8px; }
+.vc-btn {
+  flex: 1; text-align: center; cursor: pointer;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  padding: 8px 6px; border-radius: 8px;
+  text-decoration: none; transition: all .16s;
+  border: 1px solid var(--border);
+}
+.vc-btn.download { color: var(--text); background: var(--card-h); }
+.vc-btn.download:hover { background: rgba(255,255,255,0.13); }
+.vc-btn.tiktok {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, var(--pink), var(--accent));
+}
+.vc-btn.tiktok:hover { filter: brightness(1.12); }
+
+/* ── States ── */
+.empty {
+  border: 1px dashed var(--border); border-radius: 14px;
+  padding: 44px 22px; text-align: center; color: var(--muted);
+  font-size: 13.5px;
+}
+.empty .big { font-size: 30px; display: block; margin-bottom: 10px; }
+.loading { color: var(--muted); font-size: 13.5px; padding: 30px 4px; }
+.hidden { display: none !important; }
+
+@media (max-width: 600px) {
+  .wrap { padding: 18px 14px 56px; }
+  .topbar { padding: 14px 16px; }
+  .video-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .channel-grid { grid-template-columns: 1fr; }
+  .tt-link { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" id="back-pais" href="/">← PAIS</a>
+  <div class="topbar-titles">
+    <span class="topbar-title">Content</span>
+    <span class="topbar-sub" id="topbar-sub">Renders ready to post</span>
+  </div>
+  <button class="refresh-btn" onclick="loadRenders()">↻ Refresh</button>
+</div>
+
+<div class="wrap">
+  <!-- Channels view -->
+  <div id="channels-view">
+    <div class="section-label">Channels</div>
+    <div id="channel-grid" class="channel-grid">
+      <div class="loading">Loading channels…</div>
+    </div>
+  </div>
+
+  <!-- Videos view -->
+  <div id="videos-view" class="hidden">
+    <a class="back-link" href="#" onclick="showChannels();return false;" style="margin-bottom:20px;">← All channels</a>
+    <div class="detail-head" id="detail-head"></div>
+    <div id="video-grid" class="video-grid"></div>
+  </div>
+</div>
+
+<script>
+const TIKTOK_UPLOAD = "https://www.tiktok.com/tiktokstudio/upload";
+let CHANNELS = [];
+
+// Open the mobile dashboard on small screens.
+if (window.innerWidth <= 768) document.getElementById('back-pais').href = '/mobile';
+
+function fmtSize(b) {
+  if (b >= 1024 * 1024) return (b / 1048576).toFixed(0) + ' MB';
+  if (b >= 1024) return (b / 1024).toFixed(0) + ' KB';
+  return b + ' B';
+}
+function fmtAge(ts) {
+  const s = Date.now() / 1000 - ts;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  if (s < 604800) return Math.floor(s / 86400) + 'd ago';
+  return new Date(ts * 1000).toLocaleDateString();
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+async function loadRenders() {
+  const grid = document.getElementById('channel-grid');
+  grid.innerHTML = '<div class="loading">Loading channels…</div>';
+  try {
+    const res = await fetch('/api/renders');
+    const data = await res.json();
+    CHANNELS = data.channels || [];
+  } catch (e) {
+    grid.innerHTML = '<div class="empty"><span class="big">⚠️</span>Could not reach PAIS. Is the server running?</div>';
+    return;
+  }
+  renderChannels();
+  // If a channel is already open, refresh its video list in place.
+  const open = document.getElementById('videos-view');
+  if (!open.classList.contains('hidden') && open.dataset.key) {
+    const ch = CHANNELS.find(c => c.key === open.dataset.key);
+    if (ch) openChannel(ch.key);
+  }
+}
+
+function renderChannels() {
+  const total = CHANNELS.reduce((n, c) => n + c.count, 0);
+  document.getElementById('topbar-sub').textContent =
+    total + ' render' + (total === 1 ? '' : 's') + ' ready to post';
+
+  const grid = document.getElementById('channel-grid');
+  grid.innerHTML = '';
+  CHANNELS.forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'channel-card';
+    card.onclick = () => openChannel(ch.key);
+    const handle = ch.tiktok
+      ? `<a class="cc-handle" href="${esc(ch.tiktok)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(ttHandle(ch.tiktok))}</a>`
+      : `<span class="cc-handle" style="opacity:.6">no channel yet</span>`;
+    card.innerHTML = `
+      <div class="cc-top">
+        <div class="cc-icon">${ch.icon || '🎬'}</div>
+        <div>
+          <div class="cc-name">${esc(ch.name)}</div>
+          <div class="cc-desc">${esc(ch.desc || '')}</div>
+        </div>
+      </div>
+      <div class="cc-foot">
+        <div class="cc-count">${ch.count} <span>render${ch.count === 1 ? '' : 's'}</span></div>
+        ${handle}
+      </div>
+      <div class="cc-foot">
+        <span style="font-size:12px;color:var(--muted)">Open channel</span>
+        <span class="cc-arrow">→</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function ttHandle(url) {
+  const m = String(url).match(/@[\w.]+/);
+  return m ? m[0] : 'TikTok';
+}
+
+function openChannel(key) {
+  const ch = CHANNELS.find(c => c.key === key);
+  if (!ch) return;
+  document.getElementById('channels-view').classList.add('hidden');
+  const view = document.getElementById('videos-view');
+  view.classList.remove('hidden');
+  view.dataset.key = key;
+  window.scrollTo(0, 0);
+
+  const ttBtn = ch.tiktok
+    ? `<a class="tt-link" href="${esc(ch.tiktok)}" target="_blank" rel="noopener">▶ ${esc(ttHandle(ch.tiktok))}</a>`
+    : '';
+  document.getElementById('detail-head').innerHTML = `
+    <div class="cc-icon">${ch.icon || '🎬'}</div>
+    <div>
+      <div class="detail-name">${esc(ch.name)}</div>
+      <div class="detail-meta">${ch.count} render${ch.count === 1 ? '' : 's'} · tap a video to preview, then post to TikTok</div>
+    </div>
+    ${ttBtn}`;
+
+  const grid = document.getElementById('video-grid');
+  if (!ch.videos.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <span class="big">🎬</span>No renders here yet.<br>
+      They'll show up automatically once the ${esc(ch.name)} pipeline finishes one.</div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  ch.videos.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'video-card';
+    card.innerHTML = `
+      <video controls preload="metadata" playsinline src="${esc(v.url)}#t=0.1"></video>
+      <div class="vc-body">
+        <div class="vc-title">${esc(v.title)}</div>
+        <div class="vc-meta">${fmtSize(v.size)} · ${fmtAge(v.mtime)}</div>
+        <div class="vc-actions">
+          <a class="vc-btn download" href="${esc(v.url)}?dl=1" download="${esc(v.name)}">⬇ Download</a>
+          <a class="vc-btn tiktok" href="${TIKTOK_UPLOAD}" target="_blank" rel="noopener">↗ TikTok</a>
+        </div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function showChannels() {
+  document.getElementById('videos-view').classList.add('hidden');
+  document.getElementById('videos-view').removeAttribute('data-key');
+  document.getElementById('channels-view').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
+loadRenders();
+</script>
+</body>
+</html>
