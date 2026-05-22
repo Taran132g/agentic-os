@@ -1,0 +1,81 @@
+{
+  "_comment": "Edit this file to control B-roll fetching. Run `python3 fetch_broll.py <category>` to download. Each category supports a mix of `urls` (direct YouTube links) and `queries` (yt-dlp search terms). Add as many as you want — each entry pulls one clip.",
+
+  "horror_animated": {
+    "urls": [
+      "https://www.youtube.com/shorts/nWf7huAPCsw"
+    ],
+    "channels": [
+      {"url": "https://www.youtube.com/@Dr.Philmen/shorts", "count": 15}
+    ],
+    "queries": [],
+    "duration_min": 5,
+    "duration_max": 180
+  },
+
+  "horror_fog_road": {
+    "queries": ["foggy road at night cinematic 4k drone"],
+    "duration_min": 90,
+    "duration_max": 1800
+  },
+
+  "horror_dark_forest": {
+    "queries": ["dark forest night cinematic horror compilation"],
+    "duration_min": 90,
+    "duration_max": 1800
+  },
+
+  "horror_empty_hallway": {
+    "queries": ["empty hallway dark horror compilation"],
+    "duration_min": 60,
+    "duration_max": 1800
+  },
+
+  "horror_abandoned": {
+    "queries": ["abandoned building 4k cinematic eerie"],
+    "duration_min": 90,
+    "duration_max": 1800
+  },
+
+  "nature_waves": {
+    "queries": ["ocean waves dramatic cinematic 4k aerial drone"],
+    "duration_min": 180,
+    "duration_max": 1800
+  },
+
+  "nature_aurora": {
+    "queries": ["northern lights aurora cinematic 4k time lapse"],
+    "duration_min": 180,
+    "duration_max": 1800
+  },
+
+  "nature_wildlife": {
+    "queries": ["wildlife cinematic 4k slow motion compilation"],
+    "duration_min": 180,
+    "duration_max": 1800
+  },
+
+  "nature_forest": {
+    "queries": ["forest sunlight cinematic 4k 10 minutes no music"],
+    "duration_min": 180,
+    "duration_max": 1800
+  },
+
+  "nature_birds": {
+    "queries": ["eagle flying slow motion 4k cinematic"],
+    "duration_min": 90,
+    "duration_max": 1800
+  },
+
+  "parkour": {
+    "queries": ["minecraft parkour 10 minutes no commentary"],
+    "duration_min": 300,
+    "duration_max": 1500
+  },
+
+  "subway": {
+    "queries": ["subway surfers gameplay 10 minutes no commentary"],
+    "duration_min": 300,
+    "duration_max": 1500
+  }
+}
