@@ -9,289 +9,429 @@
 <style>
 :root {
   --bg:#05080f; --bg2:#070b14;
-  --panel:rgba(0,210,255,0.030); --panel2:rgba(0,210,255,0.058);
-  --border:rgba(0,210,255,0.14);
+  --panel:rgba(176,110,255,0.04); --panel2:rgba(176,110,255,0.08);
+  --border:rgba(176,110,255,0.18);
   --c:#00d4ff; --c2:#7dd8e8;
   --g:#00ff7f; --g2:#00cc66;
-  --o:#ffb700; --r:#ff4d4d; --p:#b06eff;
-  --text:#cce6f5; --dim:#7aabbf; --bright:#eef7ff; --muted:#1a3544;
+  --o:#ffb700; --r:#ff4d4d; --p:#b06eff; --p2:#d4a8ff;
+  --text:#dde8ff; --dim:#9ab0cc; --bright:#f0f6ff; --muted:#1f2e44;
   --mono:'Share Tech Mono','JetBrains Mono',monospace;
   --sans:'Rajdhani','Segoe UI',system-ui,sans-serif;
 }
-
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
-
 body {
-  color:var(--text);
-  font-family:var(--mono);font-size:11px;
+  color:var(--text);font-family:var(--mono);font-size:12px;
   display:flex;flex-direction:column;
   background-image:
-    radial-gradient(ellipse at 50% 0%,rgba(176,110,255,.07) 0%,transparent 55%),
-    radial-gradient(ellipse at 0% 100%,rgba(80,0,180,.04) 0%,transparent 40%);
+    radial-gradient(ellipse at 50% 0%,rgba(176,110,255,.09) 0%,transparent 55%),
+    radial-gradient(ellipse at 0% 100%,rgba(80,0,180,.05) 0%,transparent 40%);
 }
 body::after {
   content:'';position:fixed;inset:0;
-  background:repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0px,rgba(0,0,0,.05) 1px,transparent 1px,transparent 3px);
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.04) 0px,rgba(0,0,0,.04) 1px,transparent 1px,transparent 3px);
   pointer-events:none;z-index:9999;
 }
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
-@keyframes fadein{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.2);opacity:.8}}
-@keyframes flow{0%{left:-40%}100%{left:110%}}
-
-/* ── TOP BAR ────────────────────────────────────────────────────── */
+/* ── TOP BAR ──────────────────────────────────────────────────── */
 .top-bar {
-  flex-shrink:0;height:42px;
-  background:rgba(2,6,14,.98);
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 16px;gap:10px;
+  flex-shrink:0;height:46px;
+  background:rgba(2,6,14,.98);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 18px;gap:12px;
   position:relative;z-index:10;
 }
 .top-bar::after {
   content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;
   background:linear-gradient(90deg,transparent,var(--p) 20%,var(--p) 80%,transparent);
-  opacity:.22;
+  opacity:.3;
 }
 .back-link {
   font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.18em;
   color:var(--dim);text-decoration:none;text-transform:uppercase;
-  border:1px solid var(--muted);padding:3px 9px;border-radius:2px;
+  border:1px solid rgba(176,110,255,.25);padding:4px 10px;border-radius:2px;
   transition:all .15s;flex-shrink:0;
 }
-.back-link:hover{color:var(--p);border-color:var(--p)}
+.back-link:hover{color:var(--p2);border-color:var(--p)}
 .page-title {
-  font-family:var(--sans);font-size:17px;font-weight:700;letter-spacing:.28em;
-  color:var(--p);text-shadow:0 0 18px var(--p),0 0 38px rgba(176,110,255,.25);
+  font-family:var(--sans);font-size:18px;font-weight:700;letter-spacing:.28em;
+  color:var(--p2);text-shadow:0 0 18px var(--p),0 0 38px rgba(176,110,255,.25);
 }
 .status-pill {
   font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.18em;
-  padding:3px 9px;border:1px solid var(--muted);border-radius:2px;
-  color:var(--muted);transition:all .3s;
+  padding:4px 10px;border:1px solid rgba(176,110,255,.25);border-radius:2px;
+  color:var(--dim);transition:all .3s;
 }
 .status-pill.live{border-color:var(--o);color:var(--o);animation:blink .8s infinite}
 .status-pill.ready{border-color:var(--g);color:var(--g)}
-.top-right{margin-left:auto;display:flex;align-items:center;gap:14px}
-.stat-chip{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--dim);display:flex;align-items:center;gap:4px}
-.stat-n{font-size:11px;color:var(--p)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 
-/* ── SEARCH BAR ─────────────────────────────────────────────────── */
-.search-bar {
-  flex-shrink:0;padding:9px 16px;
-  background:rgba(2,6,14,.85);border-bottom:1px solid var(--border);
-  display:flex;gap:7px;align-items:center;
+/* View toggle button */
+.view-btn {
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:4px 12px;border-radius:2px;cursor:pointer;transition:all .15s;
+  background:transparent;border:1px solid rgba(176,110,255,.25);color:var(--dim);
+}
+.view-btn.active, .view-btn:hover{border-color:var(--p);color:var(--p2);background:rgba(176,110,255,.08)}
+
+/* ── INPUT BAR ────────────────────────────────────────────────── */
+.input-bar {
+  flex-shrink:0;padding:10px 18px;
+  background:rgba(2,6,14,.9);border-bottom:1px solid var(--border);
+  display:flex;gap:8px;align-items:center;
 }
 #task-input {
-  flex:1;background:rgba(176,110,255,.05);border:1px solid var(--border);
-  color:var(--bright);font-family:var(--mono);font-size:11.5px;
-  padding:8px 13px;outline:none;border-radius:3px;
-  transition:border-color .2s,box-shadow .2s;
+  flex:1;background:rgba(176,110,255,.06);border:1px solid rgba(176,110,255,.2);
+  color:var(--bright);font-family:var(--mono);font-size:12px;
+  padding:9px 14px;outline:none;border-radius:3px;transition:border-color .2s,box-shadow .2s;
 }
-#task-input:focus{border-color:var(--p);box-shadow:0 0 14px rgba(176,110,255,.1)}
-#task-input::placeholder{color:var(--muted)}
-.sbtn {
+#task-input:focus{border-color:var(--p);box-shadow:0 0 14px rgba(176,110,255,.12)}
+#task-input::placeholder{color:rgba(176,110,255,.3)}
+.run-btn {
   font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
-  padding:8px 20px;cursor:pointer;border-radius:3px;transition:all .15s;flex-shrink:0;
+  padding:9px 22px;cursor:pointer;border-radius:3px;transition:all .15s;flex-shrink:0;
+  background:rgba(176,110,255,.1);border:1px solid var(--p);color:var(--p2);
 }
-.sbtn.launch{background:rgba(176,110,255,.09);border:1px solid var(--p);color:var(--p)}
-.sbtn.launch:hover{background:rgba(176,110,255,.18);box-shadow:0 0 16px rgba(176,110,255,.16)}
+.run-btn:hover{background:rgba(176,110,255,.2);box-shadow:0 0 16px rgba(176,110,255,.2)}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
 
-/* ── PIPELINE SECTION ───────────────────────────────────────────── */
-.pipeline-section {
-  flex-shrink:0;
-  background:rgba(2,6,14,.7);
-  border-bottom:1px solid var(--border);
-  padding:10px 16px 12px;
+/* ── STATUS BAR ───────────────────────────────────────────────── */
+.status-bar {
+  flex-shrink:0;padding:5px 18px;
+  background:rgba(2,6,14,.7);border-bottom:1px solid rgba(176,110,255,.08);
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
 }
-.pipeline-label {
-  font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.3em;
-  color:var(--p);text-transform:uppercase;margin-bottom:10px;
-  display:flex;align-items:center;gap:8px;
-}
-.pipeline-label::before{content:'';width:14px;height:1px;background:linear-gradient(90deg,var(--p),transparent);box-shadow:0 0 4px var(--p)}
+.sb-agent{display:flex;align-items:center;gap:6px}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:rgba(176,110,255,.25);flex-shrink:0;transition:all .3s}
+.sb-dot.run{background:var(--o);box-shadow:0 0 5px var(--o);animation:blink .8s infinite}
+.sb-dot.queued{background:var(--c);box-shadow:0 0 4px var(--c)}
+.sb-dot.idle{background:rgba(176,110,255,.2)}
+.sb-label{font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--dim)}
+.sb-label.run{color:var(--o)}
+.sb-label.queued{color:var(--c)}
+.sb-sep{width:1px;height:14px;background:rgba(176,110,255,.1);flex-shrink:0}
+.sb-right{margin-left:auto;font-family:var(--sans);font-size:9px;color:var(--dim);letter-spacing:.08em}
 
-.pipeline-row {
-  display:flex;align-items:stretch;gap:0;
+/* ── VERIFY BANNER ────────────────────────────────────────────── */
+.verify-banner {
+  flex-shrink:0;padding:8px 18px;
+  background:rgba(0,255,127,.04);border-bottom:1px solid rgba(0,255,127,.25);
+  display:flex;flex-direction:column;gap:8px;animation:fadein .3s ease;
 }
+.verify-row{display:flex;align-items:center;gap:12px}
+.verify-text{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--g);flex:1;line-height:1.4}
+.verify-cta{
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  padding:6px 16px;border:1px solid var(--g);color:var(--g);background:rgba(0,255,127,.08);
+  border-radius:3px;cursor:pointer;flex-shrink:0;transition:all .15s;
+}
+.verify-cta:hover{background:rgba(0,255,127,.18);box-shadow:0 0 10px rgba(0,255,127,.18)}
+.verify-bad{
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:6px 14px;border:1px solid rgba(255,77,77,.35);color:var(--r);background:rgba(255,77,77,.06);
+  border-radius:3px;cursor:pointer;flex-shrink:0;transition:all .15s;
+}
+.verify-bad:hover{background:rgba(255,77,77,.14);border-color:var(--r)}
+.correction-row{display:flex;gap:8px;align-items:flex-start;padding-top:2px}
+.correction-input{
+  flex:1;background:rgba(255,77,77,.06);border:1px solid rgba(255,77,77,.3);
+  color:var(--bright);font-family:var(--mono);font-size:11px;
+  padding:7px 12px;outline:none;border-radius:3px;resize:none;height:52px;
+  transition:border-color .2s;
+}
+.correction-input:focus{border-color:var(--r);box-shadow:0 0 10px rgba(255,77,77,.1)}
+.correction-input::placeholder{color:rgba(255,77,77,.35)}
+.correction-submit{
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:7px 16px;border:1px solid var(--r);color:var(--r);background:rgba(255,77,77,.08);
+  border-radius:3px;cursor:pointer;flex-shrink:0;transition:all .15s;align-self:stretch;
+}
+.correction-submit:hover{background:rgba(255,77,77,.18)}
 
-/* ── AGENT CARDS ────────────────────────────────────────────────── */
-.agent-card {
-  flex:1;min-width:0;
+/* ── MAIN LAYOUT ──────────────────────────────────────────────── */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── ACTIVE VIEW ──────────────────────────────────────────────── */
+.active-view{flex:1;display:flex;overflow:hidden;min-height:0}
+
+.sections-col{
+  width:320px;flex-shrink:0;
   display:flex;flex-direction:column;
-  border:1px solid var(--muted);border-radius:5px;
-  padding:9px 10px 8px;
-  background:rgba(0,0,0,.25);
-  transition:all .35s;
-  position:relative;
-  overflow:hidden;
+  border-right:1px solid var(--border);
+  overflow-y:auto;
 }
-.agent-card.analyze {border-left:3px solid var(--c)}
-.agent-card.execute {border-left:3px solid var(--o)}
-.agent-card.report  {border-left:3px solid var(--p)}
+.sections-col::-webkit-scrollbar{width:2px}
+.sections-col::-webkit-scrollbar-thumb{background:rgba(176,110,255,.14)}
 
-.agent-card.active.analyze {border-color:var(--c);background:rgba(0,210,255,.06)}
-.agent-card.active.execute {border-color:var(--o);background:rgba(255,183,0,.05)}
-.agent-card.active.report  {border-color:var(--p);background:rgba(176,110,255,.05)}
-
-.agent-card.done {border-color:var(--g);background:rgba(0,255,127,.025)}
-
-.ac-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-.ac-icon { font-size:13px;color:var(--muted);transition:all .35s; }
-.agent-card.active .ac-icon{animation:pulse 1.3s infinite}
-.agent-card.done .ac-icon{color:var(--g)}
-
-.ac-name{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
-.agent-card.active .ac-name{color:var(--p)}
-.agent-card.done .ac-name{color:var(--g)}
-
-.ac-desc{font-size:8px;color:var(--muted);line-height:1.5;margin-bottom:5px;flex:1}
-.agent-card.active .ac-desc{color:var(--dim)}
-
-/* ── CONNECTORS ─────────────────────────────────────────────────── */
-.connector-wrap{flex-shrink:0;width:28px;display:flex;align-items:center;justify-content:center;position:relative}
-.conn-line{width:100%;height:2px;background:rgba(176,110,255,.08);border-radius:1px;position:relative;overflow:hidden}
-.conn-line.flowing::before{
-  content:'';position:absolute;top:0;left:-50%;
-  width:40%;height:100%;
-  background:linear-gradient(90deg,transparent,var(--p),transparent);
-  animation:flow 1s linear infinite;
+.section-hdr{
+  padding:10px 14px 6px;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid rgba(176,110,255,.08);
+  position:sticky;top:0;background:rgba(5,8,15,.95);z-index:2;
 }
-.conn-line.done-line{background:rgba(0,255,127,.3)}
-
-/* ── MAIN CONTENT ───────────────────────────────────────────────── */
-.main-content{flex:1;display:flex;overflow:hidden;min-height:0}
-
-/* ── LIST PANE ──────────────────────────────────────────────────── */
-.list-pane{width:40%;display:flex;flex-direction:column;border-right:1px solid var(--border);overflow:hidden}
-.pane-hdr{
-  flex-shrink:0;padding:7px 13px;border-bottom:1px solid var(--border);
-  background:rgba(2,6,14,.5);display:flex;align-items:center;
-}
-.pane-title{
-  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--p);
+.section-title{
+  font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--p2);
   display:flex;align-items:center;gap:6px;
 }
-.pane-title::before{content:'';width:10px;height:1px;background:var(--p);box-shadow:0 0 4px var(--p)}
-
-.grid{
-  flex:1;overflow-y:auto;padding:9px;
-  display:flex;flex-direction:column;gap:7px;
+.section-title::before{content:'';width:10px;height:1px;background:var(--p);box-shadow:0 0 4px var(--p)}
+.section-count{
+  font-family:var(--mono);font-size:9px;color:var(--dim);
+  background:rgba(176,110,255,.1);padding:1px 6px;border-radius:10px;
 }
-.grid::-webkit-scrollbar{width:2px}
-.grid::-webkit-scrollbar-thumb{background:rgba(176,110,255,.14)}
 
-.proj-card{
-  border:1px solid var(--border);border-radius:4px;
-  padding:9px 10px;background:rgba(176,110,255,.018);
-  cursor:pointer;transition:all .15s;animation:fadein .2s ease;
+.section-body{padding:8px;display:flex;flex-direction:column;gap:6px}
+
+/* Task cards */
+.task-card{
+  border:1px solid rgba(176,110,255,.15);border-radius:5px;
+  padding:10px 12px;background:rgba(176,110,255,.025);
+  cursor:default;transition:all .2s;animation:fadein .2s ease;
 }
-.proj-card:hover{background:rgba(176,110,255,.055);border-color:var(--p)}
-.proj-card.sel{border-color:var(--p);background:rgba(176,110,255,.07);box-shadow:0 0 10px rgba(176,110,255,.08)}
-.pc-name{font-family:var(--sans);font-size:10.5px;font-weight:700;color:var(--bright)}
-.pc-sum{font-size:8.5px;color:var(--dim);margin-top:2px}
-.pc-tech{font-size:7px;color:var(--p);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.task-card:hover{background:rgba(176,110,255,.06);border-color:rgba(176,110,255,.35)}
+.task-card.active-card{border-color:var(--o);background:rgba(255,183,0,.04)}
+.task-card.queued-card{border-color:rgba(0,210,255,.25);background:rgba(0,210,255,.025)}
+.task-card.scheduled-card{border-color:rgba(176,110,255,.2);background:rgba(176,110,255,.02)}
 
-/* ── DETAIL PANE ────────────────────────────────────────────────── */
+.tc-header{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.tc-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.tc-text{
+  font-family:var(--sans);font-size:12px;font-weight:600;color:var(--bright);
+  line-height:1.4;word-break:break-word;flex:1;
+}
+.tc-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tc-badge{
+  font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 7px;border-radius:10px;
+}
+.tc-badge.running{background:rgba(255,183,0,.12);color:var(--o);border:1px solid rgba(255,183,0,.3);animation:blink .8s infinite}
+.tc-badge.queued{background:rgba(0,210,255,.08);color:var(--c);border:1px solid rgba(0,210,255,.2)}
+.tc-badge.scheduled{background:rgba(176,110,255,.1);color:var(--p2);border:1px solid rgba(176,110,255,.2)}
+.tc-time{font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+.empty-card{
+  padding:18px 12px;text-align:center;
+  color:rgba(176,110,255,.25);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* Running spinner */
+.spinner{
+  width:12px;height:12px;border:2px solid rgba(255,183,0,.2);border-top-color:var(--o);
+  border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;
+}
+
+/* ── DETAIL PANE ──────────────────────────────────────────────── */
 .detail-pane{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.detail-scroll{flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:11px}
-.detail-scroll::-webkit-scrollbar{width:2px}
-
-.d-name{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--bright)}
-.sec-lbl{
-  font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--p);
-  margin-bottom:5px;display:flex;align-items:center;gap:6px;
+.detail-hdr{
+  flex-shrink:0;padding:8px 14px;
+  border-bottom:1px solid var(--border);background:rgba(2,6,14,.6);
+  display:flex;align-items:center;gap:8px;
 }
-.sec-lbl::before{content:'';width:8px;height:1px;background:var(--p)}
+.detail-title{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--p2)}
+.detail-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.detail-body::-webkit-scrollbar{width:2px}
+.detail-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:rgba(176,110,255,.2);gap:12px;
+}
+.d-icon{font-size:32px;opacity:.4}
+.d-hint{font-family:var(--sans);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:rgba(176,110,255,.3)}
 
-.step-item{font-size:9.5px;color:var(--text);line-height:1.6;margin-bottom:4px;display:flex;gap:8px}
-.step-item::before{content:'•';color:var(--p)}
+/* Detail content formatting */
+.md-h1{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--bright);line-height:1.3;margin-bottom:6px;word-break:break-word}
+.md-h2{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--p2);margin:12px 0 6px;display:flex;align-items:center;gap:6px}
+.md-h2::before{content:'';width:8px;height:1px;background:var(--p)}
+.md-li{font-size:11px;color:var(--text);line-height:1.65;margin-bottom:3px;padding-left:14px;position:relative;word-break:break-word}
+.md-li::before{content:'›';position:absolute;left:0;color:var(--p)}
+.md-p{font-size:11px;color:var(--dim);line-height:1.65;word-break:break-word}
 
-/* ── ACTIVITY BAR ───────────────────────────────────────────────── */
-.act-bar{
-  flex-shrink:0;height:68px;background:rgba(2,6,14,.97);border-top:1px solid var(--border);
+/* ── ACTIVITY LOG ─────────────────────────────────────────────── */
+.act-panel{
+  flex-shrink:0;height:76px;background:rgba(2,6,14,.97);border-top:1px solid rgba(176,110,255,.1);
   display:flex;flex-direction:column;overflow:hidden;
 }
 .act-hdr{
-  flex-shrink:0;padding:4px 13px 2px;
+  flex-shrink:0;padding:4px 14px 2px;
   display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(176,110,255,.06);
 }
 .act-title{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
-.act-led{width:5px;height:5px;border-radius:50%;background:var(--muted);margin-left:auto}
+.act-led{width:5px;height:5px;border-radius:50%;background:rgba(176,110,255,.2);margin-left:auto;transition:all .3s}
 .act-led.live{background:var(--g);box-shadow:0 0 5px var(--g);animation:blink .8s infinite}
-.act-scroll{flex:1;overflow-y:auto;padding:2px 13px 4px}
-.act-line{font-size:8.5px;color:var(--dim);line-height:1.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-scroll{flex:1;overflow-y:auto;padding:2px 14px 4px}
+.act-line{font-size:9px;color:var(--dim);line-height:1.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act-scroll::-webkit-scrollbar{width:2px}
 
-.empty-state {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  color: var(--muted); gap: 10px;
+/* ── HISTORY VIEW ─────────────────────────────────────────────── */
+.history-view{flex:1;display:flex;overflow:hidden;min-height:0}
+.hist-list{
+  width:340px;flex-shrink:0;display:flex;flex-direction:column;
+  border-right:1px solid var(--border);overflow:hidden;
 }
-.empty-icon { font-size: 30px; opacity: 0.3; }
-.empty-text { font-family: var(--sans); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; }
+.hist-hdr{
+  flex-shrink:0;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:rgba(2,6,14,.7);display:flex;align-items:center;gap:8px;
+}
+.hist-title{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--p2)}
+.hist-count{font-family:var(--mono);font-size:9px;color:var(--dim);background:rgba(176,110,255,.1);padding:1px 6px;border-radius:10px}
+.hist-scroll{flex:1;overflow-y:auto;padding:8px}
+.hist-scroll::-webkit-scrollbar{width:2px}
+.hist-scroll::-webkit-scrollbar-thumb{background:rgba(176,110,255,.12)}
+
+.hist-card{
+  border:1px solid rgba(176,110,255,.12);border-radius:4px;
+  padding:9px 11px;margin-bottom:5px;background:rgba(176,110,255,.02);
+  cursor:pointer;transition:all .15s;animation:fadein .2s ease;
+}
+.hist-card:hover{background:rgba(176,110,255,.06);border-color:rgba(176,110,255,.3)}
+.hist-card.sel{border-color:var(--p);background:rgba(176,110,255,.07);box-shadow:0 0 8px rgba(176,110,255,.06)}
+.hc-text{
+  font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--bright);
+  line-height:1.4;word-break:break-word;margin-bottom:4px;
+}
+.hc-meta{display:flex;align-items:center;gap:8px}
+.hc-date{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.hc-time{font-family:var(--mono);font-size:9px;color:var(--p2);font-weight:700}
+.hc-status{font-family:var(--sans);font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--g)}
+.hc-status.error{color:var(--r)}
 </style>
 </head>
 <body>
 
+<!-- TOP BAR -->
 <div class="top-bar">
   <a href="/" class="back-link">‹ Dashboard</a>
-  <span style="color:var(--muted);font-size:12px">//</span>
+  <span style="color:rgba(176,110,255,.3);font-size:13px">//</span>
   <span class="page-title">PERSONAL TASKS</span>
   <span class="status-pill" id="status-pill">STANDBY</span>
   <div class="top-right">
-    <div class="stat-chip">Tasks <span class="stat-n" id="sn-proj">0</span></div>
+    <button class="view-btn active" id="btn-active" onclick="switchView('active')">Active</button>
+    <button class="view-btn" id="btn-history" onclick="switchView('history')">Task Log</button>
   </div>
 </div>
 
-<div class="search-bar">
-  <input id="task-input" type="text" placeholder="[ Study for AI exam, Finish homework, Plan weekend... ]" autocomplete="off">
-  <button class="sbtn launch" id="btn-launch" onclick="launchTask()">▶ RUN TASK</button>
+<!-- INPUT BAR -->
+<div class="input-bar">
+  <input id="task-input" type="text"
+    placeholder="What do you want me to do? (e.g. Plan my week, research internships, draft email...)"
+    autocomplete="off" onkeydown="if(event.key==='Enter')launchTask()">
+  <button class="run-btn" id="btn-run" onclick="launchTask()">▶ Run Task</button>
 </div>
 
-<!-- PIPELINE -->
-<div class="pipeline-section">
-  <div class="pipeline-label">Operation Pipeline</div>
-  <div class="pipeline-row">
-    <div class="agent-card analyze" id="stage-analyze">
-      <div class="ac-header"><div class="ac-icon">🧠</div><div class="ac-name">Analyze</div></div>
-      <div class="ac-desc">Categorizing & planning the task</div>
-    </div>
-    <div class="connector-wrap"><div class="conn-line" id="conn-analyze"></div></div>
-    <div class="agent-card execute" id="stage-execute">
-      <div class="ac-header"><div class="ac-icon">⚡</div><div class="ac-name">Execute</div></div>
-      <div class="ac-desc">Developing the detailed plan</div>
-    </div>
-    <div class="connector-wrap"><div class="conn-line" id="conn-execute"></div></div>
-    <div class="agent-card report" id="stage-report">
-      <div class="ac-header"><div class="ac-icon">📊</div><div class="ac-name">Report</div></div>
-      <div class="ac-desc">Finalizing & logging results</div>
-    </div>
+<!-- STATUS BAR -->
+<div class="status-bar" id="status-bar">
+  <div class="sb-agent"><div class="sb-dot idle" id="sd-personal"></div><span class="sb-label" id="sl-personal">Personal · Idle</span></div>
+  <div class="sb-sep"></div>
+  <div class="sb-agent"><div class="sb-dot idle" id="sd-career"></div><span class="sb-label" id="sl-career">Career · Idle</span></div>
+  <div class="sb-sep"></div>
+  <div class="sb-agent"><div class="sb-dot idle" id="sd-general"></div><span class="sb-label" id="sl-general">General · Idle</span></div>
+  <div class="sb-right" id="sb-queue"></div>
+</div>
+
+<!-- VERIFY BANNER -->
+<div class="verify-banner" id="verify-banner" style="display:none">
+  <div class="verify-row">
+    <span style="color:var(--g);font-size:14px">✓</span>
+    <div class="verify-text" id="verify-text">Task complete — review and confirm</div>
+    <button class="verify-cta" onclick="markComplete()">Mark Complete</button>
+    <button class="verify-bad" onclick="showCorrectionInput()">Didn't complete correctly</button>
+  </div>
+  <div class="correction-row" id="correction-row" style="display:none">
+    <textarea class="correction-input" id="correction-input"
+      placeholder="What went wrong? Be specific — PAIS will read its own code and fix the bug."
+      onkeydown="if(event.key==='Enter'&&event.metaKey)submitCorrection()"></textarea>
+    <button class="correction-submit" onclick="submitCorrection()">Fix & Retry</button>
   </div>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="main-content" style="padding-top: 10px;">
-  <div class="list-pane" style="width: 40%; border-right: 1px solid var(--border);">
-    <div class="pane-hdr"><div class="pane-title">Tasks</div></div>
-    <div class="grid" id="proj-grid">
-      <div class="empty-state">
-        <div class="empty-icon">◎</div>
-        <div class="empty-text">No tasks processed.</div>
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ── ACTIVE VIEW ── -->
+  <div class="active-view" id="view-active">
+
+    <!-- Sections column -->
+    <div class="sections-col">
+
+      <!-- Current Tasks -->
+      <div class="section-hdr">
+        <div class="section-title">Current Tasks</div>
+        <span class="section-count" id="cnt-current">0</span>
+      </div>
+      <div class="section-body" id="sec-current">
+        <div class="empty-card">No tasks running</div>
+      </div>
+
+      <!-- Queued Tasks -->
+      <div class="section-hdr" style="top:37px">
+        <div class="section-title">Queued Tasks</div>
+        <span class="section-count" id="cnt-queued">0</span>
+      </div>
+      <div class="section-body" id="sec-queued">
+        <div class="empty-card">Queue is empty</div>
+      </div>
+
+      <!-- Scheduled Tasks -->
+      <div class="section-hdr" style="top:74px">
+        <div class="section-title">Scheduled Tasks</div>
+        <span class="section-count" id="cnt-scheduled">0</span>
+      </div>
+      <div class="section-body" id="sec-scheduled">
+        <div class="empty-card">No scheduled tasks</div>
+      </div>
+
+    </div>
+
+    <!-- Detail pane -->
+    <div class="detail-pane">
+      <div class="detail-hdr">
+        <div class="detail-title">Task Detail</div>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-left:auto" id="detail-meta"></span>
+      </div>
+      <div class="detail-body" id="detail-body">
+        <div class="detail-empty">
+          <div class="d-icon">◈</div>
+          <div class="d-hint">Select a task to view details</div>
+        </div>
       </div>
     </div>
+
   </div>
-  <div class="detail-pane">
-    <div class="pane-hdr"><div class="pane-title">Task Detail</div></div>
-    <div id="detail-content" class="detail-scroll">
-      <div class="empty-state">
-        <div class="empty-icon">◈</div>
-        <div class="empty-text">Select a task to see the plan.</div>
+
+  <!-- ── HISTORY VIEW ── -->
+  <div class="history-view" id="view-history" style="display:none">
+
+    <div class="hist-list">
+      <div class="hist-hdr">
+        <div class="hist-title">Completed Tasks</div>
+        <span class="hist-count" id="hist-count">0</span>
+      </div>
+      <div class="hist-scroll" id="hist-scroll">
+        <div style="padding:20px;text-align:center;color:rgba(176,110,255,.25);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase">Loading history...</div>
       </div>
     </div>
+
+    <div class="detail-pane">
+      <div class="detail-hdr">
+        <div class="detail-title">Task Detail</div>
+        <span style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-left:auto" id="hist-detail-meta"></span>
+      </div>
+      <div class="detail-body" id="hist-detail-body">
+        <div class="detail-empty">
+          <div class="d-icon">◎</div>
+          <div class="d-hint">Click a task to see full details</div>
+        </div>
+      </div>
+    </div>
+
   </div>
+
 </div>
 
-<!-- ACTIVITY BAR -->
-<div class="act-bar">
+<!-- ACTIVITY LOG -->
+<div class="act-panel">
   <div class="act-hdr">
     <div class="act-title">Activity Feed</div>
     <div class="act-led" id="act-led"></div>
@@ -300,217 +440,372 @@ body::after {
 </div>
 
 <script>
-let tasks = [];
-let selected = null;
-let running = false;
+// ── State ──────────────────────────────────────────────────────
+let currentView   = 'active';
+let running       = false;
+let runningTask   = null;  // {id, text, time}
+let queuedTasks   = [];    // [{id, text, time}]
+let pendingVerify = null;  // {id, text}
+let historyTasks  = [];
+let selectedHistId = null;
 
-function ts(){ return new Date().toLocaleTimeString(); }
-function actLog(text, time = null){
-  const scroll = document.getElementById('act-scroll');
-  if (!scroll) { console.log(text); return; }
+function ts() { return new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── View switch ────────────────────────────────────────────────
+function switchView(v) {
+  currentView = v;
+  document.getElementById('view-active').style.display  = v === 'active'  ? 'flex' : 'none';
+  document.getElementById('view-history').style.display = v === 'history' ? 'flex' : 'none';
+  document.getElementById('btn-active').className  = 'view-btn' + (v === 'active'  ? ' active' : '');
+  document.getElementById('btn-history').className = 'view-btn' + (v === 'history' ? ' active' : '');
+  if (v === 'history') fetchHistory();
+}
+
+// ── Activity log ───────────────────────────────────────────────
+function actLog(text) {
+  const el = document.getElementById('act-scroll');
   const line = document.createElement('div');
   line.className = 'act-line';
-  line.innerHTML = `<span style="opacity:.3">[${time || ts()}]</span> ${text}`;
-  scroll.prepend(line);
+  line.innerHTML = `<span style="opacity:.3">[${ts()}]</span> ${esc(text)}`;
+  el.prepend(line);
 }
 
-function setPipelineStage(stage) {
-  const stages = ['analyze', 'execute', 'report'];
-  stages.forEach(s => {
-    const el = document.getElementById(`stage-${s}`);
-    const conn = document.getElementById(`conn-${s}`);
-    if (!el) return;
-    
-    el.classList.remove('active', 'done');
-    if (conn) conn.classList.remove('flowing', 'done-line');
-    
-    if (s === stage) {
-      el.classList.add('active');
-      if (conn) conn.classList.add('flowing');
-    } else if (stages.indexOf(s) < stages.indexOf(stage)) {
-      el.classList.add('done');
-      if (conn) conn.classList.add('done-line');
+// ── Status bar update ──────────────────────────────────────────
+function updateStatusBar(d) {
+  const agents = ['personal','career','general'];
+  agents.forEach(a => {
+    const dot = document.getElementById(`sd-${a}`);
+    const lbl = document.getElementById(`sl-${a}`);
+    if (!dot || !lbl) return;
+    const isRun    = d.running_by_agent?.[a];
+    const isVerify = d.verifying_by_agent?.[a];
+    const q        = d.queued_by_agent?.[a] || 0;
+    const cap      = a.charAt(0).toUpperCase() + a.slice(1);
+    if (isRun) {
+      dot.className = 'sb-dot run';
+      lbl.className = 'sb-label run';
+      lbl.textContent = `${cap} · Running`;
+    } else if (isVerify) {
+      dot.className = 'sb-dot queued';
+      lbl.className = 'sb-label queued';
+      lbl.textContent = `${cap} · Verifying`;
+    } else if (q > 0) {
+      dot.className = 'sb-dot queued';
+      lbl.className = 'sb-label queued';
+      lbl.textContent = `${cap} · Queued (${q})`;
+    } else {
+      dot.className = 'sb-dot idle';
+      lbl.className = 'sb-label';
+      lbl.textContent = `${cap} · Idle`;
     }
   });
+  const total = d.queued || 0;
+  const sbq = document.getElementById('sb-queue');
+  if (sbq) sbq.textContent = total > 0 ? `${total} total queued` : '';
 }
 
-function completePipeline() {
-  const stages = ['analyze', 'execute', 'report'];
-  stages.forEach(s => {
-    const el = document.getElementById(`stage-${s}`);
-    const conn = document.getElementById(`conn-${s}`);
-    if (el) { el.classList.remove('active'); el.classList.add('done'); }
-    if (conn) { conn.classList.remove('flowing'); conn.classList.add('done-line'); }
-  });
+// ── Sections render ────────────────────────────────────────────
+function renderSections() {
+  // Current tasks
+  const curEl = document.getElementById('sec-current');
+  const cntCur = document.getElementById('cnt-current');
+  if (runningTask) {
+    cntCur.textContent = '1';
+    curEl.innerHTML = `
+      <div class="task-card active-card" onclick="loadRunningDetail()">
+        <div class="tc-header">
+          <div class="spinner"></div>
+          <div class="tc-text">${esc(runningTask.text)}</div>
+        </div>
+        <div class="tc-meta">
+          <span class="tc-badge running">Running</span>
+          <span class="tc-time">${esc(runningTask.time || '')}</span>
+        </div>
+      </div>`;
+  } else if (pendingVerify) {
+    cntCur.textContent = '1';
+    curEl.innerHTML = `
+      <div class="task-card active-card" style="border-color:var(--g)">
+        <div class="tc-header">
+          <div class="tc-icon" style="color:var(--g)">✓</div>
+          <div class="tc-text">${esc(pendingVerify.text)}</div>
+        </div>
+        <div class="tc-meta">
+          <span class="tc-badge running" style="border-color:var(--g);color:var(--g);background:rgba(0,255,127,.08)">Awaiting Confirmation</span>
+        </div>
+      </div>`;
+  } else {
+    cntCur.textContent = '0';
+    curEl.innerHTML = '<div class="empty-card">No tasks running</div>';
+  }
+
+  // Queued tasks
+  const queEl = document.getElementById('sec-queued');
+  const cntQue = document.getElementById('cnt-queued');
+  if (queuedTasks.length) {
+    cntQue.textContent = queuedTasks.length;
+    queEl.innerHTML = queuedTasks.map(t => `
+      <div class="task-card queued-card">
+        <div class="tc-header">
+          <div class="tc-icon" style="color:var(--c);font-size:11px">⏳</div>
+          <div class="tc-text">${esc(t.text)}</div>
+        </div>
+        <div class="tc-meta">
+          <span class="tc-badge queued">Queued</span>
+          <span class="tc-time">${esc(t.time || '')}</span>
+        </div>
+      </div>`).join('');
+  } else {
+    cntQue.textContent = '0';
+    queEl.innerHTML = '<div class="empty-card">Queue is empty</div>';
+  }
+
+  // Scheduled tasks (static for now)
+  document.getElementById('cnt-scheduled').textContent = '0';
+  document.getElementById('sec-scheduled').innerHTML = '<div class="empty-card">No scheduled tasks</div>';
 }
 
-function resetPipeline() {
-  const stages = ['analyze', 'execute', 'report'];
-  stages.forEach(s => {
-    const el = document.getElementById(`stage-${s}`);
-    const conn = document.getElementById(`conn-${s}`);
-    if (el) el.classList.remove('active', 'done');
-    if (conn) conn.classList.remove('flowing', 'done-line');
-  });
+function loadRunningDetail() {
+  if (!runningTask) return;
+  document.getElementById('detail-meta').textContent = runningTask.time || '';
+  document.getElementById('detail-body').innerHTML = `
+    <div class="md-h1">${esc(runningTask.text)}</div>
+    <div class="md-h2">Status</div>
+    <div class="md-li">Task is currently being processed by the Personal agent.</div>
+    <div class="md-li">Activity updates appear in the feed below.</div>
+    <div class="md-h2">Started</div>
+    <div class="md-p">${esc(runningTask.time || ts())}</div>`;
 }
 
-let ws;
-function wsConnect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
-  ws.onopen = () => {
-    actLog("Connected to JARVIS.");
-  };
-  ws.onclose = () => {
-    actLog("Connection lost. Reconnecting...");
-    setTimeout(wsConnect, 3000);
-  };
-  ws.onmessage = e => {
-    try {
-      const ev = JSON.parse(e.data);
-      if (ev.type === 'usage_update') {
-         if (!running) fetchHistory();
-         return;
-      }
-      if (ev.type === 'task_done' || ev.type === 'task_error') {
-         if (ev.type === 'task_done') completePipeline();
-         setRunning(false);
-         fetchHistory();
-         return;
-      }
-      if (!ev.type.startsWith('personal_')) return;
-      
-      if (ev.type === 'personal_stage') {
-        setPipelineStage(ev.stage);
-        actLog(`Stage: ${ev.stage.toUpperCase()}`, ev.time);
-      } else if (ev.type === 'personal_activity') {
-        actLog(ev.text, ev.time);
-      } else if (ev.type === 'personal_error') {
-        actLog("ERROR: " + ev.text, ev.time);
-        setRunning(false);
-        fetchHistory();
-      }
-    } catch (err) {
-      console.error("WS Error:", err);
-    }
-  };
+// ── Verification banner ────────────────────────────────────────
+function showVerify(id, text) {
+  pendingVerify = {id, text};
+  if (runningTask && runningTask.id === id) runningTask = null;
+  document.getElementById('verify-text').textContent = `"${text.slice(0,120)}" — review and confirm`;
+  document.getElementById('verify-banner').style.display = 'flex';
+  renderSections();
 }
 
+function hideVerify() {
+  pendingVerify = null;
+  document.getElementById('verify-banner').style.display = 'none';
+  document.getElementById('correction-row').style.display = 'none';
+  document.getElementById('correction-input').value = '';
+}
+
+function markComplete() {
+  if (!pendingVerify || !ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({type:'task_interact', id:pendingVerify.id, action:'complete'}));
+  hideVerify();
+  renderSections();
+  actLog('Task marked complete.');
+}
+
+function showCorrectionInput() {
+  const row = document.getElementById('correction-row');
+  const isVisible = row.style.display !== 'none';
+  row.style.display = isVisible ? 'none' : 'flex';
+  if (!isVisible) document.getElementById('correction-input').focus();
+}
+
+function submitCorrection() {
+  const feedback = document.getElementById('correction-input').value.trim();
+  if (!feedback) { actLog('Please describe what went wrong before submitting.'); return; }
+  if (!pendingVerify || !ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({type:'task_correction', id:pendingVerify.id, feedback}));
+  hideVerify();
+  renderSections();
+  actLog('🔧 Correction submitted — PAIS is analyzing and fixing its code…');
+}
+
+// ── History ────────────────────────────────────────────────────
 async function fetchHistory() {
   try {
     const res = await fetch('/api/history?filter=personal');
     const data = await res.json();
-    tasks = data.history;
-    renderGrid();
-    document.getElementById('sn-proj').textContent = tasks.length;
-  } catch (err) {
-    console.error("Failed to fetch history:", err);
-  }
+    historyTasks = data.history || [];
+    renderHistory();
+  } catch(e) { console.error(e); }
 }
 
-let runningTaskName = null;
-
-function renderGrid() {
-  const grid = document.getElementById('proj-grid');
-  
-  let html = '';
-  if (running) {
-    html += `
-      <div class="proj-card sel active-task">
-        <div class="pc-name" style="color:var(--p)">[ACTIVE] ${runningTaskName || 'Processing...'}</div>
-        <div class="pc-sum">Real-time progress</div>
-        <div class="pc-tech" style="color:var(--o);animation:blink 1s infinite">RUNNING</div>
-      </div>
-    `;
-  }
-
-  if (!tasks.length && !running) {
-    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-text">No tasks processed.</div></div>';
+function renderHistory() {
+  const scroll = document.getElementById('hist-scroll');
+  const count  = document.getElementById('hist-count');
+  if (!historyTasks.length) {
+    scroll.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(176,110,255,.25);font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase">No completed tasks yet</div>';
+    count.textContent = '0';
     return;
   }
-  
-  html += tasks.map(t => `
-    <div class="proj-card ${selected === t.id ? 'sel' : ''}" onclick="selectTask('${t.id}')">
-      <div class="pc-name">${t.text}</div>
-      <div class="pc-sum">${t.time}</div>
-      <div class="pc-tech">${t.status}</div>
-    </div>
-  `).join('');
-  
-  grid.innerHTML = html;
+  count.textContent = historyTasks.length;
+  scroll.innerHTML = historyTasks.map(t => {
+    const timeParts = (t.time || '').split(' ');
+    const dateLabel = timeParts[0] || '';
+    const timeLabel = timeParts[1] || '';
+    return `
+    <div class="hist-card ${selectedHistId === t.id ? 'sel' : ''}" onclick="selectHistTask('${esc(t.id)}')">
+      <div class="hc-text">${esc(t.text)}</div>
+      <div class="hc-meta">
+        <span class="hc-date">${esc(dateLabel)}</span>
+        ${timeLabel ? `<span class="hc-time">${esc(timeLabel)}</span>` : ''}
+        <span class="hc-status ${t.status === 'COMPLETED' ? '' : 'error'}">${esc(t.status || 'COMPLETED')}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-async function selectTask(id) {
-  if (id === 'active') return;
-  selected = id;
-  renderGrid();
-  const detail = document.getElementById('detail-content');
-  detail.innerHTML = '<div class="empty-state"><div class="empty-icon" style="animation:pulse 1s infinite">◈</div><div class="empty-text">Fetching details...</div></div>';
-  
+async function selectHistTask(id) {
+  selectedHistId = id;
+  renderHistory();
+  const detEl = document.getElementById('hist-detail-body');
+  detEl.innerHTML = '<div class="detail-empty"><div class="d-icon" style="animation:pulse 1s infinite">◈</div><div class="d-hint">Loading...</div></div>';
   try {
     const res = await fetch(`/api/task_details?id=${encodeURIComponent(id)}`);
     const data = await res.json();
     if (data.ok) {
-      renderDetails(data.content);
+      document.getElementById('hist-detail-meta').textContent = id.slice(0,10);
+      renderMarkdown(data.content, 'hist-detail-body');
     } else {
-      detail.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">${data.reason}</div></div>`;
+      detEl.innerHTML = `<div class="detail-empty"><div class="d-icon">⚠</div><div class="d-hint">${esc(data.reason)}</div></div>`;
     }
-  } catch (err) {
-    detail.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-text">Error fetching details.</div></div>';
+  } catch {
+    detEl.innerHTML = '<div class="detail-empty"><div class="d-icon">⚠</div><div class="d-hint">Error loading details</div></div>';
   }
 }
 
-function renderDetails(md) {
-  const detail = document.getElementById('detail-content');
-  // Simple MD renderer
-  let html = md
-    .replace(/^# (.*$)/gm, '<div class="d-name">$1</div>')
-    .replace(/^## (.*$)/gm, '<div class="sec-lbl">$1</div>')
-    .replace(/^- (.*$)/gm, '<div class="step-item">$1</div>')
-    .replace(/\n/g, '<br>');
-  detail.innerHTML = `<div style="padding-bottom:20px">${html}</div>`;
+function renderMarkdown(md, containerId) {
+  const el = document.getElementById(containerId);
+  const lines = md.split('\n');
+  let html = '';
+  for (const line of lines) {
+    if (line.startsWith('# '))       html += `<div class="md-h1">${esc(line.slice(2))}</div>`;
+    else if (line.startsWith('## ')) html += `<div class="md-h2">${esc(line.slice(3))}</div>`;
+    else if (line.startsWith('- '))  html += `<div class="md-li">${esc(line.slice(2))}</div>`;
+    else if (line.trim())            html += `<div class="md-p">${esc(line)}</div>`;
+  }
+  el.innerHTML = `<div style="padding-bottom:16px">${html}</div>`;
 }
 
+// ── Task launch ────────────────────────────────────────────────
 function launchTask() {
-  const task = document.getElementById('task-input').value;
-  if (!task) return;
-  if (ws && ws.readyState === 1) {
-    resetPipeline();
-    ws.send(JSON.stringify({type: 'personal_start', task: task}));
-    setRunning(true);
-    actLog("Initiating Personal Task Workflow: " + task);
-  } else {
-    actLog("Cannot launch: WebSocket not connected.");
-  }
+  const inp = document.getElementById('task-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!ws || ws.readyState !== 1) { actLog('Not connected — cannot launch task.'); return; }
+  inp.value = '';
+  ws.send(JSON.stringify({type:'personal_start', task:text}));
+  // Optimistically add to queued until task_dispatched confirms
+  queuedTasks.push({id:'pending_'+Date.now(), text, time:ts()});
+  renderSections();
+  actLog('Sent: ' + text);
 }
 
+// ── Running state ──────────────────────────────────────────────
 function setRunning(v) {
   running = v;
-  document.getElementById('status-pill').textContent = v ? 'RUNNING' : 'STANDBY';
-  document.getElementById('status-pill').className = 'status-pill' + (v ? ' live' : '');
-  document.getElementById('act-led').className = 'act-led' + (v ? ' live' : '');
-  if (!v) {
-    runningTaskName = null;
-    fetchHistory(); 
-  }
-  renderGrid();
+  const pill = document.getElementById('status-pill');
+  const led  = document.getElementById('act-led');
+  pill.textContent = v ? 'RUNNING' : pendingVerify ? 'VERIFYING' : 'STANDBY';
+  pill.className   = 'status-pill' + (v ? ' live' : pendingVerify ? ' live' : '');
+  led.className    = 'act-led' + (v ? ' live' : '');
+  if (!v && !pendingVerify) { runningTask = null; }
+  renderSections();
 }
 
-wsConnect();
-fetchHistory();
-actLog("Personal Task Agent initialized.");
+// ── WebSocket ──────────────────────────────────────────────────
+let ws;
+function wsConnect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.onopen = () => { actLog('Connected to PAIS.'); };
+  ws.onclose = () => { actLog('Connection lost — reconnecting...'); setTimeout(wsConnect, 3000); };
+  ws.onmessage = e => {
+    try {
+      const ev = JSON.parse(e.data);
+      const t  = ev.type;
 
+      if (t === 'task_dispatched' && ev.agent === 'personal') {
+        // Move from optimistic queue to running
+        queuedTasks = queuedTasks.filter(q => !q.id.startsWith('pending_'));
+        runningTask = {id:ev.id, text:ev.text, time:ts()};
+        setRunning(true);
+        actLog(`Dispatched to Personal: ${ev.text}`);
+        return;
+      }
+      if (t === 'task_started' && ev.agent === 'personal') {
+        if (!runningTask) runningTask = {id:ev.id, text:ev.text, time:ts()};
+        setRunning(true);
+        actLog(`Started: ${ev.text}`);
+        return;
+      }
+      if (t === 'task_verification_required') {
+        showVerify(ev.id, ev.prompt || ev.text || 'Task ready');
+        setRunning(false);
+        actLog('Task complete — awaiting your confirmation.');
+        return;
+      }
+      if (t === 'task_done') {
+        hideVerify();
+        runningTask = null;
+        setRunning(false);
+        fetchHistory();
+        actLog('Task done.');
+        return;
+      }
+      if (t === 'task_correction_started') {
+        actLog(`🔧 Self-correction running — fixing code then retrying task…`);
+        return;
+      }
+      if (t === 'task_error') {
+        hideVerify();
+        runningTask = null;
+        setRunning(false);
+        actLog('Error: ' + (ev.text || 'Unknown error'));
+        return;
+      }
+      if (!t.startsWith('personal_')) return;
+      if (t === 'personal_stage') actLog(`Stage: ${ev.stage}`);
+      else if (t === 'personal_activity') actLog(ev.text);
+      else if (t === 'personal_error') { actLog('Error: ' + ev.text); setRunning(false); }
+    } catch(err) { console.error(err); }
+  };
+}
+
+// ── Poll ───────────────────────────────────────────────────────
 async function poll() {
   try {
     const d = await (await fetch('/api/status')).json();
-    const personalRunning = (d.running_by_agent?.personal) || (d.queued_by_agent?.personal > 0);
-    if (personalRunning) {
-        if (!running) setRunning(true);
-    } else if (running) {
-        setRunning(false);
+    updateStatusBar(d);
+    const pRun    = d.running_by_agent?.personal;
+    const pVerify = d.verifying_by_agent?.personal;
+    const pQ      = d.queued_by_agent?.personal || 0;
+
+    if (pRun && !running && !pendingVerify) setRunning(true);
+    else if (!pRun && !pVerify && running && !pendingVerify) setRunning(false);
+
+    // If verify state exists on server but we lost the WS event (e.g. page refresh), show banner
+    if (pVerify && !pendingVerify && !running) {
+      const vids = d.pending_verifications || [];
+      if (vids.length > 0) {
+        pendingVerify = {id: vids[0], text: 'Task complete — click to confirm'};
+        document.getElementById('verify-text').textContent = 'Task complete — review and confirm';
+        document.getElementById('verify-banner').style.display = 'flex';
+        renderSections();
+      }
+    }
+
+    // Sync queued count from server
+    if (!running && !pendingVerify && pQ === 0) {
+      queuedTasks = queuedTasks.filter(q => !q.id.startsWith('pending_'));
+      renderSections();
     }
   } catch {}
 }
-setInterval(poll, 6000);
+
+// ── Boot ───────────────────────────────────────────────────────
+wsConnect();
+renderSections();
+setInterval(poll, 5000);
+poll();
 </script>
 </body>
 </html>
