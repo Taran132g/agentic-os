@@ -1,5 +1,57 @@
 # Secrets — never commit
 .env
+.keychain_pass
+pais.keychain-db
+pais.keychain-db-*
+.flF82BF12E
+*.session
+*.session-journal
+
+# Logged-in browser profile (cookies, passwords, autofill)
+.browser_profile/
+
+# Personally identifiable runtime artifacts
+application_profile.md
+applications.json
+resume.pdf
+career_resumes/
+career_jobs_cache.json
+
+# Runtime state / caches
+activity.json
+usage.json
+aita_blocklist.json
+schedules.json
+trades.json
+chroma_db/
+chroma_meta.json
+aita_cache/
+broll_cache/
+music_cache/
+stoic_cache/
+stoic_corpus/
+screenshots/
+
+# Logs and PIDs
+pais.log
+pais.log.*
+server.log
+*.pid
+
+# One-off scratch scripts / sample text inputs
+aita_*.txt
+horror_*.txt
+stoic_*.txt
+emotionally_available.txt
+lbp_script.txt
+sample_script.txt
+script_template.txt
+bg_music.mp3
+
+# Editor / system backups
+*.bak
+*.bak.*
+dashboard/*.bak.*
 
 # Python
 __pycache__/
@@ -14,7 +66,6 @@ build/
 
 # Runtime / temp
 tmp/
-usage.json
 
 # macOS
 .DS_Store
