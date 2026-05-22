@@ -1,9 +1,9 @@
 """
-Computer use tool for JARVIS agents.
+Computer use tool for PAIS agents.
 Called via Bash:  python3 ~/agentic_os/tools/computer.py <command> [args...]
 
 Commands:
-  screenshot [path]           — take screenshot, save to path (default: /tmp/jarvis_screen.png)
+  screenshot [path]           — take screenshot, save to path (default: /tmp/pais_screen.png)
   click <x> <y>               — left click at screen coordinates
   right_click <x> <y>         — right click at coordinates
   double_click <x> <y>        — double click at coordinates
@@ -31,12 +31,12 @@ from pathlib import Path
 
 SCREENSHOT_DIR = Path(__file__).parent.parent / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
-DEFAULT_SCREENSHOT = str(SCREENSHOT_DIR / "jarvis_screen.png")
+DEFAULT_SCREENSHOT = str(SCREENSHOT_DIR / "pais_screen.png")
 
 
 def screenshot(path: str = DEFAULT_SCREENSHOT) -> dict:
     """Take a screenshot and return the file path."""
-    subprocess.run(["screencapture", "-x", path], check=True)
+    subprocess.run(["/usr/sbin/screencapture", "-x", path], check=True)
     size = Path(path).stat().st_size
     return {"ok": True, "path": path, "size_kb": round(size / 1024, 1)}
 
