@@ -306,8 +306,19 @@ async def start_monitor():
         # Log to vault
         _log_signal_to_vault(sig, raw)
 
-        # Format and send alert
-        alert = format_trade_brief(sig)
+        # Risk gate — advisory verdict appended to the alert.
+        # Wrapped: any failure falls back to the raw alert so a signal is never lost.
+        verdict_block = ""
+        try:
+            from risk_gate_workflow import evaluate_signal, format_verdict_block
+            verdict = await evaluate_signal(sig)
+            verdict_block = format_verdict_block(verdict)
+            log.info("[dr_profit] Risk gate verdict: %s (conf %.0f)",
+                     verdict["verdict"], verdict["confidence"])
+        except Exception as e:
+            log.warning("[dr_profit] Risk gate skipped: %s", e)
+
+        alert = format_trade_brief(sig) + verdict_block
         await _send_bot_message(alert)
 
     try:

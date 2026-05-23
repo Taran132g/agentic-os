@@ -31,6 +31,7 @@ MODEL_BY_AGENT = {
     "vault_curator": "haiku",
     "briefing":      "opus",
     "coding":        "opus",
+    "risk_gate":     "opus",
 }
 
 def _model_for(agent_name: str | None) -> str:
