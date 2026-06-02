@@ -16,6 +16,7 @@ applications.json
 resume.pdf
 career_resumes/
 career_jobs_cache.json
+scout_jobs.json
 piontrix_leads.json
 
 # n8n + service logs (may contain email/job content)
@@ -78,3 +79,6 @@ tmp/
 .idea/
 .vscode/
 *.swp
+
+# PII application brief (real contact details) — local only
+JOB_APP_BRIEF.md

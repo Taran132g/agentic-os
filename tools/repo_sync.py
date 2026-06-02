@@ -48,7 +48,7 @@ ALLOWLIST = [
 # by name — actual leaked keys are caught by the content scan below.)
 DENY_NAMES = re.compile(
     r"(^|/)(\.env(\..+)?|.*\.key|.*\.pem|.*\.session|.*\.keychain-db.*|"
-    r"\.keychain_pass|piontrix_leads\.json|application_profile\.md|"
+    r"\.keychain_pass|piontrix_leads\.json|application_profile\.md|JOB_APP_BRIEF\.md|"
     r"id_rsa.*|.*\.p12|.*\.pfx)$", re.I)
 # Secret guard — content patterns (high-signal API key / token shapes)
 DENY_CONTENT = re.compile(

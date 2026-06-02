@@ -118,13 +118,13 @@ Telegram Taran with: which fields filled, what's blank (especially file uploads)
 ```text
 You are helping me apply to {COMPANY} for the {ROLE} role. The job page is at {URL}. Drive the page yourself — if the form isn't visible, click the "Apply" / "Apply Now" / "Apply on company site" button first to reveal it, then fill it out using the data below. DO NOT click Submit — leave the form filled and open for me to review. If the apply button opens a new tab/popup, follow it.
 
-[CONTACT]
-Name: Taranveer Singh
-Email: ***REDACTED***
-Phone: ***REDACTED***
-Location: Royersford, PA 19468, United States
-LinkedIn: https://linkedin.com/in/taranveer-singh-605320329
-GitHub: https://github.com/Taran132g
+[CONTACT]   (real values live in JOB_APP_BRIEF.md, which is gitignored — keep PII out of this public doc)
+Name: <full name>
+Email: <email>
+Phone: <phone>
+Location: <city, ST, country>
+LinkedIn: <linkedin url>
+GitHub: <github url>
 
 [EDUCATION]
 School: Pennsylvania State University

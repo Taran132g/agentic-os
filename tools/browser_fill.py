@@ -150,16 +150,23 @@ def _space_search(wid) -> bool:
 
 
 def _open_gemini_panel(wid) -> bool:
-    """OCR the 'Ask Gemini' toolbar button (window-scoped), activate Chrome,
-    click it, verify the panel opened via the 'Taranveer' greeting."""
-    g = _computer("find_text_in_window", str(wid), "Gemini")
-    if not g.get("found"):
-        return False
-    _activate_chrome()
-    _computer("click", str(g["x"]), str(g["y"]))
-    time.sleep(2.5)
-    greet = _computer("find_text_in_window", str(wid), "Taranveer")
-    return bool(greet.get("found"))
+    """Open the 'Ask Gemini' side panel. Idempotent + auto-collapse-proof: if the
+    panel is already open (greeting visible) use it as-is; otherwise click the
+    toolbar button to toggle it open. A click can land on an already-open panel
+    and close it, so retry the toggle once (max 2 clicks — no endless retry)."""
+    # Already open from a prior step? Use it — don't toggle it closed.
+    if _computer("find_text_in_window", str(wid), "Taranveer").get("found"):
+        return True
+    for _ in range(2):
+        g = _computer("find_text_in_window", str(wid), "Gemini")
+        if not g.get("found"):
+            return False
+        _activate_chrome()
+        _computer("click", str(g["x"]), str(g["y"]))
+        time.sleep(2.5)
+        if _computer("find_text_in_window", str(wid), "Taranveer").get("found"):
+            return True
+    return False
 
 
 def _chat_input_xy(bounds: dict) -> tuple[int, int]:
@@ -257,7 +264,7 @@ def _send_telegram(caption: str, photo_path: str | None = None) -> bool:
 # ── public entry point ────────────────────────────────────────────────────────
 
 def browser_fill(job: dict, agent: str = "gemini", verify_seconds: int = 60,
-                 notify: bool = True, poll: bool = False,
+                 notify: bool = True, poll: bool = False, start_task: bool = True,
                  timeout_seconds: int = 420, poll_seconds: int = 180) -> dict:
     """Drive Gemini-in-Chrome to fill `job`'s application form.
 
@@ -325,6 +332,22 @@ def browser_fill(job: dict, agent: str = "gemini", verify_seconds: int = 60,
     _paste_text(brief)
     _press_return()
     time.sleep(4)
+
+    # 5b. Stop-after-send mode: the brief is sent to Gemini; leave "Start task"
+    #     for Taran to click himself. (start_task=False)
+    if not start_task:
+        b64, b = _final_b64(wid, job_id)
+        if notify:
+            shot = str(SHOT_DIR / f"{job_id}_final.png")
+            _send_telegram(
+                f"📩 {company} — {role}\n"
+                f"Brief sent to Gemini. Review it, then click \"Start task\" "
+                f"yourself when you're ready.", shot)
+        return {
+            "ok": True, "error": "", "platform": "gemini",
+            "status": "awaiting_start_task", "fields_filled": [],
+            "screenshot_b64": b64, "screenshot_bytes": b, "wid": wid,
+        }
 
     # 6. Click "Start task" (Gemini's agentic activation)
     if not _click_start_task(wid):

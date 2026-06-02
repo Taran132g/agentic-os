@@ -248,6 +248,16 @@ def main() -> int:
         leads = json.loads(LEADS_FILE.read_text())
         pending = [l for l in leads if not l.get("contacted")]
         limit = int(os.environ.get("OUTREACH_LIMIT", "5"))
+        if not pending:
+            # idle heartbeat — so a scheduled run is never silently a no-op
+            done = sum(1 for l in leads if l.get("contacted"))
+            msg = (f"📭 <b>Piontrix outreach</b> — ran, but no pending leads "
+                   f"({done}/{len(leads)} already contacted). Add leads to "
+                   f"piontrix_leads.json to queue more.")
+            print(msg)
+            if os.environ.get("OUTREACH_DRY") != "1":
+                _tg_text(msg)
+            return 0
         results = []
         for lead in pending[:limit]:
             r = process(lead["business"], lead["website"], "review")

@@ -291,8 +291,14 @@ def find_text_in_window(wid, search_text: str) -> dict:
 
     img_path = cap["path"]
     bounds = cap["bounds"]
-    img = Image.open(img_path)
+    img = Image.open(img_path).convert("RGB")
     img_w, img_h = img.size
+    # screencapture writes a Retina RGBA PNG with a Display-P3 ICC profile that
+    # leptonica can't read; AND pytesseract pipes PIL images via stdin, which
+    # this leptonica build also can't read. The only combo that works: flatten
+    # to a plain RGB file and hand Tesseract the PATH.
+    ocr_path = img_path + ".rgb.png"
+    img.save(ocr_path)
 
     # Image is at retina resolution (≈ 2× the point-space window dimensions).
     # Convert window-pixel coords to window-POINT coords (image -> window),
@@ -300,7 +306,7 @@ def find_text_in_window(wid, search_text: str) -> dict:
     pt_scale_x = bounds["w"] / img_w if img_w else 1.0
     pt_scale_y = bounds["h"] / img_h if img_h else 1.0
 
-    data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+    data = pytesseract.image_to_data(ocr_path, output_type=pytesseract.Output.DICT)
     results = []
     for i, word in enumerate(data["text"]):
         if search_text.lower() in word.lower() and data["conf"][i] > 50:
@@ -473,12 +479,16 @@ def find_text(search_text: str, screenshot_path: str = DEFAULT_SCREENSHOT) -> di
         return {"ok": False, "error": "pytesseract not installed. Run: pip install pytesseract && brew install tesseract"}
 
     screenshot()
-    img = Image.open(screenshot_path)
+    img = Image.open(screenshot_path).convert("RGB")
     img_w, img_h = img.size
     screen_w, screen_h = pyautogui.size()
     scale_x = screen_w / img_w if img_w else 1.0
     scale_y = screen_h / img_h if img_h else 1.0
-    data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
+    # OCR the PATH (not the PIL image) — pytesseract's stdin path fails on this
+    # leptonica build. Write a clean RGB file first.
+    ocr_path = screenshot_path + ".rgb.png"
+    img.save(ocr_path)
+    data = pytesseract.image_to_data(ocr_path, output_type=pytesseract.Output.DICT)
 
     results = []
     for i, word in enumerate(data["text"]):
