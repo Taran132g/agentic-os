@@ -266,7 +266,10 @@ tags:
 [Things Taran must decide or act on this week]
 ```
 
-Return a 3-sentence Telegram summary: last week highlight, top priority next week, one-line market/trade status.
+## Telegram output
+Send the **full brief** to Telegram so Taran can read it on his phone. Send the same markdown body you wrote to the vault file — all sections — preserving headings and bullets. Do NOT summarize, do NOT just send "brief is ready".
+
+Telegram caps messages at 4096 characters, so split on section boundaries (`## Last Week`, `## Next Week`, `## Markets`, etc.) and send each section as its own message, in order. Never split mid-section unless a single section exceeds the cap on its own.
 """
 
 
@@ -397,13 +400,9 @@ async def run_briefing_task(task_description: str, broadcast, send_telegram, san
         result = res.get("result", "Review complete.")
         await broadcast({"type": "briefing_activity", "text": "Review ready."})
 
-        # For daily: the agent has already sent the full brief to Telegram in
-        # section-sized chunks per DAILY_CONTEXT. Do not send a wrapper
-        # notification — it would arrive after the brief and break the
-        # newspaper feel. Weekly keeps the short "ready in your vault" ping
-        # since the weekly brief is too long to stream to phone comfortably.
-        if brief_type == "weekly":
-            await send_telegram("Weekly review is ready in your vault.")
+        # Both daily and weekly now send the full brief to Telegram in
+        # section-sized chunks — the LLM agent handles the splitting per
+        # DAILY_CONTEXT / WEEKLY_CONTEXT instructions. No wrapper notification.
 
         return result
 

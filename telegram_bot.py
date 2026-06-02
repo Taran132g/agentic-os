@@ -45,6 +45,47 @@ async def cmd_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Task queued: {task}")
 
 
+async def cmd_fill(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Fire a job-application fill through n8n.
+
+    /fill <job url>
+    /fill Company | Role | <job url>
+
+    POSTs the text to the local n8n 'jobfill' webhook, which runs
+    jobfill_cli.py → browser_fill (fire-and-verify). The verify screenshot
+    comes back to this chat ~90s later via browser_fill's own Telegram send.
+    """
+    if not _guard(update):
+        return
+    text = " ".join(context.args).strip()
+    if not text:
+        await update.message.reply_text(
+            "Usage:\n/fill <job url>\n/fill Company | Role | <job url>")
+        return
+
+    import os as _os, json as _json, urllib.request as _u
+    hook = _os.environ.get("N8N_JOBFILL_WEBHOOK",
+                           "http://localhost:5678/webhook/jobfill")
+    payload = _json.dumps({"text": text}).encode()
+
+    def _post() -> int:
+        req = _u.Request(hook, data=payload,
+                         headers={"Content-Type": "application/json"})
+        with _u.urlopen(req, timeout=10) as r:
+            return r.status
+
+    try:
+        await asyncio.to_thread(_post)
+        await update.message.reply_text(
+            f"🚀 Firing job-app fill via n8n…\n{text}\n\n"
+            f"Verify screenshot lands here in ~90s. Then review the Chrome tab, "
+            f"fix anything, upload the résumé, and submit.")
+    except Exception as e:
+        await update.message.reply_text(
+            f"⚠️ Couldn't reach the n8n webhook ({hook}).\n{e}\n\n"
+            f"Is n8n running and the 'jobfill' workflow set to Active?")
+
+
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _guard(update):
         return
@@ -873,6 +914,7 @@ def build_app() -> Application:
     global _app
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     app.add_handler(CommandHandler("task", cmd_task))
+    app.add_handler(CommandHandler("fill", cmd_fill))
     app.add_handler(CommandHandler("size", cmd_size))
     app.add_handler(CommandHandler("aita", cmd_aita))
     app.add_handler(CommandHandler("status", cmd_status))

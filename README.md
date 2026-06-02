@@ -112,8 +112,14 @@ After the May 11 build session, a 7-task end-to-end audit was run to stress-test
 git clone https://github.com/Taran132g/agentic-os.git
 cd agentic-os
 pip install -r requirements.txt
-playwright install chromium
 ```
+
+For the career agent's auto-fill: PAIS drives the in-Chrome browser agent
+**Gemini** (preferred — "Ask Gemini" button in Chrome's toolbar is
+text-labeled, OCR-friendly, and runs on your Google account quota separate
+from your Claude subscription) or **Claude for Chrome** (fallback) via
+`tools/computer.py`. The form fills inside your real Chrome (your profile,
+your cookies). See `BROWSER_AGENT.md` for the workflow.
 
 Create a `.env` file in the project root:
 
@@ -150,7 +156,7 @@ launchctl load ~/Library/LaunchAgents/com.taran.pais.plist
 agentic_os/
 ├── main.py                     # Entry point: FastAPI server + async workers + WebSocket
 ├── orchestrator.py             # General task runner (Claude Code CLI + lessons injection)
-├── career_workflow.py          # Job search → resume tailoring → form pre-fill → jobs cache
+├── career_workflow.py          # Job search → Claude-for-Chrome fill → jobs cache
 ├── personal_tasks_workflow.py  # Personal task planning and research + lessons injection
 ├── telegram_bot.py             # Bot commands, routing buttons, approval callbacks
 ├── config.py                   # Env var loading
@@ -164,7 +170,7 @@ agentic_os/
 │   ├── vault.py                # Obsidian vault read/write helpers
 │   ├── web.py                  # Web search and fetch utilities
 │   ├── github_tools.py         # GitHub API helpers
-│   └── playwright_apply.py     # Browser automation for job applications
+│   └── browser_fill.py         # Drives Gemini (or Claude) in Chrome to fill job apps
 ├── dashboard/
 │   ├── index.html              # Main dashboard
 │   ├── career.html             # Career workflow UI (cached jobs, Gemini button removed)

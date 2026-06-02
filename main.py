@@ -9,6 +9,7 @@ import asyncio
 import datetime
 import json
 import logging
+import os
 import sys
 import uuid
 from logging.handlers import RotatingFileHandler
@@ -625,6 +626,9 @@ async def _worker(q: asyncio.Queue, agent: str):
 
 async def _start_dr_profit_monitor():
     """Start the Dr. Profit Pyrogram monitor. Silently skips if not configured."""
+    if os.environ.get("DR_PROFIT_MONITOR_DISABLED") == "1":
+        log.info("[dr_profit] Monitor disabled via DR_PROFIT_MONITOR_DISABLED (running remotely)")
+        return
     try:
         from dr_profit_monitor import start_monitor
         await start_monitor()
@@ -863,25 +867,30 @@ def _cached_job(job_id: str) -> dict | None:
 
 @api.get("/api/career_resume/{job_id}")
 async def api_career_resume(job_id: str):
-    """Serve the per-job tailored resume PDF for inline preview + download."""
-    from tools.resume_pdf import CAREER_RESUMES
-    safe = Path(job_id).name
-    pdf  = CAREER_RESUMES / f"{safe}.pdf"
+    """Serve Taran's resume PDF. There is one resume (no per-job tailoring);
+    `{job_id}` is preserved for URL-shape compatibility with the dashboard
+    but is otherwise ignored. The canonical PDF lives at
+    `~/agentic_os/resume.pdf` (symlinked to the current version in
+    ~/Downloads/)."""
+    pdf = AGENTIC_DIR / "resume.pdf"
     if not pdf.is_file():
-        return JSONResponse({"error": "tailored resume not found"}, status_code=404)
+        return JSONResponse(
+            {"error": "resume.pdf missing — symlink ~/agentic_os/resume.pdf to your current PDF"},
+            status_code=404,
+        )
     return FileResponse(str(pdf), media_type="application/pdf",
-                        filename=f"tailored-resume-{safe}.pdf")
+                        filename="Taran_resume.pdf")
 
 
 @api.post("/api/career_fill/{job_id}")
 async def api_career_fill(job_id: str):
-    """Open a cached job's application in a browser and auto-fill it.
+    """Drive an in-Chrome browser agent (Gemini by default) to fill the
+    cached job's application. Runs tools/browser_fill.py in a worker thread;
+    broadcasts career_fill_started / done / error so the dashboard can track
+    state.
 
-    The browser is left open (logged in via the persistent profile) so Taran
-    just reviews and clicks Submit. Broadcasts career_fill_started /
-    career_fill_done / career_fill_error events so the frontend can drive
-    the Open & Fill button's state from the actual fill lifecycle.
-    """
+    Playwright is no longer used — the form fills inside Taran's real Chrome
+    (his profile, his cookies, no separate browser)."""
     job = _cached_job(job_id)
     if not job:
         return JSONResponse({"ok": False, "error": "job not found in cache"}, status_code=404)
@@ -894,14 +903,13 @@ async def api_career_fill(job_id: str):
             "company": job.get("company", ""),
         })
         try:
-            from tools.playwright_apply import fill_application
-            result = await asyncio.to_thread(fill_application, job, True)  # keep_open=True
+            from tools.browser_fill import browser_fill
+            result = await asyncio.to_thread(browser_fill, job)
             await broadcast({
                 "type": "career_fill_done", "job_id": job_id,
                 "company": job.get("company", ""),
-                "platform": result.get("platform", ""),
+                "platform": result.get("platform", "gemini"),
                 "fields_filled": len(result.get("fields_filled", [])),
-                "needs_manual_login": bool(result.get("needs_manual_login")),
                 "error": result.get("error", ""),
             })
         except Exception as e:
@@ -912,53 +920,8 @@ async def api_career_fill(job_id: str):
             })
 
     asyncio.create_task(_run())
-    return JSONResponse({"ok": True, "company": job.get("company", ""), "platform": _detect_fill_platform(job.get("url", ""))})
+    return JSONResponse({"ok": True, "company": job.get("company", ""), "platform": "gemini"})
 
-
-@api.post("/api/career_bootstrap_login/{job_id}")
-async def api_career_bootstrap_login(job_id: str):
-    """Open the cached job's application URL in the persistent browser profile
-    and leave the window open so Taran can sign in manually. Once he completes
-    the login, cookies persist for the entire tenant — subsequent auto-fills
-    against that Workday/ATS tenant will succeed without a login wall."""
-    job = _cached_job(job_id)
-    if not job:
-        return JSONResponse({"ok": False, "error": "job not found in cache"}, status_code=404)
-    url = (job.get("url") or "")
-    if not url.startswith("http"):
-        return JSONResponse({"ok": False, "error": "job has no application URL"}, status_code=400)
-
-    async def _run():
-        await broadcast({
-            "type": "career_bootstrap_started", "job_id": job_id,
-            "company": job.get("company", ""),
-        })
-        try:
-            from tools.playwright_apply import open_for_bootstrap
-            result = await asyncio.to_thread(open_for_bootstrap, url)
-            await broadcast({
-                "type": "career_bootstrap_done", "job_id": job_id,
-                "ok": bool(result.get("ok")),
-                "service": result.get("service", ""),
-                "error": result.get("error", ""),
-            })
-        except Exception as e:
-            log.warning("[career_bootstrap] %s failed: %s", job_id, e)
-            await broadcast({
-                "type": "career_bootstrap_error", "job_id": job_id,
-                "error": str(e),
-            })
-
-    asyncio.create_task(_run())
-    return JSONResponse({"ok": True})
-
-
-def _detect_fill_platform(url: str) -> str:
-    try:
-        from tools.playwright_apply import _detect_platform
-        return _detect_platform(url)
-    except Exception:
-        return "generic"
 
 
 @api.get("/api/lessons")
