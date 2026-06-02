@@ -16,6 +16,10 @@ applications.json
 resume.pdf
 career_resumes/
 career_jobs_cache.json
+piontrix_leads.json
+
+# n8n + service logs (may contain email/job content)
+logs/
 
 # Runtime state / caches
 activity.json
