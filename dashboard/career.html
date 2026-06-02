@@ -686,30 +686,19 @@ function renderDetail(job) {
   if (shot) html += `<div><div class="sec-lbl">Application Preview</div><img class="shot-img" src="data:image/png;base64,${shot}" alt="screenshot" onclick="this.style.maxHeight=this.style.maxHeight?'':'none'"></div>`;
 
   if (url) {
-    const needsLogin = job.needs_manual_login || job.fill_result?.needs_manual_login;
     const filling   = job._filling === true;
-    const fillLabel = filling ? 'Filling…' : '⧉ Open & Fill Application';
+    const fillLabel = filling ? 'Filling via Claude for Chrome…' : '⧉ Fill via Claude for Chrome';
     html += `<div style="display:flex;gap:8px;flex-wrap:wrap" id="actions-${esc(job.id)}">
       <button class="open-btn" id="fill-btn-${esc(job.id)}"
               ${filling ? 'disabled' : ''}
               onclick="fillApplication('${esc(job.id)}')">${fillLabel}</button>
       <a class="open-btn" href="${esc(url)}" target="_blank" rel="noopener"
          style="background:transparent;color:var(--accent-l)">↗ Just Open</a>
-      ${needsLogin ? `
-        <button class="open-btn" id="boot-btn-${esc(job.id)}"
-                ${job._bootstrapping ? 'disabled' : ''}
-                onclick="bootstrapLogin('${esc(job.id)}')"
-                style="background:rgba(251,191,36,0.15);border-color:var(--o);color:var(--o)">
-          ${job._bootstrapping ? 'Opening login…' : '🔑 Bootstrap Workday Login'}
-        </button>` : ''}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5">
+      Fill happens inside your real Chrome via the Claude for Chrome extension.
+      Make sure the extension is pinned in your Chrome toolbar.
     </div>`;
-    if (needsLogin) {
-      html += `<div style="font-size:12px;color:var(--o);margin-top:6px;line-height:1.5">
-        Workday detected and no stored credentials for this tenant. Click
-        <b>Bootstrap Workday Login</b>, sign in once in the browser window that
-        opens — cookies will persist for every future apply against this tenant.
-      </div>`;
-    }
   }
 
   pane.innerHTML = html;
@@ -740,29 +729,9 @@ async function fillApplication(jobId) {
   }
 }
 
-// ── BOOTSTRAP WORKDAY LOGIN ───────────────────────────────────────
-// Opens the job's application URL in the persistent browser profile and
-// leaves it open so Taran can sign in once — cookies then persist for the
-// whole tenant and subsequent auto-fills succeed without a login wall.
-async function bootstrapLogin(jobId) {
-  const job = C.jobs[jobId]; if (!job) return;
-  job._bootstrapping = true;
-  if (C.selected === jobId) renderDetail(job);
-  actLog('Opening Workday login window — sign in to persist the session.', 'warn');
-  try {
-    const r = await fetch(`/api/career_bootstrap_login/${encodeURIComponent(jobId)}`, {method:'POST'});
-    const d = await r.json();
-    if (!d.ok) {
-      job._bootstrapping = false;
-      if (C.selected === jobId) renderDetail(job);
-      actLog(`Bootstrap login failed: ${d.error||'unknown'}`, 'err');
-    }
-  } catch(e) {
-    job._bootstrapping = false;
-    if (C.selected === jobId) renderDetail(job);
-    actLog('Bootstrap login request failed — is PAIS running?', 'err');
-  }
-}
+// (Bootstrap Workday Login removed 2026-05-25 — Playwright-era feature.
+//  Claude for Chrome runs inside Taran's real Chrome with his own cookies,
+//  so per-tenant bootstrap login no longer applies.)
 
 // ── WEBSOCKET ─────────────────────────────────────────────────────
 let ws;
@@ -826,39 +795,18 @@ function handleEvent(ev) {
     const j = C.jobs[ev.job_id];
     if (j) {
       j._filling = false;
-      if (ev.needs_manual_login) j.needs_manual_login = true;
       if (C.selected===ev.job_id) renderDetail(j);
     }
     if (ev.error) {
       actLog(`Fill error for ${ev.company||ev.job_id}: ${ev.error}`, 'err');
-    } else if (ev.needs_manual_login) {
-      actLog(`${ev.company||ev.job_id}: login wall — use 🔑 Bootstrap Login to sign in once.`, 'warn');
     } else {
-      actLog(`Filled ${ev.fields_filled||0} field(s) for ${ev.company||ev.job_id} [${ev.platform||'?'}] — review browser & Submit.`, 'ok');
+      actLog(`Filled ${ev.fields_filled||0} field(s) for ${ev.company||ev.job_id} via Claude for Chrome — review tab & Submit.`, 'ok');
     }
 
   } else if (t === 'career_fill_error') {
     const j = C.jobs[ev.job_id];
     if (j) { j._filling = false; if (C.selected===ev.job_id) renderDetail(j); }
     actLog(`Fill failed: ${ev.error||'unknown'}`, 'err');
-
-  } else if (t === 'career_bootstrap_started') {
-    const j = C.jobs[ev.job_id];
-    if (j) { j._bootstrapping = true; if (C.selected===ev.job_id) renderDetail(j); }
-
-  } else if (t === 'career_bootstrap_done') {
-    const j = C.jobs[ev.job_id];
-    if (j) { j._bootstrapping = false; if (C.selected===ev.job_id) renderDetail(j); }
-    if (ev.ok) {
-      actLog(`Login window open for ${ev.service||'tenant'} — sign in, then close & try Open & Fill again.`, 'ok');
-    } else {
-      actLog(`Bootstrap login failed: ${ev.error||'unknown'}`, 'err');
-    }
-
-  } else if (t === 'career_bootstrap_error') {
-    const j = C.jobs[ev.job_id];
-    if (j) { j._bootstrapping = false; if (C.selected===ev.job_id) renderDetail(j); }
-    actLog(`Bootstrap login failed: ${ev.error||'unknown'}`, 'err');
 
   } else if (t === 'application_updated') {
     _onApplicationUpdated(ev);

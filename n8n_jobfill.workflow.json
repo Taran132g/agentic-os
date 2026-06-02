@@ -1,0 +1,53 @@
+{
+  "name": "jobfill",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jobfill",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "d7416e2d-e1da-4d21-bbc6-54f00a733615",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ],
+      "webhookId": "f927bfe9-fa01-45e0-9df9-e804e8b9a76f"
+    },
+    {
+      "parameters": {
+        "command": "=python3 /Users/taranveersingh/agentic_os/jobfill_cli.py \"{{ $json.body.text }}\""
+      },
+      "id": "8499157e-10a6-41eb-9403-1d0010f8eb3c",
+      "name": "Execute Command",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        560,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "d6ef36407e404c29"
+}

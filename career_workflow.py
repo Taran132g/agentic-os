@@ -1,9 +1,19 @@
 """
-Career Ops pipeline:
-  1. Claude searches for matching jobs (web search + JD scraping)
-  2. Claude tailors resume bullets per job
-  3. Playwright opens the application URL, fills the form, stops before submit
-  4. Telegram notification so Taran can review and submit himself
+Career Ops pipeline (browser-agent era):
+  1. Scout — search The Muse + Remotive (with Claude WebSearch fallback)
+  2. Fill  — tools/browser_fill.py drives an in-Chrome agent (Gemini by
+            default, Claude-for-Chrome as fallback) to fill each application
+            inside Taran's real Chrome. No tailoring; one resume PDF used
+            everywhere (~/agentic_os/resume.pdf symlink).
+  3. Telegram notification so Taran reviews and submits himself.
+
+Playwright is no longer used. Stage 2 (per-job LLM resume tailoring +
+per-job PDF render) was removed on 2026-05-25 per Taran's directive:
+"use this resume, don't tailor anything for different places."
+
+Default agent switched from Claude-for-Chrome to Gemini-in-Chrome on
+2026-05-25 — Gemini's toolbar button is text-labeled (OCR-friendly) and
+its quota is separate from Taran's Claude subscription.
 """
 
 import asyncio
@@ -177,98 +187,46 @@ IMPORTANT: Only include URLs you confirmed are real application pages via WebFet
             await broadcast({"type": "career_activity", "text": "No structured job data parsed — check activity log above."})
             return
 
-        # ── Stage 2: Tailor resume ────────────────────────────────────
-        await broadcast({"type": "career_stage", "stage": "tailor"})
-
-        for job in _jobs:
-            job["status"] = "tailoring"
-            await broadcast({"type": "career_job_update", "job_id": job["id"], "status": "tailoring"})
-            await broadcast({"type": "career_activity", "text": f"Tailoring resume for {job['company']} — {job['role']}..."})
-
-            tailor_result = await _claude(f"""
-Taran's resume:
-{resume[:3000]}
-
-Target role: {job['role']} at {job['company']}
-Job requirements: {job.get('jd_summary', 'Not specified')}
-
-Reframe Taran's existing experience bullets to match this role's language and emphasis. Do NOT invent anything — only rephrase, reorder, or emphasize what is already true.
-
-Output ONLY JSON:
-```json
-{{
-  "bullets": [
-    {{"original": "old bullet text", "tailored": "new bullet text", "section": "Experience or Projects"}}
-  ],
-  "hook": "One-line cover letter opener specific to this company and role"
-}}
-```
-""", broadcast)
-
-            tailored = extract_json(tailor_result)
-            job["tailored"] = tailored or {}
-            job["status"] = "tailored"
-
-            # Render a per-job tailored resume PDF (career_resumes/<id>.pdf).
-            try:
-                from tools.resume_pdf import generate_tailored_resume
-                pdf = await asyncio.to_thread(generate_tailored_resume, job)
-                job["resume_ready"] = bool(pdf)
-                if pdf:
-                    await broadcast({"type": "career_activity",
-                                     "text": f"Tailored resume rendered for {job['company']}"})
-            except Exception as re_err:
-                job["resume_ready"] = False
-                log.warning("Tailored resume failed for %s: %s", job.get("company"), re_err)
-
-            await broadcast({"type": "career_tailored", "job_id": job["id"],
-                             "tailored": job["tailored"], "resume_ready": job.get("resume_ready", False)})
-            _save_jobs_cache()
-
-        # ── Stage 3: Fill applications ────────────────────────────────
+        # ── Stage 2: Fill via Claude for Chrome ───────────────────────
+        # Old Stage 2 (LLM bullet tailoring + per-job PDF) removed 2026-05-25
+        # per Taran's directive: one resume, no per-job tailoring. The current
+        # resume lives at ~/agentic_os/resume.pdf (symlink to ~/Downloads/...).
         await broadcast({"type": "career_stage", "stage": "fill"})
-
-        # Generate resume PDF if not already on disk
-        resume_pdf_path = AGENTIC_DIR / "resume.pdf"
-        if not resume_pdf_path.exists():
-            await broadcast({"type": "career_activity", "text": "Generating resume PDF for uploads..."})
-            try:
-                from tools.resume_pdf import generate_resume_pdf
-                await asyncio.to_thread(generate_resume_pdf)
-                await broadcast({"type": "career_activity", "text": "✓ Resume PDF generated"})
-            except Exception as pdf_err:
-                await broadcast({"type": "career_activity",
-                                 "text": f"Resume PDF skipped (file uploads will be manual): {pdf_err}"})
 
         for job in _jobs:
             url = job.get("url", "")
             if not url or not url.startswith("http"):
                 job["status"] = "no_url"
                 await broadcast({"type": "career_job_update", "job_id": job["id"], "status": "no_url"})
-                await broadcast({"type": "career_activity", "text": f"No application URL for {job['company']} — skipping browser fill"})
+                await broadcast({"type": "career_activity", "text": f"No application URL for {job['company']} — skipping"})
                 continue
 
             job["status"] = "filling"
             await broadcast({"type": "career_filling", "job_id": job["id"], "company": job["company"], "url": url})
-            await broadcast({"type": "career_activity", "text": f"Opening browser for {job['company']}..."})
+            await broadcast({"type": "career_activity", "text": f"Opening {job['company']} in Chrome and pasting brief to Gemini..."})
 
             try:
-                from tools.playwright_apply import fill_application
-                fill_result = await asyncio.to_thread(fill_application, job)
-            except Exception as e:
-                log.exception("Playwright fill failed for %s", job["company"])
-                fill_result = {"error": str(e), "fields_filled": [], "screenshot_b64": ""}
+                from tools.browser_fill import browser_fill
 
-            platform = fill_result.get("platform", "generic")
-            needs_login = fill_result.get("needs_manual_login", False)
+                # Fire-and-verify: paste brief → Start task → 60s verify → return.
+                # No autonomous correction loops (token-light). The workflow sends
+                # its own per-job Telegram below, so browser_fill stays quiet here.
+                # Taran reviews the open Chrome tab, fixes small errors, and submits.
+                fill_result = await asyncio.to_thread(browser_fill, job, notify=False)
+
+            except Exception as e:
+                log.exception("browser_fill failed for %s", job["company"])
+                fill_result = {"ok": False, "error": str(e),
+                               "platform": "gemini", "fields_filled": [],
+                               "screenshot_b64": "", "screenshot_bytes": b""}
+
+            platform = fill_result.get("platform", "gemini")
 
             job["status"] = "needs_review"
-            # Strip non-JSON-serializable bytes before persisting — raw
-            # screenshot_bytes blows up _save_jobs_cache().
+            # Strip non-JSON-serializable bytes before persisting to the cache.
             job["fill_result"] = {k: v for k, v in fill_result.items() if k != "screenshot_bytes"}
             job["screenshot_b64"] = fill_result.get("screenshot_b64", "")
             job["platform"] = platform
-            job["needs_manual_login"] = bool(needs_login)
             _save_jobs_cache()
 
             # Save to application tracker
@@ -284,49 +242,48 @@ Output ONLY JSON:
                 "role": job["role"],
                 "url": url,
                 "platform": platform,
-                "needs_manual_login": needs_login,
                 "fields_filled": fill_result.get("fields_filled", []),
                 "screenshot_b64": fill_result.get("screenshot_b64", ""),
                 "error": fill_result.get("error", ""),
             })
 
-            n_filled = len(fill_result.get("fields_filled", []))
+            status = fill_result.get("status", "")
             err = fill_result.get("error", "")
+            engaged = fill_result.get("ok") and status == "running"
+            status_line = ("Gemini is filling — review & submit"
+                           if engaged else f"Needs a look: {err[:80] or status}")
 
-            if needs_login:
-                status_line = f"Workday — browser open, manual login required"
+            if engaged:
                 caption = (
-                    f"⚠️ *Workday detected — manual login required*\n"
-                    f"*{job['company']}* — {job['role']}\n"
-                    f"📍 {job.get('location', '?')}\n\n"
-                    f"Browser is open. Sign in, complete the application, "
-                    f"then mark as Applied in the Career dashboard."
+                    f"✅ *{job['company']}* — {job['role']}\n"
+                    f"📍 {job.get('location', '?')}\n"
+                    f"Gemini is filling the form (via {platform}).\n\n"
+                    f"Review the Chrome tab, fix any small errors, upload the "
+                    f"resume, and submit manually."
                 )
             else:
-                status_line = f"{n_filled} fields filled [{platform}]" if not err else f"Error: {err[:80]}"
                 caption = (
-                    f"✅ *Application ready — review & submit*\n"
-                    f"*{job['company']}* — {job['role']}\n"
+                    f"⚠️ *{job['company']}* — {job['role']}\n"
                     f"📍 {job.get('location', '?')}\n"
-                    f"Fields filled: {n_filled} · Platform: {platform}\n\n"
-                    f"Review on Career page, then submit manually."
+                    f"Start task may not have engaged ({err[:120] or status}).\n\n"
+                    f"Open the Chrome window and check / click Start task."
                 )
 
-            await broadcast({"type": "career_activity", "text": f"✓ {job['company']} ready for review — {status_line}"})
+            await broadcast({"type": "career_activity", "text": f"✓ {job['company']} — {status_line}"})
 
             # Save application details to vault
             await _save_application_to_vault(job, fill_result)
 
             await send_telegram(caption)
 
-            # Send screenshot photo if we have one
+            # Send the final screenshot via Telegram if we captured one
             screenshot_bytes = fill_result.get("screenshot_bytes", b"")
             if screenshot_bytes:
                 try:
                     import telegram_bot as _tg
                     await _tg.send_photo(
                         screenshot_bytes,
-                        caption=f"{job['company']} — {job['role']} (filled form screenshot)",
+                        caption=f"{job['company']} — {job['role']} (final state)",
                     )
                 except Exception as photo_err:
                     log.warning("Could not send screenshot photo: %s", photo_err)
@@ -336,11 +293,11 @@ Output ONLY JSON:
             from tools.logger import log_completed_task
             log_completed_task(
                 task_name=f"Career Search: {keywords}",
-                description=f"Automated job search and resume tailoring for: {keywords}",
+                description=f"Job search + in-Chrome browser-agent fill for: {keywords}",
                 actions=[
                     f"Found {len(_jobs)} jobs",
-                    "Tailored resumes for all matches",
-                    "Filled applications in browser (stopped before submit)"
+                    "Pasted application brief to the in-Chrome agent (Gemini) for each",
+                    "Filled applications in Chrome (stopped before submit)"
                 ]
             )
         except Exception as le:
@@ -351,7 +308,7 @@ Output ONLY JSON:
         job_lines = "\n".join(
             f"- {j['company']} — {j['role']} ({j.get('location','?')})" for j in _jobs
         )
-        return f"Found {len(_jobs)} job(s) matching '{keywords}':\n{job_lines}\n\nResumes tailored and applications pre-filled. Review on Career page before submitting."
+        return f"Found {len(_jobs)} job(s) matching '{keywords}':\n{job_lines}\n\nThe in-Chrome agent (Gemini) was driven to fill each application. Review the Chrome tabs and submit manually."
 
     except Exception as e:
         log.exception("Career workflow error")
