@@ -48,11 +48,17 @@ def _tg_text(text: str) -> None:
     token = os.environ.get("TELEGRAM_BOT_TOKEN"); cid = os.environ.get("TELEGRAM_CHAT_ID")
     if not (token and cid):
         return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     try:
-        requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                      json={"chat_id": int(cid), "text": text[:4090],
-                            "parse_mode": "HTML", "disable_web_page_preview": True},
-                      timeout=20)
+        r = requests.post(url, json={"chat_id": int(cid), "text": text[:4090],
+                          "parse_mode": "HTML", "disable_web_page_preview": True}, timeout=20)
+        if not r.ok:
+            # HTML parse error (e.g. an un-escaped <>& in a subject) → don't drop
+            # the digest; resend as plain text (strip tags) so it always lands.
+            print("! telegram HTML failed:", r.status_code, r.text[:120])
+            plain = re.sub(r"</?[a-z][^>]*>", "", text)
+            requests.post(url, json={"chat_id": int(cid), "text": plain[:4090],
+                          "disable_web_page_preview": True}, timeout=20)
     except Exception as e:
         print("! telegram:", e)
 
@@ -194,13 +200,23 @@ def main() -> int:
         except Exception as e:
             print("! snippet fetch skipped:", e)
 
+    def _logout_safe(conn):
+        try:
+            conn.logout()
+        except Exception:
+            pass
+
     if not items:
         msg = f"📧 <b>Gmail triage</b> — no new unread in the last {hours}h. Inbox quiet ✨"
         print(msg)
         if not dry:
             _tg_text(msg)
-        M.logout()
+        _logout_safe(M)
         return 0
+
+    # Close IMAP BEFORE the slow claude classify — holding an idle Gmail socket
+    # open across a multi-minute call makes Gmail drop it (logout → EOF crash).
+    _logout_safe(M)
 
     cls = _classify(items)
     for it, c in zip(items, cls):
@@ -208,25 +224,35 @@ def main() -> int:
                   priority=int(c.get("priority", 2) or 2),
                   action=c.get("action", ""))
 
-    # ── act: label everything, archive + read the clear promos ────────────────
+    # ── act: reconnect fresh (first connection is closed) and label/archive ────
     archived = 0
     if mode == "act" and not dry:
-        for it in items:
-            cat = it["category"].replace(" ", "_").replace("/", "-")
-            try:
-                M.store(it["num"], "+X-GM-LABELS", f'(Triaged/{cat})')
-            except Exception:
-                pass
-            if it["category"] in ARCHIVE_CATS and it["priority"] == 3:
+        try:
+            M2 = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+            M2.login(addr, pw)
+            M2.select("INBOX", readonly=False)
+            for it in items:
+                cat = it["category"].replace(" ", "_").replace("/", "-")
                 try:
-                    M.store(it["num"], "+FLAGS", "(\\Seen)")
-                    M.store(it["num"], "-X-GM-LABELS", "(\\\\Inbox)")  # archive
-                    archived += 1
+                    M2.store(it["num"], "+X-GM-LABELS", f'(Triaged/{cat})')
                 except Exception:
                     pass
-    M.logout()
+                if it["category"] in ARCHIVE_CATS and it["priority"] == 3:
+                    try:
+                        M2.store(it["num"], "+FLAGS", "(\\Seen)")
+                        M2.store(it["num"], "-X-GM-LABELS", "(\\\\Inbox)")  # archive
+                        archived += 1
+                    except Exception:
+                        pass
+            _logout_safe(M2)
+        except Exception as e:
+            print("! act-mode labeling skipped:", e)
 
     # ── build digest ──────────────────────────────────────────────────────────
+    import html
+    esc = lambda s: html.escape(str(s))   # sender/subject contain <>& → would
+    #                                       break Telegram HTML parse_mode (400)
+
     by_cat: dict[str, list] = {}
     for it in sorted(items, key=lambda x: x["priority"]):
         by_cat.setdefault(it["category"], []).append(it)
@@ -239,8 +265,8 @@ def main() -> int:
     if action_needed:
         lines.append("<b>⚡ Needs attention</b>")
         for it in action_needed:
-            act = f" — <i>{it['action']}</i>" if it["action"] else ""
-            lines.append(f"• <b>{it['from'][:35]}</b>: {it['subject'][:60]}{act}")
+            act = f" — <i>{esc(it['action'])}</i>" if it["action"] else ""
+            lines.append(f"• <b>{esc(it['from'][:35])}</b>: {esc(it['subject'][:60])}{act}")
         lines.append("")
     for cat in CATEGORIES:
         if cat == "Urgent/Action" or cat not in by_cat:
@@ -248,7 +274,7 @@ def main() -> int:
         msgs = by_cat[cat]
         lines.append(f"<b>{cat}</b> ({len(msgs)})")
         for it in msgs[:4]:
-            lines.append(f"• {it['from'][:30]}: {it['subject'][:55]}")
+            lines.append(f"• {esc(it['from'][:30])}: {esc(it['subject'][:55])}")
         if len(msgs) > 4:
             lines.append(f"  …+{len(msgs)-4} more")
         lines.append("")
