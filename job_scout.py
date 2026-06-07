@@ -32,6 +32,32 @@ from dotenv import load_dotenv
 AGENTIC_DIR = Path(__file__).resolve().parent
 load_dotenv(AGENTIC_DIR / ".env")
 CACHE = AGENTIC_DIR / "scout_jobs.json"
+QUEUE = AGENTIC_DIR / "job_queue.json"   # persistent FIFO of un-applied scouted jobs
+
+
+def _norm_url(u: str) -> str:
+    return str(u or "").split("?")[0].rstrip("/").lower()
+
+
+def _enqueue(jobs: list[dict]) -> int:
+    """Append newly-found jobs to the FIFO queue, skipping ones already queued or
+    already applied. Returns how many were added."""
+    sys.path.insert(0, str(AGENTIC_DIR))
+    from tools.tracker import load_applications
+    queue = json.loads(QUEUE.read_text()) if QUEUE.exists() else []
+    seen = {_norm_url(j.get("url")) for j in queue}
+    seen |= {_norm_url(a.get("url")) for a in load_applications()
+             if a.get("status") == "applied"}
+    added = 0
+    for j in jobs:
+        nu = _norm_url(j.get("url"))
+        if not nu or nu in seen:
+            continue
+        seen.add(nu)
+        queue.append({**j, "attempts": 0})  # appended to END → FIFO
+        added += 1
+    QUEUE.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
+    return added
 VAULT_RESUME = (Path.home() / "Library/Mobile Documents/iCloud~md~obsidian"
                 / "Documents/Digital Brain" / "About Taran/Resume.md")
 
@@ -69,20 +95,34 @@ def _research(n: int) -> list[dict]:
     prompt = f"""You are a job scout for a candidate. Today is {today}.
 
 Use WebSearch to find {n} RECENTLY-POSTED (within roughly the last 30 days)
-**Summer 2027** software engineering / AI / ML internships that strongly match
-the candidate below. Prefer postings on Greenhouse, Lever, Ashby, Workday, or
-official company career pages that have a DIRECT application URL. Use WebFetch to
-verify each URL is a real, currently-open application page before including it.
-Exclude anything that is not clearly a Summer 2027 term or not a software/AI/ML
-role. Rank best-fit first.
+**Summer 2027** internships in **DATA ANALYTICS** — specifically Data Analyst,
+Business Intelligence (BI) Analyst, Data/Reporting Analyst, Analytics, Business
+Analyst, or Data Science (analyst-leaning, dashboards & reporting) roles.
 
-CANDIDATE RESUME:
+FOCUS (this is a deliberate shift):
+- Target roles centered on DATA ANALYSIS, DASHBOARDS, REPORTING, BI, SQL, and
+  business insights — NOT software engineering and NOT research-heavy roles.
+- Prefer **banks, fintech, and large mainstream companies** with big, relatively
+  ACCESSIBLE internship programs — e.g. Capital One, JPMorgan Chase, Bank of
+  America, Wells Fargo, Citi, PNC, Truist, American Express, Discover, Fidelity,
+  Vanguard, Nationwide, Progressive, plus large non-bank companies with data/BI
+  intern programs. These are easier to get into than elite/boutique shops.
+- **EXCLUDE quantitative researcher / quant trading roles** and elite quant/HFT
+  firms (Jane Street, Citadel, Two Sigma, D.E. Shaw, Point72, Aquatic, Voloridge,
+  Jump, Hudson River, etc.). Also exclude pure software-engineering roles.
+
+Prefer Workday / Greenhouse / official career-page postings with a DIRECT
+application URL. Use WebFetch to verify each is a real, currently-open Summer-2027
+application page. Rank by best-fit AND accessibility (favor large programs).
+
+CANDIDATE RESUME (for relevance — they have Python, SQL, data, ML, and analytics
+experience; pitch the data-analyst angle):
 {resume}
 
 Output ONLY a JSON array of up to {n} objects (no prose, no code fences):
 [{{"company":"","role":"","url":"<verified application URL>","location":"",
 "posted":"<approx posting date>","match_score":<integer 0-100>,
-"why_fit":"<one concise sentence on why it fits the candidate>"}}]"""
+"why_fit":"<one concise sentence — why it fits a data-analyst-focused candidate>"}}]"""
     cmd = ["claude", "-p", prompt,
            "--allowedTools", "WebSearch,WebFetch",
            "--dangerously-skip-permissions"]
@@ -125,8 +165,10 @@ def main() -> int:
             _tg_text(msg)
         return 0
 
+    added = 0
     if not dry:
         CACHE.write_text(json.dumps(jobs, ensure_ascii=False, indent=2))
+        added = _enqueue(jobs)  # append new finds to the FIFO queue
 
     lines = [f"💼 <b>Summer 2027 matches — {today}</b>",
              f"<i>{len(jobs)} researched + URL-verified · ranked by fit</i>", ""]
@@ -142,7 +184,9 @@ def main() -> int:
             lines.append(f"  <i>{j['why_fit']}</i>")
         lines.append(f"  {j.get('url')}")
         lines.append("")
-    lines.append("<i>Reply-ready. POST /webhook/apply to fill these when you're at the desk.</i>")
+    qlen = len(json.loads(QUEUE.read_text())) if QUEUE.exists() else 0
+    lines.append(f"<i>+{added} added to the fill queue ({qlen} waiting). "
+                 f"POST /webhook/apply to fill the queue (oldest first).</i>")
     digest = "\n".join(lines)
 
     print(digest)

@@ -66,3 +66,40 @@ launchctl kickstart -k gui/$(id -u)/com.taranveer.n8n   # re-register triggers
 verifies each remote belongs to Taran, and runs a secret guard (filename
 denylist + content scan) before pushing. It never touches others'/course repos
 or the multi-clone `taranveer-singh.github.io`. See the script header for detail.
+
+## BrainScan outreach (added 2026-06-05)
+
+Companion to `piontrix-outreach`, for cold outreach to PKM/Obsidian creators &
+newsletters. Same plumbing (reuses piontrix's Telegram + Gmail helpers), same
+safety model: **review by default** (Telegram the draft; sending needs the
+explicit `send` arg). Reads `brainscan_creators.json` (gitignored — real,
+pre-verified PUBLIC emails only; emails are never guessed). Only handles
+PENDING entries (`"contacted": false`) and marks them done, so repeated runs
+never re-email anyone — add new creators to the JSON to queue more.
+
+- **Script:** `brainscan_outreach.py` — `python3 brainscan_outreach.py` (review) /
+  `... send` (send pending). Env: `OUTREACH_DRY=1`, `OUTREACH_GMAIL_DRAFT=1`,
+  `OUTREACH_LIMIT=10`.
+- **Data:** `brainscan_creators.json` = `[{"name","email","hook","contacted"}]`.
+
+### Wire it to run RIGHT AFTER piontrix-outreach (n8n UI — edits apply live)
+Two options:
+
+1. **Chained (truest "right after"):** open the **piontrix-outreach** workflow,
+   add a final **Execute Command** node after the last node:
+   `python3 brainscan_outreach.py`
+   and connect it so it fires when piontrix finishes. Save (stays active).
+
+2. **Standalone, 5 min later:** duplicate piontrix-outreach, change the Execute
+   Command to `python3 brainscan_outreach.py`, set the schedule to `50 9 * * *`
+   (piontrix is `45 9`), add webhook `POST /webhook/brainscan-outreach`, save.
+
+If you import/edit via CLI instead of the UI, re-activate per the doc:
+```
+n8n update:workflow --id=<id> --active=true && n8n publish:workflow --id=<id>
+launchctl kickstart -k gui/$(id -u)/com.taranveer.n8n
+```
+
+| Workflow | Trigger | Script | Status |
+|----------|---------|--------|--------|
+| **brainscan-outreach** | after piontrix (chained) **or** daily 9:50am (`50 9 * * *`) | `brainscan_outreach.py` | wire in UI |

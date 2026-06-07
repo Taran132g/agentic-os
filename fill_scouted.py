@@ -47,37 +47,60 @@ def _tg(text: str) -> None:
         pass
 
 
-def main() -> int:
-    if not CACHE.exists():
-        print("no scout_jobs.json — run job_scout.py first")
-        return 1
-    jobs = json.loads(CACHE.read_text())
-    # optional top-N limit from a positional arg
-    for a in sys.argv[1:]:
-        if a.isdigit():
-            jobs = jobs[:int(a)]
-    jobs = [j for j in jobs if str(j.get("url", "")).startswith("http")]
-    if not jobs:
-        print("no fillable jobs in cache")
-        return 1
+QUEUE = AGENTIC_DIR / "job_queue.json"
+MAX_ATTEMPTS = 3   # give up on a job after this many failed fill attempts
 
-    if os.environ.get("FILL_SCOUTED_DRY") == "1":
-        for i, j in enumerate(jobs, 1):
-            print(f"[{i}] {j['company']} — {j['role']}\n    {j['url']}")
+
+def _norm(u: str) -> str:
+    return str(u or "").split("?")[0].rstrip("/").lower()
+
+
+def main() -> int:
+    from tools.tracker import load_applications, save_application
+
+    queue = json.loads(QUEUE.read_text()) if QUEUE.exists() else []
+    # One-time seed: if the queue is empty, fall back to scout_jobs.json so we
+    # don't lose the latest scout run when migrating to the queue.
+    if not queue and CACHE.exists():
+        queue = json.loads(CACHE.read_text())
+
+    applied = {_norm(a.get("url")) for a in load_applications()
+               if a.get("status") == "applied" and a.get("url")}
+    # Clean the queue: drop already-applied + URL-less entries.
+    queue = [j for j in queue
+             if str(j.get("url", "")).startswith("http") and _norm(j.get("url")) not in applied]
+
+    if not queue:
+        msg = "✅ <b>Apply-jobs</b> — fill queue is empty (every scouted job is applied)."
+        print(msg)
+        if os.environ.get("FILL_SCOUTED_DRY") != "1":
+            _tg(msg)
+            QUEUE.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
         return 0
 
-    _tg(f"💼 <b>Sending briefs for {len(jobs)} scouted jobs — one at a time.</b>\n"
-        f"Each opens in its own window with the brief sent to Gemini. You click "
-        f"\"Start task\" on each when ready.")
+    # FIFO: take the OLDEST jobs first, up to a per-run cap (default 5).
+    limit = int(os.environ.get("FILL_LIMIT", "5"))
+    for a in sys.argv[1:]:
+        if a.isdigit():
+            limit = int(a)
+    batch, rest = queue[:limit], queue[limit:]
+
+    if os.environ.get("FILL_SCOUTED_DRY") == "1":
+        print(f"queue: {len(queue)} waiting; filling oldest {len(batch)} this run:")
+        for i, j in enumerate(batch, 1):
+            print(f"  [{i}] {j['company']} — {j['role']}  (attempts={j.get('attempts',0)})")
+        return 0
+
+    _tg(f"💼 <b>Filling {len(batch)} from the job queue (oldest first).</b> "
+        f"{len(queue)} waiting total.\nEach opens in its own window with the brief "
+        f"sent to Gemini — click \"Start task\" on each.")
 
     from tools.browser_fill import browser_fill
-    results, all_ok = [], True
-    for i, job in enumerate(jobs, 1):
+    results, retry, dropped = [], [], []
+    for i, job in enumerate(batch, 1):
         job.setdefault("id", f"scouted_{uuid.uuid4().hex[:8]}")
-        print(f"\n===== [{i}/{len(jobs)}] {job['company']} — {job['role']} =====")
+        print(f"\n===== [{i}/{len(batch)}] {job['company']} — {job['role']} =====")
         try:
-            # start_task=False → paste + send the brief, then STOP. Taran clicks
-            # "Start task" himself. notify=True → per-job Telegram + screenshot.
             res = browser_fill(job, notify=True, start_task=False)
             ok = bool(res.get("ok"))
             status = res.get("status", "?")
@@ -85,26 +108,43 @@ def main() -> int:
             import traceback
             traceback.print_exc()
             ok, status, res = False, "exception", {"error": str(e)}
-        all_ok = all_ok and ok
+
+        if ok:
+            # completion Telegram fired → record applied; it leaves the queue.
+            try:
+                save_application(job, status="applied", platform="gemini")
+            except Exception as te:
+                print("! tracker save failed:", te)
+        else:
+            job["attempts"] = job.get("attempts", 0) + 1
+            (dropped if job["attempts"] >= MAX_ATTEMPTS else retry).append(job)
         results.append({"company": job["company"], "role": job["role"],
                         "ok": ok, "status": status, "error": res.get("error", "")})
         print(f"  -> ok={ok} status={status} {res.get('error','')}")
-        # brief settle between windows so panels/spaces don't collide
-        if i < len(jobs):
+        if i < len(batch):
             time.sleep(5)
 
+    # Rebuild the queue: failed-but-retryable stay at the FRONT (FIFO), then the
+    # untouched tail. Successful + exhausted jobs drop off.
+    new_queue = retry + rest
+    QUEUE.write_text(json.dumps(new_queue, ensure_ascii=False, indent=2))
+
     done = sum(1 for r in results if r["ok"])
-    summary = [f"<b>📩 Scouted briefs sent — {done}/{len(jobs)} ready for you to start</b>", ""]
+    summary = [f"<b>📩 Briefs sent — {done}/{len(batch)} ready to start</b>",
+               f"<i>queue: {len(new_queue)} still waiting</i>", ""]
     for r in results:
         mark = "📩" if r["ok"] else "⚠️"
-        tail = "" if r["ok"] else f" — {r['error'][:50]}"
-        summary.append(f"{mark} <b>{r['company']}</b>: {r['role'][:40]}{tail}")
-    summary.append("\n<i>Each is open in its own Chrome window with the brief sent. "
-                   "Review it, click \"Start task\", then submit.</i>")
+        tail = "" if r["ok"] else f" — {r['error'][:45]}"
+        summary.append(f"{mark} <b>{r['company']}</b>: {r['role'][:38]}{tail}")
+    if dropped:
+        summary.append(f"\n🛑 Dropped after {MAX_ATTEMPTS} tries: "
+                       + ", ".join(d["company"] for d in dropped))
+    summary.append("\n<i>Each is open in Chrome with the brief sent. Review, click "
+                   "\"Start task\", submit.</i>")
     _tg("\n".join(summary))
 
     print(json.dumps(results, indent=2))
-    return 0 if all_ok else 1
+    return 0 if all(r["ok"] for r in results) else 1
 
 
 if __name__ == "__main__":

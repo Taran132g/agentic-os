@@ -81,6 +81,8 @@ def _domain(website: str) -> str:
 
 def _fetch_site(website: str) -> str:
     """Return a short text snapshot of the site for personalization context."""
+    if not website or website.strip().lower() in ("none", "n/a", "-", ""):
+        return "(no website — business is only on Facebook / aggregator pages)"
     url = website if "://" in website else "https://" + website
     try:
         r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0 PiontrixBot"})
@@ -98,7 +100,8 @@ def _fetch_site(website: str) -> str:
     return (f"TITLE: {title}\n" if title else "") + text[:2500]
 
 
-def _draft_email(business: str, website: str, site_text: str) -> tuple[str, str]:
+def _draft_email(business: str, website: str, site_text: str,
+                 context: str = "") -> tuple[str, str]:
     """(subject, body) drafted by claude in Taran's Piontrix voice."""
     fallback_subject = f"A few website ideas for {business}"
     fallback_body = (
@@ -123,12 +126,19 @@ Target business: {business}
 Their website: {website}
 What their site looks like (scraped):
 {site_text[:1800]}
+Why they likely need help (from local research): {context or "n/a"}
 
 Write in Taran's voice: warm, local, student-run, genuinely helpful, NOT salesy
-or corporate. Reference 1-2 SPECIFIC, real improvements you'd make based on their
-actual site above (e.g. slow load, dated design, weak mobile, no clear call-to-
-action, missing online ordering). Keep it ~120 words. End with a soft ask for a
-short 15-minute call. Do NOT invent fake stats or claims.
+or corporate. CENTER the email on the specific PROFIT-BOOSTING opportunity in the
+"Why they likely need help" note above — frame everything around helping them make
+or keep more money. That opportunity may be online ordering (to cut delivery-app
+commissions), online booking/automation, OR a sales/revenue/retention DASHBOARD
+that shows them where their money is going. If the note mentions a dashboard or
+analytics, NAME IT concretely and make it a highlight — e.g. "a simple dashboard
+showing your busiest hours, average ticket, and which services bring the most
+profit" — do not flatten the pitch down to just "a website" when the real value is
+the data/automation. Reference 1-2 specific wins. Keep it ~120 words. End with a
+soft ask for a short 15-minute call. Do NOT invent fake stats or numbers.
 
 Output EXACTLY this format and nothing else:
 SUBJECT: <one line>
@@ -194,14 +204,41 @@ def _send_gmail(to_email: str, subject: str, body: str) -> None:
         s.send_message(msg)
 
 
+def _save_gmail_draft(subject: str, body: str, to_email: str = "") -> None:
+    """Append the drafted email to Gmail's Drafts folder via IMAP (not sent)."""
+    import imaplib
+    import time
+    from email.utils import formatdate
+    addr = os.environ["GMAIL_ADDRESS"]; pw = os.environ["GMAIL_APP_PASSWORD"]
+    msg = EmailMessage()
+    msg["From"] = f"{SENDER_NAME} <{addr}>"
+    if to_email:
+        msg["To"] = to_email
+    msg["Subject"] = subject
+    msg["Date"] = formatdate(localtime=True)
+    msg.set_content(body)
+    M = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+    try:
+        M.login(addr, pw)
+        M.append('"[Gmail]/Drafts"', '(\\Draft)',
+                 imaplib.Time2Internaldate(time.time()), msg.as_bytes())
+    finally:
+        try:
+            M.logout()
+        except Exception:
+            pass
+
+
 # ── one prospect ──────────────────────────────────────────────────────────────
 
-def process(business: str, website: str, mode: str) -> dict:
+def process(business: str, website: str, mode: str, context: str = "",
+            email: str = "") -> dict:
     domain = _domain(website)
     site_text = _fetch_site(website)
-    subject, body = _draft_email(business, website, site_text)
-    contact = _find_email(domain)
-    to_email = contact.get("email")
+    subject, body = _draft_email(business, website, site_text, context)
+    # Prefer the email the scout already found; fall back to Hunter (needs a domain).
+    contact = {} if email else _find_email(domain)
+    to_email = email or contact.get("email")
 
     if os.environ.get("OUTREACH_DRY") == "1":
         print(f"--- {business} ({domain}) ---")
@@ -209,6 +246,15 @@ def process(business: str, website: str, mode: str) -> dict:
         print("SUBJECT:", subject)
         print(body)
         return {"business": business, "to": to_email, "mode": "dry"}
+
+    # Save to Gmail Drafts (opt-in) so Taran can review/send from Gmail directly.
+    gmail_draft = False
+    if os.environ.get("OUTREACH_GMAIL_DRAFT") == "1":
+        try:
+            _save_gmail_draft(subject, body, to_email or "")
+            gmail_draft = True
+        except Exception as e:
+            print("! gmail draft save failed:", e)
 
     # SEND mode — only with explicit opt-in AND a found address
     if mode == "send" and to_email:
@@ -225,17 +271,18 @@ def process(business: str, website: str, mode: str) -> dict:
     # REVIEW mode (default) — Telegram Taran the draft to approve
     who = f"{contact.get('name')} ({contact.get('position')})" if contact.get("name") else "—"
     conf = f" · {contact.get('conf')}% conf" if contact.get("conf") else ""
+    gmail_note = "✅ Saved to Gmail Drafts\n" if gmail_draft else ""
     review = (
         f"📝 <b>Piontrix draft — {business}</b>\n"
-        f"🌐 {domain}\n"
-        f"📧 <b>{to_email or 'NO EMAIL FOUND'}</b>{conf}\n"
-        f"👤 {who}\n\n"
+        f"🌐 {domain or '(no website)'}\n"
+        f"📧 <b>{to_email or 'NO EMAIL FOUND — reach out via Facebook/call'}</b>{conf}\n"
+        f"👤 {who}\n{gmail_note}\n"
         f"<b>Subject:</b> {subject}\n\n"
         f"{body}\n\n"
         f"<i>Reply-ready. To auto-send, re-run with mode=send.</i>"
     )
     _tg_text(review)
-    return {"business": business, "to": to_email, "mode": "review"}
+    return {"business": business, "to": to_email, "mode": "review", "gmail_draft": gmail_draft}
 
 
 def main() -> int:
@@ -260,7 +307,10 @@ def main() -> int:
             return 0
         results = []
         for lead in pending[:limit]:
-            r = process(lead["business"], lead["website"], "review")
+            r = process(lead["business"], lead["website"], "review",
+                        context=" — ".join(x for x in (lead.get("location", ""),
+                                                       lead.get("why_fit", "")) if x),
+                        email=lead.get("email", ""))
             lead["contacted"] = True
             lead["last_result"] = r.get("mode")
             results.append(r)

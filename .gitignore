@@ -82,3 +82,7 @@ tmp/
 
 # PII application brief (real contact details) — local only
 JOB_APP_BRIEF.md
+brainscan_creators.json
+
+# FIFO fill queue (job data)
+job_queue.json
