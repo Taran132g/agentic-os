@@ -49,12 +49,12 @@ def _tg(text: str) -> None:
     except Exception:
         pass
 
-# (weekday set, "HH:MM") — wake ~5 min BEFORE each n8n task cluster.
+# (weekday set, "HH:MM") — wake ~5 min BEFORE the single morning task window.
 # weekdays: Mon=0 … Sun=6
+# 2026-06-09: collapsed to ONE daily wake. All scheduled jobs now run back-to-back
+# from the 07:30 n8n 'morning-stack' workflow (morning_stack.sh), then sleep.
 WAKE_TIMES = [
-    (set(range(7)), "07:25"),   # daily  — before 7:30 email-triage + morning batch
-    (set(range(7)), "18:25"),   # daily  — before 6:30pm email-triage
-    ({2},           "19:55"),   # Wed    — before 8pm repo-sync
+    (set(range(7)), "07:25"),   # daily — single wake before the 07:30 morning stack
 ]
 IDLE_GUARD_SECONDS = 180        # if input within this window, assume you're using it
 
@@ -90,13 +90,25 @@ def arm() -> datetime | None:
     # Arm exactly one next wake. (No cancelall — that would also wipe macOS's own
     # calendar/system wake events. One-time wake events clear themselves once
     # their time passes, so they don't accumulate.)
-    r = _run(["sudo", "pmset", "schedule", "wake", stamp])
+    r = _run(["sudo", "-n", "pmset", "schedule", "wake", stamp])
     if r.returncode == 0:
         print(f"✓ armed wake: {stamp}")
-    else:
-        print(f"! arm failed (rc {r.returncode}): {r.stderr.strip()} "
-              f"— is the pmset sudoers rule installed?")
-    return nw
+        return nw
+    print(f"! arm failed (rc {r.returncode}): {r.stderr.strip()} "
+          f"— is the pmset sudoers rule installed, or a `pmset repeat wake` set?")
+    return None                                 # signal failure to sleep()'s guard
+
+
+def _has_repeating_wake() -> bool:
+    """True if macOS has a recurring scheduled wake (`sudo pmset repeat wake ...`).
+    Lets the Mac sleep safely even when per-run arming via sudo isn't available."""
+    try:
+        out = subprocess.run(["pmset", "-g", "sched"],
+                             capture_output=True, text=True).stdout.lower()
+    except Exception:
+        return False
+    tail = out.split("repeating power events", 1)
+    return len(tail) > 1 and "wake" in tail[1]
 
 
 def _idle_seconds() -> float:
@@ -112,7 +124,16 @@ def _idle_seconds() -> float:
 
 
 def sleep() -> None:
-    nw = arm()                                  # always schedule the return trip first
+    nw = arm()                                  # try to schedule the return trip first
+    # SAFETY: never sleep without a future wake, or the Mac won't come back.
+    # A one-time arm (nw) OR a recurring `pmset repeat wake` both satisfy this.
+    if not nw and not _has_repeating_wake():
+        msg = ("⚠️ Mac stayed AWAKE — tasks done but no wake could be scheduled "
+               "(pmset needs a one-time `sudo pmset repeat wake MTWRFSU 07:25:00`). "
+               "Sleeping now would strand the machine.")
+        print(msg)
+        _tg(f"<b>{msg}</b>")
+        return
     idle = _idle_seconds()
     if idle < IDLE_GUARD_SECONDS and os.environ.get("POWER_FORCE") != "1":
         print(f"↺ skip sleep — looks in use ({idle:.0f}s since last input). "
@@ -121,7 +142,7 @@ def sleep() -> None:
     if os.environ.get("POWER_DRY") == "1":
         print("[dry] would sleep now")
         return
-    nwt = nw.strftime("%a %-I:%M%p") if nw else "?"
+    nwt = nw.strftime("%a %-I:%M%p") if nw else "next repeat wake"
     _tg(f"😴 <b>Mac sleeping</b> — scheduled tasks done. Next wake armed for {nwt}.")
     subprocess.run(["osascript", "-e",
                     'tell application "System Events" to sleep'])

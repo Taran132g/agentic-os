@@ -97,6 +97,13 @@ def _snippet(msg) -> str:
     return re.sub(r"\s+", " ", body).strip()[:400]
 
 
+try:
+    from tools.persona import persona_block
+except Exception:                       # standalone/odd-cwd runs: no-op
+    def persona_block() -> str:
+        return ""
+
+
 def _classify(items: list[dict]) -> list[dict]:
     """Batch-classify via claude → list of {category, priority, action} per item."""
     n = len(items)
@@ -119,7 +126,7 @@ def _classify(items: list[dict]) -> list[dict]:
 Categories (pick ONE): {", ".join(CATEGORIES)}
 Priority: 1 = needs Taran's attention soon, 2 = read when convenient, 3 = low/ignorable.
 action: <=8 words on what to do, or "" if none. Be terse.
-
+{persona_block()}
 Emails:
 {listing}
 
@@ -148,12 +155,16 @@ def main() -> int:
 
     addr = os.environ["GMAIL_ADDRESS"]; pw = os.environ["GMAIL_APP_PASSWORD"]
     readonly = (mode != "act") or dry
-    M = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+    # timeout: a Gmail stall must fail the run, not hang it forever (n8n would
+    # otherwise hold the execution open indefinitely).
+    M = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=60)
     M.login(addr, pw)
     M.select("INBOX", readonly=readonly)
 
     since = (datetime.now() - timedelta(hours=hours)).strftime("%d-%b-%Y")
-    typ, data = M.search(None, f'(UNSEEN SINCE "{since}")')
+    # UID search (not sequence numbers): act mode stores on a SECOND connection
+    # minutes later — sequence numbers aren't stable across sessions, UIDs are.
+    typ, data = M.uid("search", None, f'(UNSEEN SINCE "{since}")')
     uids = data[0].split() if data and data[0] else []
     uids = uids[-limit:]  # most recent N
 
@@ -169,13 +180,14 @@ def main() -> int:
             for part in data or []:
                 if isinstance(part, tuple) and len(part) >= 2:
                     meta = part[0].decode(errors="replace")
-                    m = re.match(r"(\d+)\s+\(", meta)
+                    m = re.search(r"UID (\d+)", meta)
                     if m:
                         out[m.group(1)] = part[1]
             return out
 
         try:
-            typ, hdr = M.fetch(num_set, "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])")
+            typ, hdr = M.uid("fetch", num_set,
+                             "(BODY.PEEK[HEADER.FIELDS (FROM SUBJECT DATE)])")
             hmap = _by_num(hdr)
         except Exception as e:
             print("! header fetch failed:", e)
@@ -191,7 +203,7 @@ def main() -> int:
 
         # snippets — bounded to 400 bytes/part, fully optional
         try:
-            typ, body = M.fetch(num_set, "(BODY.PEEK[1]<0.400>)")
+            typ, body = M.uid("fetch", num_set, "(BODY.PEEK[1]<0.400>)")
             smap = _by_num(body)
             for it in items:
                 key = it["num"].decode() if isinstance(it["num"], bytes) else str(it["num"])
@@ -225,27 +237,41 @@ def main() -> int:
                   action=c.get("action", ""))
 
     # ── act: reconnect fresh (first connection is closed) and label/archive ────
+    # UID store: the UIDs from the first session stay valid here; sequence
+    # numbers would not (mail arriving/expunged during classify shifts them).
     archived = 0
+    act_fails = 0
     if mode == "act" and not dry:
         try:
-            M2 = imaplib.IMAP4_SSL("imap.gmail.com", 993)
+            M2 = imaplib.IMAP4_SSL("imap.gmail.com", 993, timeout=60)
             M2.login(addr, pw)
             M2.select("INBOX", readonly=False)
             for it in items:
                 cat = it["category"].replace(" ", "_").replace("/", "-")
                 try:
-                    M2.store(it["num"], "+X-GM-LABELS", f'(Triaged/{cat})')
-                except Exception:
-                    pass
+                    typ, _ = M2.uid("store", it["num"], "+X-GM-LABELS",
+                                    f'(Triaged/{cat})')
+                    if typ != "OK":
+                        raise RuntimeError(f"label store returned {typ}")
+                except Exception as e:
+                    act_fails += 1
+                    print(f"! label failed for uid {it['num']}: {e}")
                 if it["category"] in ARCHIVE_CATS and it["priority"] == 3:
                     try:
-                        M2.store(it["num"], "+FLAGS", "(\\Seen)")
-                        M2.store(it["num"], "-X-GM-LABELS", "(\\\\Inbox)")  # archive
+                        M2.uid("store", it["num"], "+FLAGS", "(\\Seen)")
+                        # Gmail's system label is \Inbox — ONE backslash on the
+                        # wire. Removing it archives (reversible, nothing deleted).
+                        typ, _ = M2.uid("store", it["num"], "-X-GM-LABELS",
+                                        "(\\Inbox)")
+                        if typ != "OK":
+                            raise RuntimeError(f"archive store returned {typ}")
                         archived += 1
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        act_fails += 1
+                        print(f"! archive failed for uid {it['num']}: {e}")
             _logout_safe(M2)
         except Exception as e:
+            act_fails += 1
             print("! act-mode labeling skipped:", e)
 
     # ── build digest ──────────────────────────────────────────────────────────
@@ -260,7 +286,8 @@ def main() -> int:
     action_needed = [it for it in items if it["priority"] == 1]
     head = [f"📧 <b>Gmail triage</b> — {len(items)} new (last {hours}h)",
             f"⚡ {len(action_needed)} need attention"
-            + (f" · 🗄️ archived {archived} promos" if mode == "act" and not dry else "")]
+            + (f" · 🗄️ archived {archived} promos" if mode == "act" and not dry else "")
+            + (f" · ⚠️ {act_fails} label/archive op(s) FAILED" if act_fails else "")]
     lines = head + [""]
     if action_needed:
         lines.append("<b>⚡ Needs attention</b>")

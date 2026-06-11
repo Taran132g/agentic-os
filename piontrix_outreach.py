@@ -66,11 +66,23 @@ def _tg(method: str, **kw):
         return None
 
 
-def _tg_text(text: str) -> None:
+def _tg_text(text: str) -> bool:
+    """Send to Telegram. Returns True only on CONFIRMED delivery — callers use
+    this to decide whether a lead was actually reviewed (a swallowed failure
+    here used to silently burn leads from the batch queues)."""
     cid = os.environ.get("TELEGRAM_CHAT_ID")
-    if cid:
-        _tg("sendMessage", json={"chat_id": int(cid), "text": text[:4000],
+    if not cid:
+        return False
+    r = _tg("sendMessage", json={"chat_id": int(cid), "text": text[:4000],
                                  "parse_mode": "HTML", "disable_web_page_preview": True})
+    if r is not None and r.ok:
+        return True
+    # HTML parse failure (unescaped <>& from a draft) → retry as plain text so
+    # the review still lands rather than vanishing.
+    plain = re.sub(r"</?[a-z][^>]*>", "", text)
+    r = _tg("sendMessage", json={"chat_id": int(cid), "text": plain[:4000],
+                                 "disable_web_page_preview": True})
+    return r is not None and r.ok
 
 
 def _domain(website: str) -> str:
@@ -98,6 +110,13 @@ def _fetch_site(website: str) -> str:
     if m:
         title = re.sub(r"\s+", " ", m.group(1)).strip()
     return (f"TITLE: {title}\n" if title else "") + text[:2500]
+
+
+try:
+    from tools.persona import persona_block
+except Exception:                       # standalone/odd-cwd runs: no-op
+    def persona_block() -> str:
+        return ""
 
 
 def _draft_email(business: str, website: str, site_text: str,
@@ -139,7 +158,7 @@ showing your busiest hours, average ticket, and which services bring the most
 profit" — do not flatten the pitch down to just "a website" when the real value is
 the data/automation. Reference 1-2 specific wins. Keep it ~120 words. End with a
 soft ask for a short 15-minute call. Do NOT invent fake stats or numbers.
-
+{persona_block()}
 Output EXACTLY this format and nothing else:
 SUBJECT: <one line>
 <blank line>
@@ -281,8 +300,9 @@ def process(business: str, website: str, mode: str, context: str = "",
         f"{body}\n\n"
         f"<i>Reply-ready. To auto-send, re-run with mode=send.</i>"
     )
-    _tg_text(review)
-    return {"business": business, "to": to_email, "mode": "review", "gmail_draft": gmail_draft}
+    delivered = _tg_text(review) or gmail_draft  # a Gmail draft also counts as reviewable
+    return {"business": business, "to": to_email, "mode": "review",
+            "gmail_draft": gmail_draft, "delivered": delivered}
 
 
 def main() -> int:
@@ -311,8 +331,17 @@ def main() -> int:
                         context=" — ".join(x for x in (lead.get("location", ""),
                                                        lead.get("why_fit", "")) if x),
                         email=lead.get("email", ""))
-            lead["contacted"] = True
-            lead["last_result"] = r.get("mode")
+            # Only consume the lead when the draft DEMONSTRABLY reached Taran
+            # (Telegram confirmed or Gmail draft saved) or was actually sent.
+            # Undelivered reviews / failed sends stay pending for the next run,
+            # capped at 3 attempts so a broken Telegram can't redraft forever.
+            handled = (r.get("mode") == "sent"
+                       or (r.get("mode") == "review" and r.get("delivered")))
+            if not handled:
+                lead["retry_count"] = lead.get("retry_count", 0) + 1
+                handled = lead["retry_count"] >= 3
+            lead["contacted"] = bool(handled)
+            lead["last_result"] = r.get("mode") if handled else f"retry:{r.get('mode')}"
             results.append(r)
         LEADS_FILE.write_text(json.dumps(leads, indent=2))
         print(json.dumps(results, indent=2))

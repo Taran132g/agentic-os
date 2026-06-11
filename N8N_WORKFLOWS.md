@@ -25,16 +25,83 @@ keeping LocalFileTrigger off. Without it, every workflow fails to activate with
 
 ## Workflows
 
+> **2026-06-09 — consolidated to a single morning window.** All scheduled jobs
+> now run back-to-back from ONE 07:30 trigger (`morning-stack`) so the Mac is
+> only awake ~1 hour, then sleeps. The old per-job crons (8am–8pm) were retired.
+> Each job keeps its original *days* via day-guards inside `morning_stack.sh`.
+> The webhook (manual) triggers are unchanged.
+
+### The morning stack
+
+`morning-stack` (n8n, cron `30 7 * * *`) runs `bash morning_stack.sh`, which
+executes sequentially, each guarded so one failure never aborts the chain:
+
+1. `power_cycle.py wokeup` (Telegram ☀️ ping)
+2. `email_triage.py` — daily
+3. `vault_digest.py` — daily
+4. `job_scout.py` — **weekdays only** (scheduled apply = scout only; filling
+   stays manual via `POST /webhook/apply` → `fill_scouted.py`)
+5. `piontrix_scout.py` → `piontrix_outreach.py --batch` — daily
+6. `brainscan_outreach.py` — daily
+7. `linkedin_internship.py` (OUTREACH_LIMIT=1) — **weekdays only** (added 2026-06-10)
+8. `linkedin_internship.py reminder` — **Sunday only** (queue top-up nag)
+9. `tools/repo_sync.py` — **Mon/Wed/Sat only**
+10. `power_cycle.py sleep` — arms next wake (or relies on `pmset repeat`), then sleeps
+
 | Workflow | Trigger | Script | Status |
 |----------|---------|--------|--------|
-| **apply-jobs** | weekdays 9:00am (`0 9 * * 1-5`) + `POST /webhook/apply` | search → `jobsearch_cli.py` → fill each via `jobfill_cli.py` | active |
-| **piontrix-outreach** | daily 9:45am (`45 9 * * *`) + `POST /webhook/outreach` | `piontrix_outreach.py` (batch / single) | active |
-| **email-triage** | 7:30am & 6:30pm + `POST /webhook/triage` | `email_triage.py` (read-only digest) | active |
-| **vault-daily-digest** | daily 8:00am (`0 8 * * *`) | `vault_digest.py` | active |
-| **repo-sync** | Mon/Wed/Sat (`0 20 * * 1,3,6`) | `tools/repo_sync.py` | active |
+| **morning-stack** | daily 7:30am (`30 7 * * *`) | `morning_stack.sh` (chains all jobs ↑ then sleeps) | **active** |
+| **apply-jobs** | `POST /webhook/apply` (schedule node disabled) | `fill_scouted.py` (manual fill) | active (webhook only) |
+| **piontrix-outreach** | `POST /webhook/outreach` (schedule node disabled) | `piontrix_outreach.py` (single) | active (webhook only) |
+| **email-triage** | `POST /webhook/triage` (schedule node disabled) | `email_triage.py` | active (webhook only) |
+| **brainscan-outreach** | `POST /webhook/brainscan-outreach` (schedule node disabled) | `brainscan_outreach.py` | active (webhook only) |
+| ~~vault-daily-digest~~ | — | *(repurposed into `morning-stack`)* | renamed |
+| ~~repo-sync~~ | — | now runs inside the stack | **deleted** 2026-06-09 |
+| ~~power-sleep~~ | — | replaced by stack + `power_cycle.py` | **deleted** 2026-06-09 |
 | **content-rotation** | daily 11:00am (`0 11 * * *`) | `content_cron.py` | inactive |
 | **ff-daily-digest** | daily 8:30am (`30 8 * * *`) | FindingFounders `scripts/daily_digest.py` | inactive |
 | **jobfill** | `POST /webhook/jobfill` | `jobfill_cli.py` (single URL) | inactive |
+
+## 2026-06-09 hardening (audit fixes)
+
+- **Webhook shell-injection closed.** `jobfill` and `piontrix-outreach (single)`
+  used to interpolate webhook body fields raw into Execute Command. Both now
+  whitelist-strip shell metacharacters (`" $ \` \\ ; ( ) …`) in the n8n
+  expression before the value reaches the shell, and missing fields become `''`
+  instead of the literal string `undefined`. If you edit these nodes, keep the
+  `.replace(/[^…]/g, '')` wrapper.
+- **`email_triage.py`** — IMAP ops are now **UID-based** (sequence numbers
+  aren't stable across the two connections act-mode uses, so labels/archives
+  could hit the wrong mail); archive sends the correct `\Inbox` label (was
+  double-escaped and silently failing); both connections have `timeout=60`
+  (a Gmail stall used to hang the run forever); label/archive failures are
+  counted and surfaced in the digest instead of `except: pass`.
+- **`fill_scouted.py`** — exits 0 on partial success (exit 1 made n8n mark the
+  whole execution errored; per-job status was already in the Telegram summary).
+- **`piontrix_outreach.py` / `brainscan_outreach.py`** — batch runs only mark a
+  lead `contacted` when the draft demonstrably reached Taran (Telegram delivery
+  confirmed, falling back to plain text on HTML parse errors, or Gmail draft
+  saved) or was actually sent. Undelivered/failed leads stay pending, capped at
+  3 retries (`retry_count`).
+- **`tools/repo_sync.py`** — DENY_NAMES now also blocks `brainscan_creators.json`,
+  `linkedin_targets.json`, `applications.json`, `job_queue.json`, `scout_jobs.json`
+  (real names/emails — defense-in-depth beyond .gitignore; repo is public).
+
+### Wake/sleep — one-time setup required
+
+The wake half of the loop needs root (`pmset`). The cleanest is a **recurring**
+wake set once (survives reboots, no per-run sudo):
+
+```bash
+sudo pmset repeat wake MTWRFSU 07:25:00
+```
+
+`power_cycle.py WAKE_TIMES` is now a single daily `07:25`. `power_cycle.py sleep`
+has a **safety guard**: it refuses to sleep unless a wake is scheduled (one-time
+arm *or* a `pmset repeat wake`), so a missing sudo rule strands the Mac awake
+(safe) instead of asleep (stuck). Until the `pmset repeat` above is set — or the
+sudoers rule from this file's header is installed — the Mac will finish the stack
+and stay awake with a Telegram ⚠️.
 
 ## Script reference
 
@@ -102,4 +169,37 @@ launchctl kickstart -k gui/$(id -u)/com.taranveer.n8n
 
 | Workflow | Trigger | Script | Status |
 |----------|---------|--------|--------|
-| **brainscan-outreach** | after piontrix (chained) **or** daily 9:50am (`50 9 * * *`) | `brainscan_outreach.py` | wire in UI |
+| **brainscan-outreach** | inside `morning-stack` (daily) + `POST /webhook/brainscan-outreach` | `brainscan_outreach.py` | active (webhook; batch via stack) |
+
+## LinkedIn internship outreach (added 2026-06-09)
+
+Daily **drafting** helper for Taran's Summer-2027 internship networking — mirrors
+piontrix/brainscan (Telegram review, reuses _tg_text). **Does NOT search/scrape
+LinkedIn** (ToS + account-restriction risk; no connect API). You add people you
+found via LinkedIn's own filters (Company → People → School: Penn State) to
+`linkedin_targets.json`; the script drafts **one per day** — a <200-char
+connection note + a post-accept message — to Telegram. You click Connect by hand.
+
+- **Script:** `linkedin_internship.py` — `python3 linkedin_internship.py`.
+  Env: `OUTREACH_LIMIT=1` (one/day), `OUTREACH_DRY=1` (preview, doesn't consume queue).
+- **Data:** `linkedin_targets.json` (gitignored) =
+  `[{"name","company","role","alum","profile_url","context"}]`.
+
+### Wire it (n8n UI)
+Duplicate a Schedule-triggered workflow (e.g. piontrix-outreach), set:
+- **Schedule:** daily, e.g. `0 10 * * 1-5` (weekday mornings — 1 connect/day is a safe pace).
+- **Execute Command:** `python3 linkedin_internship.py`
+- Save (stays active). Each morning Telegram gets that day's connect note + follow-up to send manually.
+
+| Workflow | Trigger | Script | Status |
+|----------|---------|--------|--------|
+| **linkedin-internship** | inside `morning-stack`, weekdays | `linkedin_internship.py` (LIMIT=1) | wired 2026-06-10 |
+
+### Weekly queue top-up reminder
+`python3 linkedin_internship.py reminder` Telegrams how many targets are ready +
+how many blank company rows still need a name/URL. Wire a separate weekly
+Schedule node: `0 18 * * 0` (Sun 6pm) → Execute Command `python3 linkedin_internship.py reminder`.
+
+| Workflow | Trigger | Script | Status |
+|----------|---------|--------|--------|
+| **linkedin-queue-reminder** | inside `morning-stack`, Sundays | `linkedin_internship.py reminder` | wired 2026-06-10 |

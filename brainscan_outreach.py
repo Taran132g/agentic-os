@@ -57,6 +57,13 @@ def _fallback(name: str, hook: str) -> tuple[str, str]:
     return subject, body
 
 
+try:
+    from tools.persona import persona_block
+except Exception:                       # standalone/odd-cwd runs: no-op
+    def persona_block() -> str:
+        return ""
+
+
 def _draft_email(name: str, hook: str) -> tuple[str, str]:
     """(subject, body) drafted by the `claude` CLI in BrainScan's voice."""
     fb = _fallback(name, hook)
@@ -75,7 +82,7 @@ Offer two things: (1) a free scan of their own vault (their reaction could be co
 (2) free scans + a code for their audience if it's a fit. Genuine and specific, never salesy.
 ~110 words. End with a sign-off line "—" then nothing (the signature is added automatically, so
 do NOT write a signature).
-
+{persona_block()}
 Output EXACTLY this and nothing else:
 SUBJECT: <one line>
 <blank line>
@@ -125,13 +132,15 @@ def process(c: dict, mode: str) -> dict:
             return {"name": name, "to": email, "mode": "send_failed", "error": str(e)}
 
     note = "✅ Saved to Gmail Drafts\n" if gmail_draft else ""
-    _tg_text(
+    tg_ok = _tg_text(
         f"🧠 <b>BrainScan draft — {name}</b>\n"
         f"📧 <b>{email or 'NO EMAIL — skipped'}</b>\n{note}\n"
         f"<b>Subject:</b> {subject}\n\n{body}\n\n"
         f"<i>Reply-ready. To auto-send pending, re-run with arg: send</i>"
     )
-    return {"name": name, "to": email, "mode": "review", "gmail_draft": gmail_draft}
+    delivered = bool(tg_ok) or gmail_draft  # a Gmail draft also counts as reviewable
+    return {"name": name, "to": email, "mode": "review",
+            "gmail_draft": gmail_draft, "delivered": delivered}
 
 
 def main() -> int:
@@ -154,14 +163,25 @@ def main() -> int:
             _tg_text(msg)
         return 0
 
+    dry = os.environ.get("OUTREACH_DRY") == "1"
     results = []
     for c in pending[:limit]:
         r = process(c, mode)
-        # Mark handled after review or send so it's never re-contacted on the next run.
-        c["contacted"] = True
-        c["last_result"] = r.get("mode")
+        # A dry run is a preview — it must NOT consume the queue. Only mark
+        # handled when the draft demonstrably reached Taran (Telegram confirmed
+        # or Gmail draft saved) or was actually sent; undelivered reviews and
+        # failed sends stay pending, capped at 3 attempts.
+        if not dry:
+            handled = (r.get("mode") == "sent"
+                       or (r.get("mode") == "review" and r.get("delivered")))
+            if not handled:
+                c["retry_count"] = c.get("retry_count", 0) + 1
+                handled = c["retry_count"] >= 3
+            c["contacted"] = bool(handled)
+            c["last_result"] = r.get("mode") if handled else f"retry:{r.get('mode')}"
         results.append(r)
-    CREATORS_FILE.write_text(json.dumps(creators, indent=2))
+    if not dry:
+        CREATORS_FILE.write_text(json.dumps(creators, indent=2))
     print(json.dumps(results, indent=2))
     return 0
 

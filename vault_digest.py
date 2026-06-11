@@ -87,6 +87,13 @@ def _open_followups(window_days: int = 7) -> list[str]:
     return out
 
 
+try:
+    from tools.persona import persona_block
+except Exception:                       # standalone/odd-cwd runs: no-op
+    def persona_block() -> str:
+        return ""
+
+
 def _claude_summary(raw: str) -> str | None:
     """Tight 4-6 bullet summary via the claude CLI, or None if unavailable."""
     from shutil import which
@@ -95,8 +102,8 @@ def _claude_summary(raw: str) -> str | None:
     prompt = ("Summarize yesterday's work session below into 4-6 crisp bullets "
               "(what was done / decided), then a one-line 'Momentum:' note on "
               "where things stand. No preamble, no questions back — this is an "
-              "unattended digest. If the note is sparse, say so in one line.\n\n"
-              + raw[:6000])
+              "unattended digest. If the note is sparse, say so in one line.\n"
+              + persona_block() + "\n" + raw[:6000])
     try:
         res = subprocess.run(["claude", "-p", prompt], capture_output=True,
                              text=True, timeout=120)

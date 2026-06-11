@@ -90,6 +90,12 @@ def _emit() -> int:
 def _research(n: int) -> list[dict]:
     if not which("claude"):
         raise RuntimeError("claude CLI not on PATH")
+    try:
+        from tools.persona import persona_block
+    except Exception:                       # standalone/odd-cwd runs: no-op
+        def persona_block() -> str:
+            return ""
+
     resume = VAULT_RESUME.read_text()[:4000] if VAULT_RESUME.exists() else RESUME_FALLBACK
     today = datetime.now().strftime("%Y-%m-%d")
     prompt = f"""You are a job scout for a candidate. Today is {today}.
@@ -111,6 +117,7 @@ FOCUS (this is a deliberate shift):
   firms (Jane Street, Citadel, Two Sigma, D.E. Shaw, Point72, Aquatic, Voloridge,
   Jump, Hudson River, etc.). Also exclude pure software-engineering roles.
 
+{persona_block()}
 Prefer Workday / Greenhouse / official career-page postings with a DIRECT
 application URL. Use WebFetch to verify each is a real, currently-open Summer-2027
 application page. Rank by best-fit AND accessibility (favor large programs).

@@ -15,7 +15,9 @@ Run:
     python3 fill_scouted.py 2          # fill only the top N
 Env:
     FILL_SCOUTED_DRY=1   list what would be filled, drive nothing
-Exit 0 if all engaged, 1 if any need a look.
+Exit 0 always — per-job outcomes are reported via Telegram + stdout JSON.
+(Exiting 1 on a partial success made n8n mark the whole execution as errored,
+which made real failures indistinguishable from "4/5 filled, one needs a look".)
 """
 
 import json
@@ -144,7 +146,7 @@ def main() -> int:
     _tg("\n".join(summary))
 
     print(json.dumps(results, indent=2))
-    return 0 if all(r["ok"] for r in results) else 1
+    return 0
 
 
 if __name__ == "__main__":

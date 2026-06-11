@@ -49,6 +49,8 @@ ALLOWLIST = [
 DENY_NAMES = re.compile(
     r"(^|/)(\.env(\..+)?|.*\.key|.*\.pem|.*\.session|.*\.keychain-db.*|"
     r"\.keychain_pass|piontrix_leads\.json|application_profile\.md|JOB_APP_BRIEF\.md|"
+    r"brainscan_creators\.json|linkedin_targets\.json|applications\.json|"
+    r"job_queue\.json|scout_jobs\.json|"   # real names/emails/app history (PII)
     r"id_rsa.*|.*\.p12|.*\.pfx)$", re.I)
 # Secret guard — content patterns (high-signal API key / token shapes)
 DENY_CONTENT = re.compile(

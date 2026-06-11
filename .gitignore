@@ -86,3 +86,4 @@ brainscan_creators.json
 
 # FIFO fill queue (job data)
 job_queue.json
+linkedin_targets.json

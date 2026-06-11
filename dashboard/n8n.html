@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIS · n8n Workflows</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<meta name="theme-color" content="#7c3aed">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent:     #8b5cf6;
+  --accent-l:   #c4b5fd;
+  --accent-dim: rgba(139,92,246,0.15);
+  --accent-mid: rgba(139,92,246,0.30);
+  --green:      #34d399;
+  --green-dim:  rgba(52,211,153,0.13);
+  --yellow:     #fbbf24;
+  --yellow-dim: rgba(251,191,36,0.13);
+  --red:        #f87171;
+  --red-dim:    rgba(248,113,113,0.13);
+  --blue:       #60a5fa;
+  --blue-dim:   rgba(96,165,250,0.13);
+  --text:       rgba(255,255,255,0.92);
+  --muted:      rgba(255,255,255,0.52);
+  --dim:        rgba(255,255,255,0.22);
+  --g-card:     rgba(255,255,255,0.05);
+  --g-card2:    rgba(255,255,255,0.09);
+  --g-border:   rgba(255,255,255,0.10);
+  --g-border-l: rgba(255,255,255,0.06);
+  --font:       'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono:       'JetBrains Mono', ui-monospace, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font); font-size: 14px; color: var(--text);
+  min-height: 100vh; background: #060312;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% 0%,  rgba(88,28,220,0.32) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(15,52,160,0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,  rgba(109,40,217,0.10) 0%, transparent 70%);
+  background-attachment: fixed;
+  padding: 28px clamp(16px, 4vw, 48px) 80px;
+}
+a { color: var(--accent-l); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header.page { display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+header.page h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+header.page h1 .accent { color: var(--accent-l); }
+.gen { color: var(--muted); font-size: 12px; }
+.toolbar { margin-left: auto; display: flex; gap: 10px; }
+.btn {
+  font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 9px;
+  background: var(--accent-dim); border: 1px solid var(--accent-mid);
+  color: var(--accent-l); transition: background .15s, transform .15s;
+}
+.btn:hover { background: var(--accent-mid); text-decoration: none; transform: translateY(-1px); }
+.subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+.subtitle code { font-family: var(--mono); font-size: 11px; color: var(--accent-l); }
+
+/* stat strip */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 30px; }
+.stat {
+  background: var(--g-card); border: 1px solid var(--g-border-l); border-radius: 14px;
+  padding: 14px 16px; backdrop-filter: blur(12px);
+}
+.stat .n { font-size: 24px; font-weight: 700; letter-spacing: -1px; }
+.stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.stat.green .n { color: var(--green); }
+.stat.red .n { color: var(--red); }
+.stat.yellow .n { color: var(--yellow); }
+.stat.violet .n { color: var(--accent-l); }
+
+h2.sec {
+  font-size: 13px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--muted); margin: 38px 0 14px; display: flex; align-items: center; gap: 10px;
+}
+h2.sec::after { content: ""; flex: 1; height: 1px; background: var(--g-border-l); }
+
+/* schedule map */
+.panel {
+  background: var(--g-card); border: 1px solid var(--g-border-l); border-radius: 16px;
+  padding: 18px 20px; backdrop-filter: blur(12px);
+}
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* findings */
+.findings { display: grid; gap: 10px; }
+.finding {
+  display: grid; grid-template-columns: 78px 1fr; gap: 14px;
+  background: var(--g-card); border: 1px solid var(--g-border-l);
+  border-radius: 14px; padding: 14px 16px; backdrop-filter: blur(12px);
+}
+.sev { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  align-self: start; text-align: center; padding: 4px 0; border-radius: 7px; }
+.sev.high   { color: var(--red);    background: var(--red-dim);    border: 1px solid rgba(248,113,113,0.3); }
+.sev.medium { color: var(--yellow); background: var(--yellow-dim); border: 1px solid rgba(251,191,36,0.3); }
+.sev.low    { color: var(--blue);   background: var(--blue-dim);   border: 1px solid rgba(96,165,250,0.3); }
+.sev.fixed  { color: var(--green);  background: var(--green-dim);  border: 1px solid rgba(52,211,153,0.3); }
+.finding.fixed { opacity: 0.62; }
+.finding h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 3px; }
+.finding .wf { font-family: var(--mono); font-size: 10.5px; color: var(--accent-l); }
+.finding p { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-top: 5px; }
+.finding p b { color: var(--text); font-weight: 600; }
+.finding .fix { margin-top: 6px; font-size: 12px; color: var(--green); }
+.finding .fix::before { content: "fix → "; color: var(--muted); }
+.finding code { font-family: var(--mono); font-size: 11px; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; }
+
+/* workflow cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.card {
+  background: var(--g-card); border: 1px solid var(--g-border-l); border-radius: 16px;
+  padding: 16px 18px; backdrop-filter: blur(12px); display: flex; flex-direction: column; gap: 10px;
+  transition: border-color .2s, transform .2s;
+}
+.card:hover { border-color: var(--accent-mid); transform: translateY(-2px); }
+.card header { display: flex; align-items: center; gap: 10px; }
+.card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; flex: 1; }
+.badge { font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 9px; border-radius: 20px; }
+.badge.on  { color: var(--green); background: var(--green-dim); border: 1px solid rgba(52,211,153,0.3); }
+.badge.off { color: var(--muted); background: var(--g-card2);  border: 1px solid var(--g-border-l); }
+.badge.warn { color: var(--red); background: var(--red-dim); border: 1px solid rgba(248,113,113,0.3); }
+.graph { background: rgba(0,0,0,0.25); border: 1px solid var(--g-border-l); border-radius: 10px; }
+.rows { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; gap: 8px; font-size: 12px; align-items: baseline; }
+.row .k { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; min-width: 58px; }
+.row .v { color: var(--muted); line-height: 1.45; }
+.row .v code { font-family: var(--mono); font-size: 10.5px; color: var(--accent-l); word-break: break-all; }
+.execbar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--g-card2); }
+.execbar div { height: 100%; }
+.execnums { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.execnums b.g { color: var(--green); } .execnums b.r { color: var(--red); } .execnums b.y { color: var(--yellow); }
+
+/* recent */
+table.recent { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.recent th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--dim); padding: 6px 10px; border-bottom: 1px solid var(--g-border-l); }
+table.recent td { padding: 7px 10px; border-bottom: 1px solid var(--g-border-l); color: var(--muted); }
+table.recent td:first-child { color: var(--text); font-weight: 500; }
+.pill { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; letter-spacing: .5px; }
+.pill.success { color: var(--green); background: var(--green-dim); }
+.pill.error, .pill.crashed { color: var(--red); background: var(--red-dim); }
+.pill.running { color: var(--yellow); background: var(--yellow-dim); }
+@media (max-width: 600px) { .finding { grid-template-columns: 1fr; } .toolbar { margin-left: 0; } }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1>n8n <span class="accent">·</span> Workflow Control</h1>
+  <span class="gen" id="gen"></span>
+  <div class="toolbar">
+    <a class="btn" href="http://localhost:5678" target="_blank">Open n8n editor ↗</a>
+  </div>
+</header>
+<p class="subtitle">Read-only mirror of <code>~/.n8n/database.sqlite</code> — refresh with
+<code>python3 ~/agentic_os/tools/build_n8n_dashboard.py</code>, then reload this page.</p>
+
+<div class="stats" id="stats"></div>
+
+<h2 class="sec">Schedule vs Mac awake windows</h2>
+<div class="panel">
+  <div id="schedmap"></div>
+  <div class="legend">
+    <span><span class="sw" style="background:rgba(52,211,153,0.18);border:1px solid rgba(52,211,153,0.4)"></span> Mac awake — 07:25 pmset wake → sleeps when morning-stack finishes (~09:00, approx)</span>
+    <span><span class="sw" style="background:var(--accent)"></span> scheduled trigger (lands while awake)</span>
+    <span><span class="sw" style="background:var(--red)"></span> scheduled trigger while ASLEEP — never runs (inactive workflows not plotted)</span>
+  </div>
+</div>
+
+<h2 class="sec">Audit findings <span id="fcount" style="letter-spacing:0;color:var(--dim)"></span></h2>
+<div class="findings" id="findings"></div>
+
+<h2 class="sec">Workflows</h2>
+<div class="grid" id="grid"></div>
+
+<h2 class="sec">Recent executions</h2>
+<div class="panel" style="padding:8px 6px;">
+  <table class="recent" id="recent">
+    <thead><tr><th>Workflow</th><th>Status</th><th>Started (ET)</th><th>Duration</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script src="n8n_data.js"></script>
+<script>
+/* ── Mac awake window — 2026-06-09 single-stack model ─────────────────────── */
+/* One daily 07:25 pmset wake → 07:30 morning-stack runs everything back-to-back
+   → power_cycle.py sleep when done. End time is approximate (~09:00, stack
+   duration varies); sleep is event-driven, not a cron. days: 0=Mon … 6=Sun */
+const AWAKE = [
+  { days: [0,1,2,3,4,5,6], from: 7*60+25, to: 9*60 },
+];
+const SLEEP_BUFFER_MIN = 0;   // sleep waits for the stack to finish — no race
+
+/* ── audit findings — updated 2026-06-09 after the fix pass ──────────────── */
+const AUDIT = [
+ /* still open */
+ { sev: "medium", wf: ["power_cycle.py"],
+   title: "One-time sudo still outstanding — Mac can't auto-wake yet",
+   detail: "The wake half of the new single-stack loop needs root once: " +
+     "<code>sudo pmset repeat wake MTWRFSU 07:25:00</code>. Until then " +
+     "power_cycle.py's safety guard keeps the Mac AWAKE after the stack (it " +
+     "refuses to sleep with no scheduled wake) and Telegrams a ⚠️ each morning.",
+   fix: "Run the pmset command above once in Terminal — survives reboots." },
+
+ { sev: "low", wf: ["ff-daily-digest"],
+   title: "Workflow points at a script that doesn't exist",
+   detail: "<code>FindingFounders/backend/scripts/daily_digest.py</code> is missing. Inactive " +
+     "today, but reactivating it fails on first run.",
+   fix: "Restore the script or delete the workflow; if FF digests come from the Oracle box now, remove this local copy." },
+
+ { sev: "low", wf: ["content-rotation"],
+   title: "If reactivated, content-rotation (11:00) can never run",
+   detail: "Under the single-stack model the Mac sleeps after ~09:00 — an 11:00am cron will " +
+     "never fire. A trap for future-you when flipping it back on.",
+   fix: "Fold it into morning_stack.sh (like the other jobs) before reactivating." },
+
+ { sev: "low", wf: ["linkedin_targets.json"],
+   title: "LinkedIn queue is empty — 8 blank company rows to fill",
+   detail: "linkedin-internship is wired into morning-stack (2026-06-10: 1 draft/weekday + Sunday " +
+     "reminder), but <code>linkedin_targets.json</code> has 0 ready targets. Until you paste in " +
+     "names + profile URLs (LinkedIn → Company → People → School: Penn State), each weekday run " +
+     "is a no-op nag.",
+   fix: "Fill a few rows in linkedin_targets.json — name, company, role, profile_url, context." },
+
+ { sev: "fixed", wf: ["morning-stack"],
+   title: "LinkedIn workflows wired into the stack",
+   detail: "<code>linkedin_internship.py</code> (OUTREACH_LIMIT=1) runs on weekdays and " +
+     "<code>linkedin_internship.py reminder</code> on Sundays, both inside morning_stack.sh with " +
+     "day-guards. Verified with dry runs.",
+   fix: "done" },
+
+ /* fixed in the 2026-06-09 pass */
+ { sev: "fixed", wf: ["jobfill", "piontrix-outreach"],
+   title: "Webhook shell injection — closed",
+   detail: "Both Execute Command nodes now whitelist-strip shell metacharacters in the n8n " +
+     "expression (<code>\" $ ` \\ ; ( )</code> can't reach the shell) and missing fields become " +
+     "<code>''</code> instead of the string <b>undefined</b>. Verified: attack payloads neutered, " +
+     "legit pipe-format text and URLs pass unchanged.",
+   fix: "done — keep the .replace() wrapper if you edit those nodes" },
+
+ { sev: "fixed", wf: ["email-triage"],
+   title: "IMAP correctness: UID ops + \\Inbox + timeouts + surfaced failures",
+   detail: "Search/fetch/store are UID-based (stable across the two act-mode connections — stale " +
+     "sequence numbers could label/archive the WRONG mail). Archive sends the correct single-" +
+     "backslash <code>\\Inbox</code>. Both connections get <code>timeout=60</code> (a Gmail stall " +
+     "hung runs for 45+ min). Label/archive failures are now counted in the digest, not " +
+     "<code>except: pass</code>. Verified with a live read-only dry run.",
+   fix: "done" },
+
+ { sev: "fixed", wf: ["apply-jobs"],
+   title: "fill_scouted.py partial success no longer marks the execution errored",
+   detail: "Exits 0 always — per-job outcomes stay in the Telegram summary + stdout JSON.",
+   fix: "done" },
+
+ { sev: "fixed", wf: ["piontrix-outreach", "brainscan-outreach"],
+   title: "Leads only consumed on confirmed delivery",
+   detail: "_tg_text now reports delivery (with a plain-text retry on HTML parse errors). Batch " +
+     "runs mark <code>contacted</code> only when the draft reached Taran (Telegram or Gmail draft) " +
+     "or was sent; failures stay pending with a 3-attempt cap (<code>retry_count</code>).",
+   fix: "done" },
+
+ { sev: "fixed", wf: ["repo-sync (in stack)"],
+   title: "Secret-guard denylist covers the newer PII files",
+   detail: "<code>brainscan_creators.json</code>, <code>linkedin_targets.json</code>, " +
+     "<code>applications.json</code>, <code>job_queue.json</code>, <code>scout_jobs.json</code> " +
+     "added to DENY_NAMES — defense-in-depth beyond .gitignore (public repo).",
+   fix: "done" },
+
+ { sev: "fixed", wf: ["morning-stack"],
+   title: "Sleep/schedule collisions eliminated by design",
+   detail: "The other 2026-06-09 session consolidated all crons into one 07:30 stack that sleeps " +
+     "only AFTER the last job finishes — this resolves the repo-sync Mon/Sat dead-zone, the 18:50 " +
+     "sleep killing 18:30 email-triage (2 crashes + 1 stuck execution), and the 10:15 outreach race. " +
+     "power_cycle.py also gained a never-sleep-without-a-wake guard.",
+   fix: "done (by morning-stack consolidation)" },
+];
+
+/* ── helpers ─────────────────────────────────────────────────────────────── */
+const D = window.N8N_DATA;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function parseCron(expr) {           // "m h * * dow" → {min, days:[0..6 Mon-based]}
+  const p = expr.trim().split(/\s+/);
+  if (p.length < 5) return null;
+  const min = (+p[1]) * 60 + (+p[0]);
+  let days = [0,1,2,3,4,5,6];
+  if (p[4] !== "*") {
+    days = [];
+    for (const part of p[4].split(",")) {
+      const [a, b] = part.split("-").map(Number);
+      for (let d = a; d <= (b ?? a); d++) days.push((d + 6) % 7);  // cron 0=Sun → Mon-based
+    }
+  }
+  return { min, days, expr };
+}
+const hhmm = m => `${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
+function cronLabel(c) {
+  const all = c.days.length === 7;
+  const wd = c.days.join() === "0,1,2,3,4" ? "weekdays" : c.days.map(d => DAYS[d]).join("/");
+  return `${all ? "daily" : wd} ${hhmm(c.min)}`;
+}
+const isAwake = (day, min) => AWAKE.some(w => w.days.includes(day) && min >= w.from && min < w.to);
+const nearSleep = (day, min) => AWAKE.some(w => w.days.includes(day) && min >= w.from && min < w.to && (w.to - min) <= SLEEP_BUFFER_MIN);
+
+function triggersOf(wf) {
+  const out = { crons: [], hooks: [] };
+  for (const n of wf.nodes) {
+    if (n.disabled) continue;            // retired crons live on as disabled nodes
+    if (n.type.endsWith("scheduleTrigger"))
+      for (const r of (n.parameters.rule?.interval || []))
+        if (r.expression) { const c = parseCron(r.expression); if (c) out.crons.push(c); }
+    if (n.type.endsWith("webhook"))
+      out.hooks.push(`POST /webhook/${n.parameters.path}`);
+  }
+  return out;
+}
+const cmdsOf = wf => wf.nodes.filter(n => n.type.endsWith("executeCommand"))
+                             .map(n => n.parameters.command.replace(/^=/, ""));
+
+/* ── stat strip ──────────────────────────────────────────────────────────── */
+(function stats() {
+  const active = D.workflows.filter(w => w.active).length;
+  let ok = 0, bad = 0, run = 0;
+  for (const s of Object.values(D.stats)) {
+    ok += s.success || 0; bad += (s.error || 0) + (s.crashed || 0); run += s.running || 0;
+  }
+  const open = AUDIT.filter(f => f.sev !== "fixed").length;
+  const done = AUDIT.length - open;
+  document.getElementById("gen").textContent = `snapshot ${D.generated} · last ${D.statsDays} days`;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat violet"><div class="n">${active}<span style="color:var(--dim);font-size:15px">/${D.workflows.length}</span></div><div class="l">active workflows</div></div>
+    <div class="stat green"><div class="n">${ok}</div><div class="l">successful runs</div></div>
+    <div class="stat red"><div class="n">${bad}</div><div class="l">errors + crashes</div></div>
+    <div class="stat yellow"><div class="n">${open}</div><div class="l">open findings</div></div>
+    <div class="stat green"><div class="n">${done}</div><div class="l">fixed jun 9</div></div>`;
+  document.getElementById("fcount").textContent = `· ${open} open / ${done} fixed`;
+})();
+
+/* ── week × 24h schedule map ─────────────────────────────────────────────── */
+(function schedmap() {
+  const W = 1060, RH = 34, LX = 46, TY = 24, H = TY + 7 * RH + 8;
+  const x = min => LX + (min / 1440) * (W - LX - 10);
+  let g = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">`;
+  for (let h = 0; h <= 24; h += 3)
+    g += `<text x="${x(h*60)}" y="14" fill="rgba(255,255,255,0.3)" font-size="9.5" text-anchor="middle" font-family="JetBrains Mono">${String(h).padStart(2,"0")}</text>
+          <line x1="${x(h*60)}" y1="${TY-4}" x2="${x(h*60)}" y2="${H-8}" stroke="rgba(255,255,255,0.05)"/>`;
+  for (let d = 0; d < 7; d++) {
+    const y = TY + d * RH;
+    g += `<text x="6" y="${y + RH/2 + 3}" fill="rgba(255,255,255,0.45)" font-size="10.5" font-weight="600">${DAYS[d]}</text>
+          <line x1="${LX}" y1="${y + RH - 5}" x2="${W-10}" y2="${y + RH - 5}" stroke="rgba(255,255,255,0.04)"/>`;
+    for (const w of AWAKE) if (w.days.includes(d))
+      g += `<rect x="${x(w.from)}" y="${y+2}" width="${x(w.to)-x(w.from)}" height="${RH-10}" rx="4"
+             fill="rgba(52,211,153,0.14)" stroke="rgba(52,211,153,0.35)" stroke-width="0.6"/>`;
+  }
+  for (const wf of D.workflows) {
+    if (!wf.active) continue;
+    const sleepWf = wf.name === "power-sleep";
+    for (const c of triggersOf(wf).crons) for (const d of c.days) {
+      const y = TY + d * RH, cx = x(c.min);
+      let col = "var(--accent)";
+      if (!sleepWf) {
+        if (!isAwake(d, c.min)) col = "var(--red)";
+        else if (nearSleep(d, c.min)) col = "var(--yellow)";
+      }
+      g += `<circle cx="${cx}" cy="${y + (RH-8)/2}" r="4" fill="${col}" stroke="rgba(0,0,0,0.5)" stroke-width="1">
+              <title>${esc(wf.name)} — ${hhmm(c.min)} (${esc(c.expr)})</title></circle>`;
+    }
+  }
+  g += `</svg>`;
+  document.getElementById("schedmap").innerHTML = g;
+})();
+
+/* ── findings ────────────────────────────────────────────────────────────── */
+(function findings() {
+  const order = { high: 0, medium: 1, low: 2, fixed: 3 };
+  document.getElementById("findings").innerHTML = AUDIT
+    .slice().sort((a, b) => order[a.sev] - order[b.sev])
+    .map(f => `<div class="finding ${f.sev === "fixed" ? "fixed" : ""}">
+        <span class="sev ${f.sev}">${f.sev}</span>
+        <div><h3>${f.title}</h3>
+          <span class="wf">${f.wf.join(" · ")}</span>
+          <p>${f.detail}</p>
+          <div class="fix">${f.fix}</div></div>
+      </div>`).join("");
+})();
+
+/* ── workflow cards with mini node-graphs ────────────────────────────────── */
+function miniGraph(wf) {
+  const ns = wf.nodes;
+  const xs = ns.map(n => n.position[0]), ys = ns.map(n => n.position[1]);
+  const minX = Math.min(...xs) - 70, maxX = Math.max(...xs) + 130;
+  const minY = Math.min(...ys) - 40, maxY = Math.max(...ys) + 55;
+  const byName = Object.fromEntries(ns.map(n => [n.name, n]));
+  let s = `<svg class="graph" viewBox="${minX} ${minY} ${maxX-minX} ${maxY-minY}" width="100%" height="${Math.min(150, (maxY-minY)/3.2)}">`;
+  for (const [from, m] of Object.entries(wf.connections))
+    for (const branch of (m.main || []))
+      for (const c of (branch || [])) {
+        const a = byName[from], b = byName[c.node];
+        if (!a || !b) continue;
+        const [x1, y1] = [a.position[0] + 95, a.position[1] + 9];
+        const [x2, y2] = [b.position[0] - 8, b.position[1] + 9];
+        s += `<path d="M${x1},${y1} C${x1+45},${y1} ${x2-45},${y2} ${x2},${y2}"
+               fill="none" stroke="rgba(139,92,246,0.55)" stroke-width="2"/>`;
+      }
+  for (const n of ns) {
+    const trig = n.type.endsWith("scheduleTrigger") || n.type.endsWith("webhook");
+    const [px, py] = n.position;
+    s += `<rect x="${px-6}" y="${py-12}" width="100" height="42" rx="9"
+           fill="${trig ? "rgba(139,92,246,0.22)" : "rgba(255,255,255,0.07)"}"
+           stroke="${trig ? "rgba(139,92,246,0.65)" : "rgba(255,255,255,0.18)"}" stroke-width="1.4"/>
+          <text x="${px+44}" y="${py+13}" text-anchor="middle" fill="rgba(255,255,255,0.85)"
+           font-size="11" font-family="Inter">${esc(n.name.length > 16 ? n.name.slice(0,15) + "…" : n.name)}</text>`;
+  }
+  return s + "</svg>";
+}
+
+(function cards() {
+  const wfFindings = {};
+  for (const f of AUDIT) {
+    if (f.sev === "fixed") continue;          // only badge OPEN findings
+    for (const w of f.wf) (wfFindings[w] = wfFindings[w] || []).push(f.sev);
+  }
+  document.getElementById("grid").innerHTML = D.workflows.map(wf => {
+    const t = triggersOf(wf), cmds = cmdsOf(wf), st = D.stats[wf.name] || {};
+    const ok = st.success || 0, err = (st.error || 0) + (st.crashed || 0), run = st.running || 0;
+    const tot = ok + err + run;
+    const sevs = wfFindings[wf.name] || [];
+    const high = sevs.filter(s => s === "high").length;
+    const scripts = [...new Set(cmds.map(c => (c.match(/([\w.]+\.py)/) || [])[1]).filter(Boolean))];
+    return `<div class="card">
+      <header>
+        <h3>${esc(wf.name)}</h3>
+        ${sevs.length ? `<span class="badge warn">${high ? high + " HIGH" : sevs.length + " ISSUE" + (sevs.length>1?"S":"")}</span>` : ""}
+        <span class="badge ${wf.active ? "on" : "off"}">${wf.active ? "ACTIVE" : "OFF"}</span>
+      </header>
+      ${miniGraph(wf)}
+      <div class="rows">
+        ${t.crons.length ? `<div class="row"><span class="k">cron</span><span class="v">${t.crons.map(c => `${cronLabel(c)} <code>${esc(c.expr)}</code>`).join("<br>")}</span></div>` : ""}
+        ${t.hooks.length ? `<div class="row"><span class="k">webhook</span><span class="v"><code>${t.hooks.map(esc).join("</code><br><code>")}</code></span></div>` : ""}
+        ${scripts.length ? `<div class="row"><span class="k">scripts</span><span class="v"><code>${scripts.map(esc).join("</code> · <code>")}</code></span></div>` : ""}
+      </div>
+      <div>
+        <div class="execbar">
+          ${tot ? `<div style="width:${ok/tot*100}%;background:var(--green)"></div>
+                   <div style="width:${err/tot*100}%;background:var(--red)"></div>
+                   <div style="width:${run/tot*100}%;background:var(--yellow)"></div>` : ""}
+        </div>
+        <div class="execnums">${tot ? `<b class="g">${ok} ok</b>${err ? ` · <b class="r">${err} failed</b>` : ""}${run ? ` · <b class="y">${run} stuck</b>` : ""} <span style="color:var(--dim)">/ ${D.statsDays}d</span>` : `<span style="color:var(--dim)">no runs in ${D.statsDays}d</span>`}</div>
+      </div>
+    </div>`;
+  }).join("");
+})();
+
+/* ── recent executions (DB stores UTC → render ET) ───────────────────────── */
+(function recent() {
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York",
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  document.querySelector("#recent tbody").innerHTML = D.recent.map(r => {
+    const start = new Date(r.startedAt.replace(" ", "T") + "Z");
+    let dur = "—";
+    if (r.stoppedAt) {
+      const s = (new Date(r.stoppedAt.replace(" ", "T") + "Z") - start) / 1000;
+      dur = s >= 90 ? `${(s/60).toFixed(1)} min` : `${Math.round(s)}s`;
+    } else if (r.status === "running") dur = "still running ⚠️";
+    return `<tr><td>${esc(r.workflow)}</td>
+      <td><span class="pill ${esc(r.status)}">${esc(r.status)}</span></td>
+      <td>${fmt.format(start)}</td><td>${dur}</td></tr>`;
+  }).join("");
+})();
+</script>
+</body>
+</html>
