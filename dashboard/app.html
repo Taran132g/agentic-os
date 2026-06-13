@@ -22,8 +22,8 @@
     <div class="gate-orb" aria-hidden="true"></div>
     <span class="wordmark">PAIS<span class="tick" style="color:var(--green)">_</span></span>
     <h1>Your personal AI team,<br>that actually knows you.</h1>
-    <p>Sign in to meet your team. Connect your brain once, then they do the work
-       and message you right here.</p>
+    <p>Sign in to explore the demo workspace — the same Control Room we build
+       your agent workflows into.</p>
     <button class="btn btn-primary" type="button" id="gateGoogle">
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#04130c" d="M21.35 11.1H12v2.83h5.35c-.23 1.5-1.6 4.4-5.35 4.4a5.94 5.94 0 010-11.88 5.3 5.3 0 013.76 1.47l2.04-1.96A8.7 8.7 0 0012 4.5a9 9 0 100 18c5.2 0 8.64-3.65 8.64-8.8 0-.59-.07-1.04-.16-1.5z"/></svg>
       Continue with Google
@@ -70,7 +70,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
         Connect desktop
       </button>
-      <a class="back" href="/#run">↤ see the morning automations</a>
+      <a class="back" href="/#demo">↤ see the demo</a>
     </aside>
 
     <main class="chat-main">
@@ -120,14 +120,14 @@
     <ol class="cd-steps">
       <li><span class="cd-n">1</span><div><b>Get the runtime</b>
         <div class="cd-code"><code id="cdInstall">…</code><button class="cd-copy" data-copy="cdInstall">copy</button></div></div></li>
-      <li><span class="cd-n">2</span><div><b>Your connect token</b> <span class="cd-warn">— secret, links only your machine</span>
+      <li><span class="cd-n">2</span><div><b>Get your link code</b> <span class="cd-warn">— one-time, expires in 10 min</span>
         <div class="cd-code"><code id="cdToken">sign in to generate…</code><button class="cd-copy" data-copy="cdToken">copy</button></div></div></li>
       <li><span class="cd-n">3</span><div><b>Link it</b>
-        <div class="cd-code"><code id="cdLogin">./venv/bin/python runtime.py login &lt;token&gt;</code><button class="cd-copy" data-copy="cdLogin">copy</button></div></div></li>
+        <div class="cd-code"><code id="cdLogin">./venv/bin/python runtime.py link &lt;code&gt;</code><button class="cd-copy" data-copy="cdLogin">copy</button></div></div></li>
       <li><span class="cd-n">4</span><div><b>Schedule the team</b>
         <div class="cd-code"><code>./venv/bin/python runtime.py schedule</code><button class="cd-copy" data-copy2="./venv/bin/python runtime.py schedule">copy</button></div></div></li>
     </ol>
-    <p class="cd-foot">The token is a long-lived sign-in for the runtime. Keep it private; re-open this to rotate.</p>
+    <p class="cd-foot">The code links this machine with a durable runtime token — unaffected by signing out of the web. Re-open this anytime for a fresh code.</p>
   </div>
 </div>
 
@@ -188,13 +188,13 @@ const STEPS = {
   briefing:["Read vault","Digest","Post"], email:["Fetch inbox","Classify","Digest","Post"],
   career:["Live scout","Verify","Queue jobs","Post"], apply:["Queue jobs","Open windows","Fill forms","You review & submit"],
   outreach:["Scout leads","Draft","Gmail drafts","Post"],
-  linkedin:["Pick target","Draft note","Post"], code:["Scan","Guard","Commit","Push"],
+  linkedin:["Find hiring managers","Draft connect + PAIS pitch","Copy-paste from Pipeline"], code:["Scan","Guard","Commit","Push"],
   reviewer:["Read routine","Analyze","Suggest fixes"],
 };
 const RUNNABLE = ["briefing","email","career","apply","outreach","linkedin","code","reviewer"];
 const TM = id => TEAM.find(t => t.id === id);
 /* Generated android portraits (Higgsfield) for the 8 working agents. */
-const AVA = new Set(["briefing","email","career","apply","outreach","linkedin","code","reviewer"]);
+const AVA = new Set(["assistant","briefing","email","career","apply","outreach","linkedin","code","reviewer"]);
 function avatarHtml(id, cls="", fallback=""){
   const t=TM(id)||{};
   const inner = AVA.has(id) ? `<img src="/av-${id}.webp" alt="" loading="lazy">` : (fallback || (t.chief?"◉":(t.name||"?")[0]));
@@ -225,40 +225,40 @@ function wShow(session){ $("gate").style.display="none"; $("workspace").hidden=f
   const av=u.user_metadata&&u.user_metadata.avatar_url; if(av){ $("acctAvatar").src=av; $("acctAvatar").hidden=false; } }
 function signIn(){ if(!sb){ alert("Auth SDK failed to load."); return; } sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:location.href } }); }
 $("gateGoogle").addEventListener("click", signIn);
-$("signoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut(); token=null; gShow(); });
+$("signoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut({ scope: 'local' }); token=null; gShow(); });   // scope local — global signOut revokes the desktop runtime's session
 if(sb){ sb.auth.getSession().then(({data})=>onSession(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSession(s)); } else gShow();
 function onSession(session){
-  if(session){ token=session.access_token; userId=session.user.id; wShow(session); renderTeam(); greet(); loadConfig(); loadBrainStatus(); loadAccount(); setTimeout(resumeGp, 400); }
+  if(session){ token=session.access_token; userId=session.user.id; wShow(session); renderTeam(); greet(); loadConfig(); loadBrainStatus(); loadAccount(); setTimeout(resumeGp, 400); setTimeout(refreshUnread, 800); }
   else { token=null; gShow(); }
 }
 
 /* ── plan / entitlements ──────────────────────────────── */
 let acct = null;
-async function loadAccount(){ try{ acct = await api("/api/agents/account"); }catch{ acct=null; } renderPlan(); renderTeam(); if(selected==="assistant") renderKitchen(); }
+async function loadAccount(){ try{ acct = await api("/api/agents/account"); }catch{ acct=null; } renderPlan(); renderTeam(); loadBrainStatus(); if(selected==="assistant") renderKitchen(); }
 function isPro(){ return acct && (acct.plan==="pro" || (acct.allowed||[]).includes("*")); }
-function isAllowed(id){ if(!acct) return true; if(isPro()) return true; return (acct.allowed||[]).includes(id); }
+function isAllowed(id){ return true; }   /* demo workspace — no client-side locks */
 function renderPlan(){ const c=$("planChip"); if(!acct){ c.hidden=true; return; } c.hidden=false;
   if(isPro()){ c.className="plan-chip pro"; c.innerHTML="◆ PRO"; c.onclick=null; }
-  else if(acct.trial_expired){ c.className="plan-chip expired"; c.innerHTML="⚠ Trial ended — Upgrade $4.99/mo"; c.onclick=openUpgrade; }
-  else { c.className="plan-chip trial"; c.innerHTML=`◷ Trial · ${acct.trial_days_left}d left — Upgrade`; c.onclick=openUpgrade; }
+  else { c.className="plan-chip trial"; c.innerHTML="◆ DEMO WORKSPACE — book a call"; c.onclick=openUpgrade; }
 }
+const DEMO_BODY = "<b>This is a demo workspace</b> — the agents here don't execute. On a call we map your workflows, build your agent team around your business, and it runs on your own machine.";
 function upgradePanel(title, body){
   return `<div class="upsell">
     <div class="upsell-core" aria-hidden="true"><i></i><i></i></div>
     <h3>${esc(title)}</h3><p>${body}</p>
-    <div class="upsell-price"><b>$4.99</b><span>/month · all agents, unlimited</span></div>
-    <button class="btn btn-primary upsell-btn" onclick="openUpgrade()">See what Pro unlocks →</button>
+    <button class="btn btn-primary upsell-btn" onclick="openUpgrade()">Book a call →</button>
+    <p style="margin-top:14px;font-family:var(--font-mono);font-size:11px;color:var(--dim)">30 min · we map your workflows · in-person demos around King of Prussia, PA</p>
   </div>`;
+}
+/* Demo accounts can look but not run — every run path lands here. */
+function showDemoLock(title){
+  $("kGrid").style.display="none"; const d=$("kDetail"); d.hidden=false;
+  d.innerHTML='<button class="wf-back" id="kBack">← all workflows</button><div class="lock-wrap">'+upgradePanel(title, DEMO_BODY)+'</div>';
+  $("kBack").addEventListener("click",renderKitchen);
 }
 /* The paywall modal: value recap (their real usage) → comparison → checkout. */
 const upModal=$("upModal");
-async function openUpgrade(){
-  upModal.hidden=false;
-  try{ const r=await api("/api/agents/messages");
-    const n=(r.messages||[]).length;
-    if(n>2) $("upValue").innerHTML=`Your team has posted <b>${n} real reports</b> to your feed — keep all of them working for you.`;
-  }catch{}
-}
+function openUpgrade(){ window.open("https://cal.com/taranveer/workflows","_blank"); }   /* demo workspace → book a call */
 $("upClose").addEventListener("click",()=>{ upModal.hidden=true; });
 upModal.addEventListener("click",e=>{ if(e.target===upModal) upModal.hidden=true; });
 $("upCta").addEventListener("click",()=>startCheckout("pro"));
@@ -269,6 +269,20 @@ async function startCheckout(product){
     if(!r.ok) throw 0; const {url}=await r.json(); if(url){location.href=url; return true;} }catch(e){} return false; }
 async function loadConfig(){ try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} renderTeam(); if(selected!=="assistant") renderAgent(selected); }
 
+/* ── unread: blue rail dot when an agent posted something you haven't seen ── */
+let latestTs={};
+function seenMap(){ try{ return JSON.parse(localStorage.getItem("pais_seen_"+userId)||"{}"); }catch{ return {}; } }
+function hasUnread(id){ return (latestTs[id]||0) > (seenMap()[id]||0); }
+function markSeen(id){ const s=seenMap(); s[id]=Date.now(); try{ localStorage.setItem("pais_seen_"+userId, JSON.stringify(s)); }catch{} renderTeam(); }
+async function refreshUnread(){
+  if(!token) return;
+  try{ const r=await api("/api/agents/messages"); latestTs={};
+    for(const m of (r.messages||[])) if(m.agent) latestTs[m.agent]=Math.max(latestTs[m.agent]||0, m.ts||0);
+    renderTeam();
+  }catch{}
+}
+setInterval(refreshUnread, 60000);
+
 /* ── team rail ────────────────────────────────────────── */
 function agentMeta(id){ const ac=(cfg&&cfg.agents&&cfg.agents[id])||{}; const t=TM(id);
   return { name: ac.display_name || t.name, role: ac.role || t.role, enabled: !!ac.enabled }; }
@@ -276,7 +290,7 @@ function renderTeam(){
   $("teamList").innerHTML = TEAM.map(t=>{
     const m=agentMeta(t.id); const on=t.id===selected; const locked = !t.chief && !isAllowed(t.id);
     const attn = t.attn && !locked ? '<span class="tm-attn" title="needs your attention to finish">⚠</span>' : "";
-    const tail = locked ? '<span class="tm-lock">🔒</span>' : (t.chief ? "" : `${attn}<span class="tm-dot ${m.enabled?"on":""}"></span>`);
+    const tail = locked ? '<span class="tm-lock">🔒</span>' : (t.chief ? "" : `${attn}<span class="tm-dot ${m.enabled?"on":""}${hasUnread(t.id)?" unread":""}" title="${hasUnread(t.id)?"new message":""}"></span>`);
     return `<button class="member ${on?"active":""} ${locked?"locked":""}" data-id="${t.id}">
       ${avatarHtml(t.id,"",m.name[0])}
       <span class="m-at"><b>${esc(m.name)}</b><span>${esc(m.role)}</span></span>${tail}
@@ -299,9 +313,7 @@ function renderLockedAgent(id){
     <div id="agentBody"><div class="lock-wrap">
       ${canChoose?`<div class="choose-free"><p>You still have <b>1 free agent</b> this trial. Make <b>${esc(m.name)}</b> your free pick?</p>
         <button class="btn btn-ghost" type="button" onclick="chooseFree('${id}')">Use ${esc(m.name)} free →</button></div>`:""}
-      ${upgradePanel(m.name+" needs PAIS Pro", acct&&acct.trial_expired
-        ? "Your free month is up. Upgrade to keep every agent running."
-        : "Your free trial includes Briefing + one agent of your choice. Unlock the whole team with Pro.")}
+      ${upgradePanel(m.name+" runs for clients only", DEMO_BODY)}
     </div></div>`;
 }
 async function chooseFree(id){ try{ await api("/api/agents/choose/"+id,{method:"POST"}); await loadAccount(); selectMember(id); }catch{} }
@@ -312,6 +324,7 @@ document.querySelectorAll("[data-ktab]").forEach(b=>b.addEventListener("click",(
   const run=b.dataset.ktab==="run"; $("kitchenRun").hidden=!run; $("kitchenChat").hidden=run;
 }));
 function renderKitchen(){
+  if(gpActive && gpSeq){ openGrandPrix(gpSeq); return; }   // routine racing → stay on the GP
   $("kGrid").style.display=""; $("kDetail").hidden=true;
   $("kGrid").innerHTML = RUNNABLE.map(id=>{ const m=agentMeta(id); const locked=!isAllowed(id);
     return `<button class="wf-card ${locked?"locked":""}" data-id="${id}">
@@ -323,7 +336,7 @@ function renderKitchen(){
 }
 function openKitchenWf(id){ const m=agentMeta(id), steps=STEPS[id]||["Run"];
   if(!isAllowed(id)){ $("kGrid").style.display="none"; $("kDetail").hidden=false;
-    $("kDetail").innerHTML='<button class="wf-back" id="kBack">← all units</button><div class="lock-wrap">'+upgradePanel(m.name+" needs PAIS Pro", acct&&acct.trial_expired?"Your free month is up — upgrade to run any unit.":"Free trial covers Briefing + one agent. Unlock all with Pro.")+'</div>';
+    $("kDetail").innerHTML='<button class="wf-back" id="kBack">← all units</button><div class="lock-wrap">'+upgradePanel(m.name+" runs for clients only", DEMO_BODY)+'</div>';
     $("kBack").addEventListener("click",renderKitchen); return; }
   const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||m.role;
   $("kGrid").style.display="none"; $("kDetail").hidden=false;
@@ -333,22 +346,28 @@ function openKitchenWf(id){ const m=agentMeta(id), steps=STEPS[id]||["Run"];
         <div><h3>${esc(m.name)}</h3><p>${esc(persona)}</p></div></div>
       ${raceTrackSvg(steps)}
       <div class="track-actions"><button class="btn btn-primary" id="kRun">▶ Run now</button>
+        <button class="btn btn-ghost" id="kStop" hidden style="color:var(--rose);border-color:rgba(251,113,133,.4)">⏹ Stop</button>
         <button class="btn btn-ghost" id="kOpen">Settings</button><span class="setup-msg" id="kMsg"></span></div>
       <div class="run-out" id="kOut" hidden></div></div>`;
   $("kBack").addEventListener("click",renderKitchen);
   $("kRun").addEventListener("click",()=>runKitchenWf(id));
+  $("kStop").addEventListener("click",()=>{ api("/api/agents/run-ctl",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:id})}).catch(()=>{}); $("kStop").textContent="⏹ stopping…"; });
   $("kOpen").addEventListener("click",()=>{ selectMember(id); tab="settings"; renderAgent(id); });
 }
 async function runKitchenWf(id){
+  if(acct && !isPro()){ showDemoLock(agentMeta(id).name+" runs for clients only"); return; }
   const msg=$("kMsg"), btn=$("kRun"), out=$("kOut"); btn.disabled=true;
+  const stopB=$("kStop"); if(stopB){ stopB.hidden=false; stopB.textContent="⏹ Stop"; }
   msg.textContent="Racing — real run on your Mac…"; msg.className="setup-msg";
   const race=startRace($("kDetail").querySelector(".racetrack"));
   let r;
   try{ const q=await bgRun(id); r = q.queued ? await waitRun(id) : q; }
   catch(e){ r={_err:e}; }
-  if(r && r._err && r._err.status===402){ race.finish(false); btn.disabled=false; loadAccount(); openKitchenWf(id); return; }   // locked → upgrade view
+  if(r && r._err && r._err.status===402){ race.finish(false); btn.disabled=false; loadAccount(); showDemoLock(TM(id).name+" runs for clients only"); return; }   // locked → book-a-call disclaimer
   const ok = !!(r && r.ran);
   race.finish(ok);
+  if(stopB) stopB.hidden=true;
+  if(ok) refreshUnread();
   if(ok && r.text){
     msg.textContent = TM(id).attn ? "Engaged ✓ — switch to your computer to finish" : "Done ✓ posted to feed";
     msg.className="setup-msg ok"; out.hidden=false; out.innerHTML='<b>'+esc(TM(id).name)+':</b><br>'+esc(r.text).replace(/\n/g,"<br>"); }
@@ -415,23 +434,32 @@ async function waitRun(id, maxMs=1500000){
 /* The Routine Grand Prix: the WHOLE routine executes server-side in one
    background job — the browser only watches. Reload-proof: on page load we
    detect a running routine and re-open the race where it left off. */
-let gpTimer=null;
+let gpTimer=null, gpActive=false, gpSeq=null;
 async function runAll(){
+  if(acct && !isPro()){ showDemoLock("The routine runs for clients only"); return; }
   const msg=$("runAllMsg");
   let init;
   try{ init=await api("/api/agents/routine-run",{method:"POST"}); }
-  catch(e){ msg.textContent = e.status===402 ? "Routine needs PAIS Pro." : "Couldn't start the routine."; msg.className="setup-msg warn"; return; }
+  catch(e){ if(e.status===402){ showDemoLock("The routine runs for clients only"); return; }
+    msg.textContent="Couldn't start the routine."; msg.className="setup-msg warn"; return; }
   if(!init.started){ msg.textContent=init.message||"Routine is empty."; msg.className="setup-msg warn"; return; }
   msg.textContent="";
   openGrandPrix(init.seq);
 }
 function fmtElapsed(ms){ const s=Math.max(0,Math.floor(ms/1000)); return `${Math.floor(s/60)}m ${String(s%60).padStart(2,"0")}s`; }
 function openGrandPrix(seq){
+  gpActive=true; gpSeq=seq;
   if(gpTimer){ clearInterval(gpTimer); gpTimer=null; }
   $("kGrid").style.display="none"; const d=$("kDetail"); d.hidden=false;
   d.innerHTML=`<button class="wf-back" id="kBack">← all workflows</button>
     <div class="gp">
-      <div class="gp-head"><h3>ROUTINE GRAND PRIX</h3><p class="gp-sub">// ${seq.length} UNITS — racing server-side; you can close this page, they keep going</p></div>
+      <div class="gp-head" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div><h3>ROUTINE GRAND PRIX</h3><p class="gp-sub">// ${seq.length} UNITS — racing server-side; you can close this page, they keep going</p></div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-ghost" id="gpPause" style="padding:7px 14px;font-size:12px">⏸ Pause</button>
+          <button class="btn btn-ghost" id="gpSkip" style="padding:7px 14px;font-size:12px">⏭ Skip next</button>
+          <button class="btn btn-ghost" id="gpStop" style="padding:7px 14px;font-size:12px;color:var(--rose);border-color:rgba(251,113,133,.4)">⏹ Stop</button>
+        </div></div>
       ${seq.map((id,i)=>{ const m=agentMeta(id); return `
       <div class="gp-row" data-id="${id}">
         <div class="gp-meta">
@@ -444,7 +472,13 @@ function openGrandPrix(seq){
         <div class="gp-out" data-out="${id}" hidden></div>
       </div>`;}).join("")}
     </div>`;
-  $("kBack").addEventListener("click",()=>{ if(gpTimer){ clearInterval(gpTimer); gpTimer=null; } renderKitchen(); });
+  $("kBack").addEventListener("click",()=>{ gpActive=false; if(gpTimer){ clearInterval(gpTimer); gpTimer=null; } renderKitchen(); });
+  let paused=false;
+  async function ctl(action){ try{ await api("/api/agents/routine-ctl",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action})}); }catch{} }
+  $("gpPause").addEventListener("click",()=>{ paused=!paused; ctl(paused?"pause":"resume");
+    $("gpPause").textContent=paused?"▶ Resume":"⏸ Pause"; });
+  $("gpSkip").addEventListener("click",()=>{ ctl("skip"); $("gpSkip").textContent="⏭ skipping…"; setTimeout(()=>$("gpSkip").textContent="⏭ Skip next",2500); });
+  $("gpStop").addEventListener("click",()=>{ if(confirm("Stop the routine after the current agent finishes?")) ctl("stop"); });
   const races={};
   async function tick(){
     let s; try{ s=await api("/api/agents/run-status"); }catch{ return; }
@@ -454,7 +488,7 @@ function openGrandPrix(seq){
       const r=runs[id]||{}; const st=row.querySelector(`[data-st="${id}"]`);
       if(r.state==="running"){
         if(!races[id]){ races[id]=startRace(row.querySelector(".racetrack")); row.classList.add("racing"); row.scrollIntoView({behavior:"smooth",block:"nearest"}); }
-        st.textContent=`racing… ${fmtElapsed(Date.now()-(r.started||Date.now()))} — real run on your Mac`; st.className="gp-status run";
+        st.innerHTML=`racing… ${fmtElapsed(Date.now()-(r.started||Date.now()))} <button onclick="api('/api/agents/run-ctl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'${id}'})});this.textContent='stopping…'" style="margin-left:8px;background:none;border:1px solid rgba(251,113,133,.4);color:var(--rose);border-radius:8px;padding:2px 8px;font-size:10px;cursor:pointer">⏹ stop</button>`; st.className="gp-status run";
       } else if(r.state==="done" && !row.dataset.final){
         row.dataset.final="1";
         const res=r.result||{}; const good=!!res.ran;
@@ -465,13 +499,16 @@ function openGrandPrix(seq){
         st.className="gp-status "+(good?"ok":"warn");
         const out=row.querySelector(`[data-out="${id}"]`);
         if(good && res.text){ out.hidden=false; out.textContent=res.text.slice(0,280)+(res.text.length>280?" …":""); }
+        if(good) refreshUnread();
       }
     }
     const rt=runs.__routine;
+    if(rt && rt.state==="running" && rt.ctl==="pause"){ const h=d.querySelector(".gp-sub"); if(h) h.textContent="// PAUSED — current agent will finish, then the routine holds"; }
     if(!rt || rt.state==="done"){
       const head=d.querySelector(".gp-sub");
-      if(head) head.textContent= rt ? `// RACE COMPLETE — ${rt.ok}/${seq.length} units posted to your feed`
+      if(head) head.textContent= rt ? `// ${rt.stopped?"STOPPED":"RACE COMPLETE"} — ${rt.ok}/${seq.length} units posted to your feed`
                                     : "// status lost (server restarted) — check each agent's Messages feed";
+      gpActive=false;
       clearInterval(gpTimer); gpTimer=null;
     }
   }
@@ -501,7 +538,7 @@ async function sendChat(){
   try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
       body:JSON.stringify({message:msg,agent:"assistant",model:modelSel.value,history:history.slice(-12)})});
     if(r.status===401){ t.innerHTML='<span class="chat-err">Session expired — sign in again.</span>'; return; }
-    if(r.status===402){ t.innerHTML='<b>Your free month is up.</b> Upgrade to PAIS Pro ($4.99/mo) to keep the Control Room running. <button class="btn btn-primary" style="margin-top:8px;padding:7px 14px" onclick="openUpgrade()">See what Pro unlocks</button>'; loadAccount(); return; }
+    if(r.status===402){ t.innerHTML='<b>This is a demo workspace.</b> To get your own agent team built around your business, book a call. <button class="btn btn-primary" style="margin-top:8px;padding:7px 14px" onclick="openUpgrade()">Book a call</button>'; loadAccount(); return; }
     if(!r.ok) throw 0; const d=await r.json(); let html=esc(d.reply||"").replace(/\n/g,"<br>");
     if(d.sources&&d.sources.length) html+=`<div class="chat-src">${d.sources.slice(0,4).map(s=>"▸ "+esc(s.title)).join("<br>")}</div>`;
     if(!d.grounded) html+='<div class="chat-src">no notes matched yet — build your brain (left)</div>'; else setBrain(true);
@@ -510,7 +547,7 @@ async function sendChat(){
 }
 
 /* ── teammate view: messages + settings ───────────────── */
-let tab = "messages";
+let tab = "pipeline";
 function renderAgent(id){
   const t=TM(id), spec=(schema&&schema.agents[id])||{needs:[],fields:[]}, ac=(cfg&&cfg.agents&&cfg.agents[id])||{};
   const m=agentMeta(id);
@@ -519,18 +556,19 @@ function renderAgent(id){
       ${avatarHtml(id,"",esc(m.name[0]))}
       <div><h2>${esc(m.name)}</h2><p>${esc(m.role)} · ${m.enabled?'<span class="on-tag">active</span>':'<span class="off-tag">not set up</span>'}${t.attn?' · <span class="attn-tag">⚠ runs on your computer — needs you to finish</span>':""}</p></div>
       <div class="view-tabs" style="margin-left:auto">
-        <button type="button" data-tab="messages" class="${tab==="messages"?"active":""}">Messages</button>
+        <button type="button" data-tab="pipeline" class="${tab!=="settings"?"active":""}">Pipeline</button>
         <button type="button" data-tab="settings" class="${tab==="settings"?"active":""}">Settings</button>
       </div>
     </div>
     <div id="agentBody"></div>`;
   $("agentView").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{ tab=b.dataset.tab; renderAgent(id); }));
-  if(tab==="messages") renderMessages(id); else renderSettings(id, spec, ac, m);
+  if(tab==="settings") renderSettings(id, spec, ac, m); else renderPipeline(id);
 }
 async function renderMessages(id){
   const body=$("agentBody"); if(!body) return;
   body.innerHTML='<div class="feed" id="feed"><p class="feed-empty">Loading…</p></div>';
   let msgs=[]; try{ const r=await api("/api/agents/messages?agent="+id); msgs=r.messages||[]; }catch{}
+  markSeen(id);   // opening the feed clears the blue unread dot
   if(selected!==id || tab!=="messages" || !$("feed")) return;   // user navigated away
   const t=TM(id);
   $("feed").innerHTML = msgs.length ? msgs.map(m=>`
@@ -538,6 +576,35 @@ async function renderMessages(id){
       <div class="fbody"><div class="ftext">${esc(m.text).replace(/\n/g,"<br>")}</div>
         <div class="fts">${new Date(m.ts).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div></div></div>`).join("")
     : `<p class="feed-empty">No messages yet. When ${esc(TM(id).name)} runs (on your desktop), its updates land here — not in Telegram.</p>`;
+}
+async function renderPipeline(id){
+  const body=$("agentBody"); if(!body) return;
+  body.innerHTML='<div class="feed"><p class="feed-empty">Loading pipeline…</p></div>';
+  let items=[]; try{ items=(await api("/api/agents/leads?agent="+id)).items||[]; }catch{}
+  let msgs=[]; try{ msgs=(await api("/api/agents/messages?agent="+id)).messages||[]; }catch{}
+  markSeen(id);
+  if(selected!==id||tab==="settings") return;
+  const last=msgs[msgs.length-1];
+  const report=last?`<div style="margin-top:20px"><div style="font-family:var(--font-mono);font-size:11px;letter-spacing:2px;color:var(--green);margin-bottom:8px">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div>
+    <div style="border:1px solid var(--border-l);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--muted);white-space:pre-wrap">${esc(last.text)}</div></div>`:"";
+  const steps=(STEPS[id]||[]).map((st,i)=>`<span style="font-family:var(--font-mono);font-size:11px;color:var(--green);border:1px solid rgba(52,211,153,.3);border-radius:999px;padding:4px 12px">${i+1}. ${esc(st)}</span>`).join('<span style="color:var(--dim)">→</span>');
+  const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||"";
+  const done=items.filter(x=>x.done).length;
+  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">${steps}</div>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">${esc(persona)}</p>
+    ${items.length?`<div style="display:flex;gap:26px;font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:14px">
+      <span><b style="font-size:20px;color:var(--text)">${items.length}</b><br>in pipeline</span>
+      <span><b style="font-size:20px;color:var(--green)">${done}</b><br>done</span>
+      <span><b style="font-size:20px;color:var(--amber)">${items.length-done}</b><br>pending</span></div>
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    ${items.map(l=>`<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--border-l);font-size:13px">
+      <span style="min-width:0"><b>${l.url?`<a href="${esc(l.url)}" target="_blank" style="color:var(--text)">${esc(l.title||"?")}</a>`:esc(l.title||"?")}</b><br>
+        <span style="font-size:11.5px;color:var(--dim);font-family:var(--font-mono)">${esc(String(l.sub||"").replace(/^https?:\/\//,""))}${l.note?" · "+esc(l.note):""}${l.phone?` · <a href="tel:${esc(l.phone)}" style="color:var(--sky)">📞 ${esc(l.phone)}</a>`:""}</span></span>
+      <span style="font-family:var(--font-mono);font-size:10.5px;padding:3px 10px;border-radius:999px;border:1px solid ${l.done?"rgba(52,211,153,.4)":"rgba(251,191,36,.4)"};color:${l.done?"var(--green)":"var(--amber)"}">${l.done?"DONE":"PENDING"}</span>
+    </div>`).join("")}</div>`:""}
+    ${report || (items.length?"":'<p class="feed-empty">Nothing in the pipeline yet — run this agent and its work appears here.</p>')}
+  </div>`;
 }
 function renderSettings(id, spec, ac, m){
   const conns=(cfg&&cfg.connections)||{};
@@ -634,8 +701,9 @@ async function loadBrainStatus(){ const upBtn=$("brainUploadBtn");
       upBtn.hidden=true;
       autoPrefillAll();   // brain connected → give the whole team context
     } else { $("brainPill").classList.remove("ready"); $("brainPillText").textContent=s.offline?"brain: offline":"brain: not connected";
-      $("brainCardText").textContent="Upload your vault so your team can work — and answer — from your own notes."; upBtn.hidden=false; }
-  }catch{ upBtn.hidden=false; } }
+      if(isPro()){ $("brainCardText").textContent="Upload your vault so your team can work — and answer — from your own notes."; upBtn.hidden=false; }
+      else { $("brainCardText").textContent="We build and connect your business brain during onboarding — book a call and your team will know your company inside out."; upBtn.hidden=true; } }
+  }catch{ upBtn.hidden=isPro()?false:true; } }
 $("brainUploadBtn").addEventListener("click",()=>$("vaultFile").click());
 $("vaultFile").addEventListener("change",async ()=>{ const f=$("vaultFile").files[0]; $("vaultFile").value=""; if(!f||!token) return;
   if(!f.name.toLowerCase().endsWith(".zip")){ alert("Vault must be a .zip of markdown notes."); return; }
@@ -657,9 +725,15 @@ document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return;
   if(!upModal.hidden) upModal.hidden=true; });
 async function openConnect(){ cdModal.hidden=false;
   $("cdInstall").textContent="git clone https://github.com/Taran132g/pais-runtime && cd pais-runtime && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt";
-  let rt=""; try{ const {data}=await sb.auth.getSession(); rt=(data.session&&data.session.refresh_token)||""; }catch{}
-  $("cdToken").textContent=rt||"could not read token — re-sign in";
-  $("cdLogin").textContent=rt?`./venv/bin/python runtime.py login ${rt}`:"./venv/bin/python runtime.py login <token>"; }
+  $("cdToken").textContent="generating…";
+  $("cdLogin").textContent="./venv/bin/python runtime.py link <code>";
+  try{
+    const {code}=await api("/api/runtime/link-code",{method:"POST"});
+    $("cdToken").textContent=code;
+    $("cdLogin").textContent=`./venv/bin/python runtime.py link ${code}`;
+  }catch(e){
+    $("cdToken").textContent = e.status===401 ? "sign in first" : "couldn't get a code — try again";
+  } }
 document.querySelectorAll(".cd-copy").forEach(b=>b.addEventListener("click",()=>{
   const txt=b.dataset.copy2||($(b.dataset.copy)?.textContent||"");
   navigator.clipboard.writeText(txt).then(()=>{ const o=b.textContent; b.textContent="copied ✓"; setTimeout(()=>b.textContent=o,1200); }); }));
