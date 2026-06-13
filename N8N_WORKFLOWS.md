@@ -37,7 +37,7 @@ keeping LocalFileTrigger off. Without it, every workflow fails to activate with
 executes sequentially, each guarded so one failure never aborts the chain:
 
 1. `power_cycle.py wokeup` (Telegram ☀️ ping)
-2. `email_triage.py` — daily
+2. `email_triage.py act` — daily (labels everything `Triaged/<Category>`, replacing any prior Triaged/* label, + archives clear promos; switched from read-only 2026-06-12)
 3. `vault_digest.py` — daily
 4. `job_scout.py` — **weekdays only** (scheduled apply = scout only; filling
    stays manual via `POST /webhook/apply` → `fill_scouted.py`)
@@ -50,17 +50,38 @@ executes sequentially, each guarded so one failure never aborts the chain:
 
 | Workflow | Trigger | Script | Status |
 |----------|---------|--------|--------|
-| **morning-stack** | daily 7:30am (`30 7 * * *`) | `morning_stack.sh` (chains all jobs ↑ then sleeps) | **active** |
-| **apply-jobs** | `POST /webhook/apply` (schedule node disabled) | `fill_scouted.py` (manual fill) | active (webhook only) |
-| **piontrix-outreach** | `POST /webhook/outreach` (schedule node disabled) | `piontrix_outreach.py` (single) | active (webhook only) |
-| **email-triage** | `POST /webhook/triage` (schedule node disabled) | `email_triage.py` | active (webhook only) |
-| **brainscan-outreach** | `POST /webhook/brainscan-outreach` (schedule node disabled) | `brainscan_outreach.py` | active (webhook only) |
+| **morning-stack** | daily 7:30am (`30 7 * * *`) | `morning_stack.sh` (chains all jobs ↑ then sleeps) | **active — the ONLY scheduled workflow** |
+| **apply-jobs** | `POST /webhook/apply` (schedule node **removed** 2026-06-13) | `fill_scouted.py` (manual fill) | active (webhook only) |
+| **piontrix-outreach** | `POST /webhook/outreach` (schedule node **removed** 2026-06-13) | `piontrix_outreach.py` (single) | active (webhook only) |
+| **email-triage** | `POST /webhook/triage` (schedule node **removed** 2026-06-13) | `email_triage.py` | active (webhook only) |
+| **brainscan-outreach** | `POST /webhook/brainscan-outreach` (workflow inactive) | `brainscan_outreach.py` | inactive (webhook def only) |
 | ~~vault-daily-digest~~ | — | *(repurposed into `morning-stack`)* | renamed |
 | ~~repo-sync~~ | — | now runs inside the stack | **deleted** 2026-06-09 |
 | ~~power-sleep~~ | — | replaced by stack + `power_cycle.py` | **deleted** 2026-06-09 |
 | **content-rotation** | daily 11:00am (`0 11 * * *`) | `content_cron.py` | inactive |
 | **ff-daily-digest** | daily 8:30am (`30 8 * * *`) | FindingFounders `scripts/daily_digest.py` | inactive |
 | **jobfill** | `POST /webhook/jobfill` | `jobfill_cli.py` (single URL) | inactive |
+
+## 2026-06-13 — schedules truly consolidated (n8n disabled-trigger gotcha)
+
+The 2026-06-09 "consolidation" *disabled* the standalone schedule nodes in the
+editor, but **n8n does not honor `disabled: true` on a trigger node of an
+already-active workflow** — the cron stays registered and keeps firing, and a
+full n8n restart does NOT clear it. So `email-triage` (7:30am + 6:30pm),
+`piontrix-outreach` (9:45am), and `apply-jobs` (`job_scout.py`, weekdays 9am)
+had been firing daily the whole time, duplicating the in-stack jobs. They caused
+no damage only because (a) the jobs are idempotent (`piontrix --batch` skips
+`contacted` leads; triage relabel/archive is a no-op on repeat) and (b)
+morning-stack was darkwake-truncating before it reached them.
+
+**Fix:** the only reliable way to stop a schedule on an active workflow is to
+**delete the scheduleTrigger node** (or deactivate the whole workflow — but that
+kills the webhook too). Removed the schedule nodes from those three workflows via
+direct DB edit (n8n stopped via `launchctl bootout`, edit `workflow_entity.nodes`
++ `connections`, decrement `triggerCount`, `launchctl bootstrap`). Webhook
+triggers (`/webhook/triage`, `/outreach`, `/apply`) left intact. DB backed up to
+`~/.n8n/database.backup-preschedremove-*.sqlite`. **morning-stack is now the only
+scheduled workflow.**
 
 ## 2026-06-09 hardening (audit fixes)
 

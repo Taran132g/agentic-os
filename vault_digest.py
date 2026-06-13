@@ -17,6 +17,7 @@ Uses the `claude` CLI for a tight narrative summary when available (subscription
 Exit 0 always — a quiet day is still a successful run.
 """
 
+import html
 import os
 import re
 import subprocess
@@ -42,14 +43,26 @@ def _send_telegram(text: str) -> None:
     if not token or not chat_id:
         print("! TELEGRAM creds missing")
         return
-    resp = requests.post(
-        f"https://api.telegram.org/bot{token}/sendMessage",
-        json={"chat_id": int(chat_id), "text": text[:4000],
-              "parse_mode": "HTML", "disable_web_page_preview": True},
-        timeout=15,
-    )
-    if not resp.ok:
-        print("! Telegram failed:", resp.status_code, resp.text[:200])
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": int(chat_id), "text": text[:4000],
+               "parse_mode": "HTML", "disable_web_page_preview": True}
+    resp = requests.post(url, json=payload, timeout=15)
+    if resp.ok:
+        return
+    # HTML parse errors (400) shouldn't lose the digest. Telegram only allows a
+    # small tag whitelist; any stray "<...>" in the LLM summary trips it even
+    # after escaping edge cases. Fall back to plain text so the message still
+    # lands, stripping the tags we control.
+    print("! Telegram HTML send failed:", resp.status_code, resp.text[:200],
+          "— retrying as plain text")
+    plain = re.sub(r"</?(b|i|u|s|code|pre|a)\b[^>]*>", "", text)
+    plain = html.unescape(plain)
+    resp2 = requests.post(
+        url, json={"chat_id": int(chat_id), "text": plain[:4000],
+                   "disable_web_page_preview": True}, timeout=15)
+    if not resp2.ok:
+        print("! Telegram plain-text retry also failed:",
+              resp2.status_code, resp2.text[:200])
 
 
 def _open_followups(window_days: int = 7) -> list[str]:
@@ -154,16 +167,19 @@ def main() -> int:
     md += ["", f"_Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}_"]
     content = "\n".join(md)
 
-    # Telegram short version
+    # Telegram short version. body_summary + followups are LLM/vault-generated,
+    # so HTML-escape them — Telegram's HTML parse_mode 400s on any tag outside
+    # its tiny whitelist (e.g. a stray "<footer>"). Only the <b>/<i> wrappers we
+    # add ourselves are literal markup.
     tg = [f"<b>📓 Daily Digest — {today_str}</b>",
           f"<i>Recap of {day_str}</i>", ""]
     if body_summary.strip():
-        tg.append(body_summary[:1500])
+        tg.append(html.escape(body_summary[:1500]))
     else:
         tg.append("No session note yesterday.")
     if followups:
         tg += ["", f"<b>Open follow-ups ({len(followups)}):</b>"]
-        tg += [f"• {it.split('  (')[0]}" for it in followups[:8]]
+        tg += [f"• {html.escape(it.split('  (')[0])}" for it in followups[:8]]
     tg_msg = "\n".join(tg)
 
     if os.environ.get("VAULT_DIGEST_DRY") == "1":
