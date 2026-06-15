@@ -1,0 +1,19 @@
+{
+  "business_id": "trufit",
+  "name": "TruFit",
+  "vertical": "fitness",
+  "brand_voice": "Energetic, encouraging, first-name basis with members. Celebrates streaks and comebacks, never shames a lapse. Owner name: Mara.",
+  "channels": {
+    "email": true,
+    "sms": "owner-send",
+    "telegram_chat_id": "REPLACE_AT_ONBOARDING"
+  },
+  "integrations": {
+    "reviews": "google",
+    "pos": null,
+    "booking": "mindbody"
+  },
+  "agents": ["reactivation", "reminders", "reputation", "missedcall", "digest"],
+  "quiet_days": 14,
+  "notes": "Gym economics live and die on churn — Reactivation leads. Class reminders cut no-shows. quiet_days short (14) because a member who skips 2 weeks is a cancellation risk."
+}

@@ -196,6 +196,9 @@ body.app { overflow: hidden; padding: 0; display: block; }
 .member .m-at span { font-size: 11px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
 .tm-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.tm-dot.unread { background: var(--blue); box-shadow: 0 0 9px var(--blue);
+  animation: dotPulse 1.6s ease-in-out infinite; }
+@keyframes dotPulse { 50% { opacity: 0.5; } }
 .tm-attn { flex: none; font-size: 11px; color: var(--orange); text-shadow: 0 0 8px rgba(251,146,60,0.6); }
 .attn-tag { color: var(--orange); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
   text-shadow: 0 0 8px rgba(251,146,60,0.45); white-space: nowrap; }
@@ -638,3 +641,38 @@ body.app { background: #06090f; }
   .topbar .email { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ── mobile: Control Room on phones (≤768px) ─────────────────────── */
+@media (max-width: 768px) {
+  .topbar { gap: 8px; padding-inline: 12px; flex-wrap: nowrap; }
+  .topbar .email { display: none; }
+  .brain-pill { max-width: 38vw; overflow: hidden; }
+  .brain-pill span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* rail becomes a horizontal team strip above the main view */
+  .cols { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .rail { flex-direction: row; align-items: center; gap: 8px; padding: 8px 10px;
+    border-right: none; border-bottom: 1px solid var(--border-l); overflow-x: auto;
+    -webkit-overflow-scrolling: touch; }
+  #teamList { display: flex; gap: 6px; flex: none; }
+  .member { flex: none; padding: 6px; border-radius: 12px; }
+  .member .m-at, .tm-dot, .tm-lock { display: none; }
+  .member .avatar { width: 40px; height: 40px; }
+  .member.active { outline: 2px solid var(--green); }
+  .rail-label, .brain-card, .rail .back { display: none; }
+  .rail-connect { flex: none; padding: 8px 12px; font-size: 11.5px; white-space: nowrap; }
+  /* views */
+  .member-head { padding: 12px 14px 10px; gap: 10px; flex-wrap: wrap; }
+  .member-head h2 { font-size: 16px; }
+  .view-tabs { margin-left: 0 !important; width: 100%; display: flex; }
+  .view-tabs button { flex: 1; min-height: 38px; }
+  .kitchen-bar { padding: 12px 14px; }
+  .kitchen-bar .btn { width: 100%; justify-content: center; min-height: 46px; }
+  .wf-grid, .kitchen #kGrid { grid-template-columns: 1fr 1fr !important; gap: 10px; padding: 0 14px 14px; }
+  .gp { padding-inline: 14px; }
+  .gp-head > div:last-child { width: 100%; }
+  .gp-head .btn { flex: 1; }
+  .settings, .feed { padding-inline: 14px; }
+  .composer { padding: 10px 12px; }
+  .composer input { font-size: 16px; }   /* prevents iOS focus zoom */
+  .modal { width: calc(100vw - 24px); max-height: 86dvh; overflow-y: auto; }
+}

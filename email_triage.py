@@ -4,9 +4,10 @@
 Pulls RECENT unread mail from Gmail (IMAP, app password), classifies each with
 the `claude` CLI into category + priority + a one-line "what to do", then:
   - always → Telegrams Taran a prioritized digest (action-needed first)
-  - act mode → labels everything `Triaged/<Category>` in Gmail, and archives +
-    marks-read only the clear low-priority Promo/Newsletter mail (reversible —
-    archive just removes the Inbox label; nothing is deleted)
+  - act mode → labels everything `Triaged/<Category>` in Gmail (stripping any
+    other Triaged/* label first, so re-runs RE-label instead of stacking), and
+    archives + marks-read only the clear low-priority Promo/Newsletter mail
+    (reversible — archive just removes the Inbox label; nothing is deleted)
 
 Modes:
     python3 email_triage.py            # read-only digest (DEFAULT, safe)
@@ -42,6 +43,15 @@ load_dotenv(AGENTIC_DIR / ".env")
 CATEGORIES = ["Urgent/Action", "Personal", "Job/Career", "Finance",
               "Newsletter/Promo", "Notification", "Other"]
 ARCHIVE_CATS = {"Newsletter/Promo", "Notification"}
+
+
+def _label_for(category: str) -> str:
+    return "Triaged/" + category.replace(" ", "_").replace("/", "-")
+
+
+# every triage label, space-joined for a single IMAP -X-GM-LABELS store
+# (removing a label a message doesn't have is a no-op, so this is safe)
+ALL_TRIAGE_LABELS = " ".join(_label_for(c) for c in CATEGORIES)
 
 
 def _tg_text(text: str) -> None:
@@ -247,10 +257,13 @@ def main() -> int:
             M2.login(addr, pw)
             M2.select("INBOX", readonly=False)
             for it in items:
-                cat = it["category"].replace(" ", "_").replace("/", "-")
                 try:
+                    # strip every Triaged/* first → re-runs RE-label cleanly
+                    # instead of stacking a second category on the message
+                    M2.uid("store", it["num"], "-X-GM-LABELS",
+                           f'({ALL_TRIAGE_LABELS})')
                     typ, _ = M2.uid("store", it["num"], "+X-GM-LABELS",
-                                    f'(Triaged/{cat})')
+                                    f'({_label_for(it["category"])})')
                     if typ != "OK":
                         raise RuntimeError(f"label store returned {typ}")
                 except Exception as e:

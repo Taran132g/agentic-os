@@ -70,12 +70,14 @@ SCRIPT_AGENTS = {
     "email":    {"cmd": "python3 email_triage.py"},
     "career":   {"cmd": "python3 job_scout.py"},
     "outreach": {"cmd": "python3 piontrix_scout.py; "
-                        "OUTREACH_GMAIL_DRAFT=1 python3 piontrix_outreach.py --batch; "
-                        "OUTREACH_GMAIL_DRAFT=1 python3 brainscan_outreach.py"},
-    "linkedin": {"cmd": "OUTREACH_LIMIT=1 python3 linkedin_internship.py"},
+                        "OUTREACH_GMAIL_DRAFT=1 python3 piontrix_outreach.py --batch; python3 backfill_phones.py"},
+    "linkedin": {"cmd": "python3 linkedin_pais.py"},
     "code":     {"cmd": "python3 tools/repo_sync.py"},
 }
 SCRIPT_TIMEOUT = int(os.environ.get("BRIDGE_SCRIPT_TIMEOUT", "540"))
+RUNNING_PROCS = {}            # agent → Popen (for /kill)
+KILLED = set()
+_PROC_LOCK = threading.Lock()
 
 
 def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) -> str:
@@ -89,10 +91,23 @@ def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) 
         env["PAIS_PERSONA"] = persona
     if fields:
         env["PAIS_FIELDS"] = json.dumps(fields, ensure_ascii=False)
-    proc = subprocess.run(["/bin/sh", "-c", spec["cmd"]], cwd=AGENTIC_DIR, env=env,
-                          capture_output=True, text=True, timeout=SCRIPT_TIMEOUT)
-    raw = (proc.stdout or "").strip()
-    err = (proc.stderr or "").strip()
+    p = subprocess.Popen(["/bin/sh", "-c", spec["cmd"]], cwd=AGENTIC_DIR, env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                         start_new_session=True)
+    with _PROC_LOCK:
+        RUNNING_PROCS[agent] = p; KILLED.discard(agent)
+    try:
+        out, errs = p.communicate(timeout=SCRIPT_TIMEOUT)
+    finally:
+        with _PROC_LOCK:
+            RUNNING_PROCS.pop(agent, None)
+    with _PROC_LOCK:
+        was_killed = agent in KILLED; KILLED.discard(agent)
+    if was_killed:
+        return "⏹ Run stopped by you — partial work may already have completed (check Telegram/Gmail drafts)."
+    class proc: returncode = p.returncode
+    raw = (out or "").strip()
+    err = (errs or "").strip()
     if err:
         raw += "\n[stderr]\n" + err
     raw = raw[-6000:].strip() or "(script produced no output)"
@@ -120,11 +135,11 @@ def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) 
 
 
 def trigger_job_apply() -> str:
-    """Fire the n8n apply webhook (fire-and-forget) and return a descriptive
+    """Run fill_scouted.py directly (fire-and-forget) and return a descriptive
     feed message. The fill runs on THIS computer and needs the user's attention:
-    every window is left open for review, résumé upload, and manual submit."""
+    every window is left open for review, résumé upload, and manual submit.
+    (Was an n8n webhook; n8n retired 2026-06-13 — the bridge runs the script.)"""
     import threading
-    import urllib.request
 
     jobs = []
     try:
@@ -135,11 +150,9 @@ def trigger_job_apply() -> str:
         jobs = []
 
     def _fire():
-        req = urllib.request.Request(
-            N8N_APPLY_WEBHOOK, data=b"{}", method="POST",
-            headers={"Content-Type": "application/json"})
         try:
-            urllib.request.urlopen(req, timeout=1800).read()
+            subprocess.run(["/bin/sh", "-c", "python3 fill_scouted.py"],
+                           cwd=AGENTIC_DIR, timeout=1800)
         except Exception:
             pass
 
@@ -242,7 +255,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -321,6 +334,51 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(504, {"error": "agent timed out"})
             except Exception as e:
                 self._send(502, {"error": str(e)[:300]})
+            return
+
+        if self.path == "/kill":
+            agent = (data.get("agent") or "").strip()
+            with _PROC_LOCK:
+                p = RUNNING_PROCS.get(agent)
+                if p:
+                    KILLED.add(agent)
+            if p:
+                try:
+                    import signal
+                    os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+                except Exception:
+                    pass
+                return self._send(200, {"ok": True})
+            return self._send(200, {"ok": False, "message": "nothing running"})
+
+        if self.path == "/leads":
+            # Per-agent pipeline data (sanitized) for the web UI.
+            agent = (data.get("agent") or "outreach").strip()
+            try:
+                items = []
+                if agent == "outreach":
+                    with open(os.path.join(AGENTIC_DIR, "piontrix_leads.json")) as f:
+                        d = json.load(f)
+                    for l in (d if isinstance(d, list) else d.get("leads", [])):
+                        items.append({"title": l.get("business",""), "sub": l.get("website",""),
+                                      "phone": l.get("phone",""), "done": bool(l.get("contacted")),
+                                      "note": str(l.get("last_result",""))[:60]})
+                elif agent in ("career", "apply"):
+                    with open(SCOUT_JOBS) as f:
+                        d = json.load(f)
+                    for j in (d if isinstance(d, list) else d.get("jobs", [])):
+                        items.append({"title": j.get("company",""), "sub": j.get("role") or j.get("title",""),
+                                      "url": j.get("url",""), "done": False,
+                                      "note": f"match {j.get('match_score','?')}"})
+                elif agent == "linkedin":
+                    with open(os.path.join(AGENTIC_DIR, "linkedin_pais_queue.json")) as f:
+                        d = json.load(f)
+                    for t in (d if isinstance(d, list) else d):
+                        items.append({"title": t.get("name",""), "sub": f"{t.get('role','')} · {t.get('company','')}",
+                                      "done": bool(t.get("contacted")), "note": str(t.get("why",""))[:60]})
+                self._send(200, {"items": items})
+            except Exception as e:
+                self._send(200, {"items": [], "error": str(e)[:100]})
             return
 
         if self.path == "/stats":

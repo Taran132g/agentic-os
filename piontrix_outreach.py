@@ -122,42 +122,45 @@ except Exception:                       # standalone/odd-cwd runs: no-op
 def _draft_email(business: str, website: str, site_text: str,
                  context: str = "") -> tuple[str, str]:
     """(subject, body) drafted by claude in Taran's Piontrix voice."""
-    fallback_subject = f"A few website ideas for {business}"
+    fallback_subject = f"An AI workflow wrote this email to {business}"
     fallback_body = (
         f"Hi there,\n\n"
-        f"My name is Taran and I run Piontrix, a student-run tech consulting team "
-        f"here in Pennsylvania. I came across {business} and put together a couple "
-        f"of quick ideas to improve your site — things like speed, design polish, "
-        f"and turning more visitors into customers.\n\n"
-        f"We work with small businesses and student founders to build and improve "
-        f"websites and apps, usually at student-friendly rates. Would you be open "
-        f"to a short 15-minute call this week to walk through what I found?\n\n"
+        f"Full transparency: an AI workflow found {business}, read your website, wrote "
+        f"this email, and sent it \u2014 no human touched it. That's what I build: AI agent "
+        f"workflows that run a business's repetitive work (inbox triage, lead follow-up, "
+        f"daily reports, form-filling) from one dashboard.\n\n"
+        f"This email is one tiny example. For {business}, an agent could be handling the "
+        f"busywork your team does by hand every morning \u2014 that's just one idea the AI "
+        f"generated; a 30-minute call surfaces the real ones.\n\n"
+        f"See it run: https://pais-site.vercel.app \u2014 or just reply and we'll set up a call.\n\n"
         f"Best,\n{SIGNATURE}"
     )
     if not which("claude"):
         return fallback_subject, fallback_body
 
-    prompt = f"""Write a short cold outreach email for Piontrix, a STUDENT-RUN tech
-consulting company at Penn State (Pennsylvania). Piontrix helps small businesses
-and student founders with websites, web/mobile apps, UI/UX, SEO, and automation.
+    prompt = f"""Write a short cold outreach email pitching PAIS (https://pais-site.vercel.app):
+we design and build AI agent workflows around a business's actual operations — inbox
+triage, lead scouting and follow-up, outreach drafting, daily reports, form-filling —
+all run from one Control Room dashboard.
 
 Target business: {business}
 Their website: {website}
 What their site looks like (scraped):
 {site_text[:1800]}
-Why they likely need help (from local research): {context or "n/a"}
+Why they likely could use automation (from local research): {context or "n/a"}
 
-Write in Taran's voice: warm, local, student-run, genuinely helpful, NOT salesy
-or corporate. CENTER the email on the specific PROFIT-BOOSTING opportunity in the
-"Why they likely need help" note above — frame everything around helping them make
-or keep more money. That opportunity may be online ordering (to cut delivery-app
-commissions), online booking/automation, OR a sales/revenue/retention DASHBOARD
-that shows them where their money is going. If the note mentions a dashboard or
-analytics, NAME IT concretely and make it a highlight — e.g. "a simple dashboard
-showing your busiest hours, average ticket, and which services bring the most
-profit" — do not flatten the pitch down to just "a website" when the real value is
-the data/automation. Reference 1-2 specific wins. Keep it ~120 words. End with a
-soft ask for a short 15-minute call. Do NOT invent fake stats or numbers.
+CRITICAL FRAMING — this email is itself the demo:
+1. OPEN by saying plainly that an AI workflow found their business, read their site,
+   wrote this email and sent it — no human touched it. State it as a fact, not a gimmick.
+2. Then pitch ONE concrete workflow we could build for THIS business, grounded in the
+   research above — name it specifically (who it helps, what it does each day). Then say
+   explicitly: this is just one idea the AI generated in seconds; a short call is where
+   we map the real ones around how they actually work.
+3. Close with: watch it run at https://pais-site.vercel.app, and a soft ask — reply to
+   this email and we'll set up a quick call.
+
+Style: ~110 words, warm and plain, write like a person not a brochure, no hype words,
+no fake stats or numbers, ONE call to action.
 {persona_block()}
 Output EXACTLY this format and nothing else:
 SUBJECT: <one line>

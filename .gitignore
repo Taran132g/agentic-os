@@ -87,3 +87,11 @@ brainscan_creators.json
 # FIFO fill queue (job data)
 job_queue.json
 linkedin_targets.json
+
+# bridge auth secret (was leaked 2026-06-11; rotated 2026-06-15)
+.bridge_token
+My Movie.mp4
+My Movie final.mp4
+My Movie v2.mp4
+My Movie v3.mp4
+*.mov

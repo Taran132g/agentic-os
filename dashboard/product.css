@@ -153,6 +153,26 @@ header.site .btn { padding: 8px 18px; font-size: 13px; }
 }
 @keyframes bob { 0%,100% { transform: translate(-50%,0); } 50% { transform: translate(-50%,8px); } }
 
+/* ── demo (video placeholder) ─────────────────────────────────────── */
+.demo { padding: var(--space-sec) clamp(20px, 5vw, 72px); text-align: center; }
+.demo h2 { font-size: var(--text-h2); letter-spacing: -0.03em; max-width: 22ch; margin: 0 auto; }
+.demo-lede { max-width: 62ch; margin: 18px auto 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+.demo-lede b { color: var(--text); font-weight: 500; }
+.demo-frame { position: relative; max-width: 1060px; margin: 40px auto 0; border-radius: 16px; overflow: hidden;
+  border: 1px solid rgba(52,211,153,0.3); box-shadow: 0 0 60px -18px rgba(52,211,153,0.35), 0 50px 110px -40px rgba(0,0,0,0.9); }
+.demo-frame img, .demo-frame video { display: block; width: 100%; height: auto; }
+.demo-unmute { position: absolute; top: 12px; right: 14px; font-family: var(--font-mono); font-size: 10.5px;
+  letter-spacing: 1.5px; color: var(--green); background: rgba(7,9,15,0.75); border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 999px; padding: 5px 12px; pointer-events: none; }
+.demo-overlay { position: absolute; inset: 0; display: grid; place-items: center; gap: 0;
+  background: radial-gradient(ellipse at center, rgba(7,9,15,0.18), rgba(7,9,15,0.55)); }
+.demo-play { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 26px; color: #04130c; background: var(--green); padding-left: 6px;
+  box-shadow: 0 0 50px rgba(52,211,153,0.65); animation: orbPulse 2.6s ease-in-out infinite; }
+.demo-soon { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 2.5px; color: var(--green);
+  background: rgba(7,9,15,0.8); border: 1px solid rgba(52,211,153,0.35); border-radius: 999px; padding: 7px 16px; }
+
 /* ── problem strip ────────────────────────────────────────────────── */
 .problem { padding: var(--space-sec) clamp(20px, 5vw, 72px); }
 .sec-label {
@@ -486,7 +506,27 @@ footer span:last-child { margin-left: auto; }
 }
 @media (max-width: 600px) {
   header.site nav { display: none; }
-  .hero-meta { gap: 22px; }
+  header.site .btn-ghost { display: none; }   /* keep only Book a call on phones */
+  header.site { padding-inline: 16px; }
+  header.site .btn { min-height: 42px; }
+  /* hero: thumb-zone CTAs, tighter type, full-height but not overflowing */
+  .hero { min-height: 100svh; padding: 96px 18px 76px; }
+  .hero h1 { max-width: none; font-size: clamp(2.2rem, 1rem + 9vw, 3.4rem); }
+  .hero p.lede { font-size: 1rem; margin-top: 22px; }
+  .hero-cta { margin-top: 30px; gap: 10px; }
+  .hero-cta .btn { width: 100%; justify-content: center; min-height: 48px; font-size: 15px; }
+  .kicker { font-size: 11px; letter-spacing: 2px; }
+  .scroll-hint { display: none; }
+  /* sections: tighter rhythm */
+  .problem, .demo, .faq, .cta-final { padding-inline: 18px; }
+  .chip { font-size: 12px; padding: 7px 12px; }
+  /* demo frame: keep the video feel without overflowing */
+  .demo-frame { border-radius: 10px; margin-top: 26px; }
+  .demo-play { width: 54px; height: 54px; font-size: 19px; }
+  .demo-soon { font-size: 9px; letter-spacing: 1.5px; padding: 5px 11px; bottom: 10px; white-space: nowrap; }
+  .demo-lede { font-size: 14px; }
+  footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+  footer span:last-child { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

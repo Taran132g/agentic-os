@@ -1,0 +1,19 @@
+{
+  "business_id": "advanced-dentistry",
+  "name": "Advanced Dentistry of Phoenixville",
+  "vertical": "personal_care",
+  "brand_voice": "Calm, professional, reassuring. Reduces anxiety, never pushy. Always signs from 'the team at Advanced Dentistry'. HIPAA-careful: never put clinical detail in a message.",
+  "channels": {
+    "email": true,
+    "sms": "owner-send",
+    "telegram_chat_id": "REPLACE_AT_ONBOARDING"
+  },
+  "integrations": {
+    "reviews": "google",
+    "pos": null,
+    "booking": "dental_pms"
+  },
+  "agents": ["reminders", "reactivation", "reputation", "missedcall", "digest"],
+  "quiet_days": 200,
+  "notes": "6-month hygiene recall is the #1 revenue lever — Reactivation here = recall reactivation (quiet_days ~200). No-show recovery is high value (empty chair = pure lost margin). Keep all messaging HIPAA-safe: appointment logistics only, no diagnoses."
+}

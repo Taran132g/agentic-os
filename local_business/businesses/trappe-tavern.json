@@ -1,0 +1,19 @@
+{
+  "business_id": "trappe-tavern",
+  "name": "Trappe Tavern",
+  "vertical": "hospitality",
+  "brand_voice": "Warm, local, a little dry-humored. No corporate-speak. Signs off 'see you at the bar'. Owner name: Tom.",
+  "channels": {
+    "email": true,
+    "sms": "owner-send",
+    "telegram_chat_id": "REPLACE_AT_ONBOARDING"
+  },
+  "integrations": {
+    "reviews": "google",
+    "pos": null,
+    "booking": "phone"
+  },
+  "agents": ["reputation", "reactivation", "missedcall", "digest"],
+  "quiet_days": 42,
+  "notes": "No POS, no first-party ordering — contacts come from the reservation phone log. Digest stays estimate-only until a POS is connected. Reminders off (no booking system)."
+}

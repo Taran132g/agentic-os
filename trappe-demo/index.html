@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trappe Tavern · PAIS Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- ───────────────────────── Top bar ───────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◓</span>
+      <div class="brand-text">
+        <strong>Trappe Tavern</strong>
+        <span class="brand-sub">PAIS Control · 416 W Main St</span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="runtime-pill" id="runtimePill" title="Agents are running on your Mac in the back office">
+        <span class="dot"></span>
+        <span class="runtime-text">Agents online</span>
+        <span class="runtime-meta">on your Mac · synced 2m ago</span>
+      </div>
+      <div class="datechip" id="dateChip"></div>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- ───────────────── Overnight briefing (hero) ───────────────── -->
+    <section class="card hero" aria-labelledby="hero-h">
+      <div class="hero-copy">
+        <p class="eyebrow">While you were closed</p>
+        <h1 id="hero-h" class="hero-title">Your agents worked the floor last night.</h1>
+        <p class="hero-line" id="heroLine"></p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="reviewAllBtn">Review tonight's drafts</button>
+          <button class="btn btn-ghost" id="briefBtn">Hear the 20-sec brief</button>
+        </div>
+      </div>
+      <div class="hero-roi">
+        <p class="roi-label">Recovered this month</p>
+        <p class="roi-number" id="roiNumber">$0</p>
+        <p class="roi-foot"><span id="roiFootStrong">—</span> across reviews, win-backs &amp; missed calls</p>
+      </div>
+    </section>
+
+    <!-- ───────────────── Approval inbox ───────────────── -->
+    <section class="card inbox" aria-labelledby="inbox-h">
+      <div class="card-head">
+        <div>
+          <h2 id="inbox-h">Approve &amp; send</h2>
+          <p class="card-sub">Nothing goes out until you tap approve. <span id="inboxCount" class="count">0 waiting</span></p>
+        </div>
+        <div class="seg" id="inboxFilter" role="tablist">
+          <button class="seg-btn is-active" data-filter="all">All</button>
+          <button class="seg-btn" data-filter="reputation">Reviews</button>
+          <button class="seg-btn" data-filter="reactivation">Win-back</button>
+          <button class="seg-btn" data-filter="missedcall">Missed calls</button>
+        </div>
+      </div>
+      <ul class="approvals" id="approvals"></ul>
+      <p class="inbox-empty" id="inboxEmpty" hidden>All caught up. Your agents will queue the next batch tonight. 🍺</p>
+    </section>
+
+    <!-- ───────────────── Agent fleet ───────────────── -->
+    <section class="card fleet" aria-labelledby="fleet-h">
+      <div class="card-head">
+        <h2 id="fleet-h">Your crew</h2>
+        <p class="card-sub">Five agents, each plugging one leak.</p>
+      </div>
+      <div class="fleet-grid" id="fleetGrid"></div>
+    </section>
+
+    <!-- ───────────────── Leak / ROI panel ───────────────── -->
+    <section class="card leaks" aria-labelledby="leaks-h">
+      <div class="card-head"><h2 id="leaks-h">Leaks plugged</h2></div>
+      <ul class="leak-list" id="leakList"></ul>
+    </section>
+
+    <!-- ───────────────── Digest mini ───────────────── -->
+    <section class="card digest" aria-labelledby="digest-h">
+      <div class="card-head">
+        <h2 id="digest-h">Last night's room</h2>
+        <p class="card-sub">Busiest hours &amp; average tab</p>
+      </div>
+      <div class="digest-body">
+        <div class="hours" id="hoursChart" aria-hidden="true"></div>
+        <div class="digest-stats">
+          <div class="stat"><span class="stat-num" id="avgTicket">$0</span><span class="stat-lbl">avg tab</span></div>
+          <div class="stat"><span class="stat-num" id="peakHour">—</span><span class="stat-lbl">peak hour</span></div>
+          <div class="stat"><span class="stat-num" id="topItem">—</span><span class="stat-lbl">top seller</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───────────────── Activity feed ───────────────── -->
+    <section class="card feed" aria-labelledby="feed-h">
+      <div class="card-head"><h2 id="feed-h">Activity</h2><span class="live"><span class="dot"></span>live</span></div>
+      <ul class="timeline" id="timeline"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>PAIS · running on your machine, on your Claude subscription</span>
+    <span>📍 Built local in King of Prussia, PA</span>
+  </footer>
+
+  <!-- toast notifications -->
+  <div class="toaster" id="toaster" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

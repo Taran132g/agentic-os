@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAIS — The morning runs itself</title>
-<meta name="description" content="PAIS is a personal AI staff that wakes your Mac at 07:25, triages your inbox, briefs your day, scouts jobs, drafts outreach, ships your code — then puts itself back to sleep.">
+<title>PAIS — AI agent workflows, built for your business</title>
+<meta name="description" content="PAIS designs and builds AI agent workflows around your business — inbox triage, lead scouting, outreach, reporting — run from one Control Room. Book a call and we'll map yours.">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="preload" as="image" href="hero-track.webp" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,393 +12,132 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="product.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
 <header class="site">
   <a class="wordmark" href="#top">PAIS<span class="tick">_</span></a>
   <nav aria-label="Main navigation">
-    <a href="#run">How it works</a>
-    <a href="#brain">Your team</a>
-    <a href="#pricing">Pricing</a>
+    <a href="#demo">Demo</a>
+    <a href="#ondemand">How it works</a>
   </nav>
-  <a class="btn btn-primary" href="/app">Start free</a>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
+  </div>
 </header>
 
 <main id="top">
 
 <!-- ───────────────────────── HERO ───────────────────────── -->
 <section class="hero" aria-labelledby="hero-h">
-  <p class="kicker">Your personal AI team · free to start</p>
-  <h1 id="hero-h">A team of AI agents<br>that <span class="time">actually knows you</span>.<br>
+  <p class="kicker">AI workflows · designed &amp; built for your business</p>
+  <h1 id="hero-h">A team of AI agents,<br>built around <span class="time">your business</span>.<br>
     <span class="ghost">Working while you sleep.</span></h1>
-  <p class="lede">Sign in, connect your second brain, and PAIS becomes <b>your team</b> —
-    specialist agents that <b>triage your inbox</b>, <b>brief your day</b>,
-    <b>scout your next job</b>, and <b>draft your outreach</b>, all grounded in your
-    own notes. The <b>Briefing agent + one agent of your choice are free for a month</b>.</p>
+  <p class="lede">We map how your business actually runs, then build <b>specialist AI agents</b>
+    around it — agents that <b>triage your inboxes</b>, <b>scout and qualify leads</b>,
+    <b>draft your outreach</b>, and <b>report every morning</b> — all commanded from one
+    Control Room. <b>Book a call</b> and we'll map the workflows your team should never
+    do by hand again.</p>
   <div class="hero-cta">
-    <a class="btn btn-primary" href="/app">Start free
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
-    <a class="btn btn-ghost" href="#pricing">See pricing</a>
+    <a class="btn btn-ghost" href="#demo">Watch the demo</a>
+    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
   </div>
-  <div class="hero-meta" role="list">
-    <span role="listitem"><b>8</b>AI agents <em>on your team</em></span>
-    <span role="listitem"><b>2</b>free <em>for a month</em></span>
-    <span role="listitem"><b>$4.99<i style="font-style:normal;font-size:55%">/mo</i></b>unlocks <em>all of them</em></span>
-    <span role="listitem"><b>0</b>setup <em>— it knows you from your notes</em></span>
-  </div>
+  
   <span class="scroll-hint" aria-hidden="true">SCROLL ▾</span>
 </section>
 
 <!-- ─────────────────────── PROBLEM ──────────────────────── -->
 <section class="problem rv" aria-labelledby="problem-h">
   <p class="sec-label">The problem</p>
-  <h2 id="problem-h">Every morning you spend an hour being <s>your own assistant</s>.</h2>
-  <div class="chiplist" aria-label="Morning chores PAIS absorbs">
-    <span class="chip">sort 40 unread emails</span>
-    <span class="chip">remember what yesterday was about</span>
-    <span class="chip">hunt internship postings</span>
-    <span class="chip">write cold outreach</span>
-    <span class="chip">find contact emails</span>
-    <span class="chip">follow up on LinkedIn</span>
-    <span class="chip">commit &amp; push your repos</span>
-    <span class="chip">…then do it all again tomorrow</span>
+  <h2 id="problem-h">Every business we study leaks the same revenue — on work that <s>needs a human</s>.</h2>
+  <div class="chiplist" aria-label="Revenue leaks PAIS agents absorb">
+    <span class="chip">no-shows nobody reminded</span>
+    <span class="chip">booking requests that sit till morning</span>
+    <span class="chip">regulars quietly drifting away</span>
+    <span class="chip">first-timers who never hear back</span>
+    <span class="chip">overdue clients nobody recalls</span>
+    <span class="chip">guessing which hours &amp; services actually profit</span>
+    <span class="chip">middlemen skimming every order</span>
+    <span class="chip">…and the same leaks again tomorrow</span>
   </div>
 </section>
 
-<!-- ──────────────────── THE MORNING RUN ─────────────────── -->
-<section class="run" id="run" aria-labelledby="run-h">
-  <div class="run-head rv">
-    <p class="sec-label">The morning run</p>
-    <h2 id="run-h">One wake-up. Nine jobs. Zero hands.</h2>
-    <p>This is a real PAIS morning, end to end. The Mac arms its own alarm in the
-       hardware clock, wakes itself, runs the stack sequentially — each step
-       guarded so one failure never stops the rest — and reports everything to
-       a single Telegram thread.</p>
+<!-- ──────────────────────── DEMO ─────────────────────────── -->
+<section class="demo rv" id="demo" aria-labelledby="demo-h">
+  <p class="sec-label">The Control Room</p>
+  <h2 id="demo-h">Your whole operation, run by agents — watch it happen.</h2>
+  <p class="demo-lede">One dashboard. Eight specialist agents. Press <b>Run whole routine</b> and they
+     triage the inbox, scout the pipeline, draft the outreach, ship the code — then a Reviewer
+     grades the whole run. <b>We design and build these workflows around your business.</b></p>
+  <div class="demo-frame">
+    <video src="demo.mp4" poster="demo-control-room.webp" width="1920" height="1080"
+           autoplay muted loop playsinline controls preload="metadata"
+           aria-label="PAIS demo — the Outreach agent runs a workflow autonomously"></video>
+    <p class="demo-unmute">🔊 unmute for the walkthrough</p>
   </div>
-
-  <div class="run-grid">
-    <aside class="rail" aria-hidden="true">
-      <div class="rail-inner">
-        <div class="clock" id="clock">07:25</div>
-        <div class="clock-sub" id="clock-sub">system wake</div>
-        <div class="rail-track">
-          <div class="rail-fill" id="rail-fill"></div>
-          <div class="rail-checks" id="rail-checks"></div>
-          <span class="rail-car" id="rail-car" aria-hidden="true">🏎️</span>
-        </div>
-      </div>
-    </aside>
-
-    <div class="chapters" id="chapters">
-
-      <article class="chapter" data-time="07:25" data-sub="system wake" style="--acc: var(--green)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>07:25 <span class="days">· every day</span></p>
-          <h3>The Mac wakes itself</h3>
-          <p>No cron-while-asleep failures, no laptop left running all night.
-             PAIS arms a wake event in the <b>hardware RTC</b>, so the machine
-             opens its eyes five minutes before the first job — even from a dead sleep.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Self-perpetuating: each run arms tomorrow's wake</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Refuses to sleep if no wake is scheduled — never strands itself</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram message: Mac awake, running scheduled tasks">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">☀️ <b>Mac awake</b> — running scheduled tasks.<br>
-              Next wake: <span class="acc">Wed 7:25 AM</span><div class="tg-meta">07:25</div></div>
-            <div class="term"><span class="p">▸</span> morning-stack: <b>START</b> <span class="c">(dow=3)</span></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="07:31" data-sub="inbox triage" style="--acc: var(--blue)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>07:31 <span class="days">· every day</span></p>
-          <h3>Inbox triaged before you've seen it</h3>
-          <p>Every unread email is read, <b>classified by AI</b> into seven categories,
-             and ranked by priority. You get one digest: what needs you, what can wait,
-             what's noise. Act mode even labels and archives the junk — reversibly.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Read-only by default — never touches mail without opt-in</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>"Needs attention" surfaced with a one-line action each</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram digest of triaged Gmail">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">📧 <b>Gmail triage</b> — 23 new (last 24h)<br>
-              ⚡ <span class="acc">2 need attention</span> · 🗄️ archived 9 promos<br><br>
-              <b>⚡ Needs attention</b><br>
-              • <b>Recruiting @ Capital One</b>: Next steps — <i>reply with availability</i><br>
-              • <b>Penn State Bursar</b>: Fall invoice posted — <i>pay by Fri</i>
-              <div class="tg-meta">07:33</div></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="07:34" data-sub="daily brief" style="--acc: var(--violet)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>07:34 <span class="days">· every day</span></p>
-          <h3>Yesterday, summarized. Today, framed.</h3>
-          <p>PAIS reads yesterday's notes in your knowledge vault, writes a dated
-             digest <b>back into the vault</b>, and Telegrams you the short version:
-             what happened, what's open, what today is actually about.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Works with your Obsidian vault — your notes stay yours</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Open follow-ups carried forward until they're closed</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram daily vault digest">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">🧠 <b>Daily brief — Tue Jun 9</b><br>
-              Yesterday: shipped the n8n hardening pass + product page.<br>
-              <span class="acc">Open:</span> pmset wake setup · fill LinkedIn queue · BrainScan launch post
-              <div class="tg-meta">07:35 · written to vault → Daily Digests/2026-06-09.md</div></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="07:38" data-sub="job scout" style="--acc: var(--amber)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>07:38 <span class="days">· weekdays</span></p>
-          <h3>An AI recruiter working for you, not on you</h3>
-          <p>PAIS researches the live web for <b>freshly-posted internships</b> that match
-             your actual résumé, verifies every application URL is real and open,
-             ranks them by fit, and queues the best for one-tap filling.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Tuned to your targets — e.g. data/BI roles at big accessible programs</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>FIFO queue dedupes against everything you've already applied to</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram ranked job matches">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">💼 <b>Summer 2027 matches — Tue Jun 9</b><br>
-              <b>[92] Capital One</b> — Data Analyst Intern<br>
-              <span class="acc">McLean, VA · posted 4d ago</span><br>
-              <b>[88] Vanguard</b> — BI &amp; Analytics Intern<br>
-              <b>[85] Discover</b> — Data Science Intern (analytics)<br>
-              <div class="tg-meta">07:46 · +3 added to fill queue (5 waiting)</div></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="07:50" data-sub="client outreach" style="--acc: var(--rose)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>07:50 <span class="days">· every day</span></p>
-          <h3>Cold outreach that sounds like you</h3>
-          <p>For each pending lead, PAIS reads their website, drafts a personalized
-             pitch <b>in your voice</b>, finds the right contact email, and saves a
-             Gmail draft. Nothing sends until you say so — every draft lands in
-             Telegram for a yes/no.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Scouts new local leads itself, then drafts the batch</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Leads are only consumed on confirmed delivery — none lost, none double-emailed</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram outreach draft for approval">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">📝 <b>Draft — Riverbend Diner</b><br>
-              📧 <span class="acc">owner@riverbenddiner.com</span> · 91% conf<br>
-              ✅ Saved to Gmail Drafts<br><br>
-              <b>Subject:</b> A simple dashboard for your busiest hours<br>
-              "Hi Maria — I noticed Riverbend still takes orders by phone only…"
-              <div class="tg-meta">07:58 · reply-ready · send = your call</div></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="08:12" data-sub="linkedin networking" style="--acc: var(--sky)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>08:12 <span class="days">· weekdays</span></p>
-          <h3>One warm intro a day, drafted for you</h3>
-          <p>From your curated target list, PAIS drafts <b>one</b> LinkedIn connection
-             note and a post-accept follow-up each weekday — paced like a human,
-             because it is sent by one. You tap Connect; it never touches LinkedIn itself.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Notes under 200 chars, personalized to company + shared school</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Sunday reminder keeps your target queue topped up</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram LinkedIn connection draft">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">🤝 <b>Today's connect — Sarah K., NVIDIA</b><br>
-              <span class="acc">Note:</span> "Hi Sarah — fellow Penn Stater heading into AI eng.
-              Your path from PSU to NVIDIA's data org is exactly the route I'm studying. Would love to connect."
-              <div class="tg-meta">08:12 · follow-up message attached · you press Connect</div></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="08:15" data-sub="repo sync" style="--acc: var(--green)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>08:15 <span class="days">· Mon / Wed / Sat</span></p>
-          <h3>Your code ships itself — safely</h3>
-          <p>Allowlisted repos get staged, <b>scanned for secrets and PII</b>,
-             committed and pushed. The guard fails closed: anything that looks like
-             a key, a credential file, or a contact list blocks the push and alerts you.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Remote-owner check — will only ever push to <i>your</i> repos</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Filename denylist + content scan on every staged line</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Terminal output of guarded repo sync">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>repo_sync — guarded push</div>
-          <div class="mock-body">
-            <div class="term">
-              <span class="p">▸</span> agentic_os <span class="c">······</span> <b>pushed</b> <span class="c">(14 files)</span><br>
-              <span class="p">▸</span> FindingFounders <span class="c">·</span> <b>clean</b><br>
-              <span class="p">▸</span> trading-bot <span class="c">····</span> <b>pushed</b> <span class="c">(2 files)</span><br>
-              <span class="c">secret guard: 0 violations · remote owner ✓</span>
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <article class="chapter" data-time="08:20" data-sub="back to sleep" style="--acc: var(--indigo)">
-        <div class="ch-copy">
-          <p class="ch-time"><span class="dot"></span>08:20 <span class="days">· every day</span></p>
-          <h3>…and the Mac goes back to bed</h3>
-          <p>Stack finished, tomorrow's wake armed, machine asleep. Total awake time:
-             <b>about 55 minutes a day</b>. If you're using the Mac, it notices and
-             stays out of your way. If it can't guarantee tomorrow's wake, it stays
-             awake and tells you — it never strands itself.</p>
-          <ul class="ch-points">
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Idle guard: never sleeps while you're typing</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>A day's ops in under an hour of power</li>
-          </ul>
-        </div>
-        <div class="mock" role="img" aria-label="Telegram message: Mac sleeping, next wake armed">
-          <div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-          <div class="mock-body">
-            <div class="tg">😴 <b>Mac sleeping</b> — scheduled tasks done.<br>
-              Next wake armed for <span class="acc">Thu 7:25 AM</span>.
-              <div class="tg-meta">08:21</div></div>
-            <div class="term"><span class="p">▸</span> morning-stack: <b>DONE</b> <span class="c">— 9/9 jobs · 53 min</span></div>
-          </div>
-        </div>
-      </article>
-
-    </div>
+  <div class="hero-cta" style="justify-content:center;margin-top:34px">
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call — let's map your workflows</a>
   </div>
 </section>
 
 <!-- ────────────────────── ON-DEMAND ─────────────────────── -->
 <section class="ondemand" id="ondemand" aria-labelledby="od-h">
-  <p class="sec-label rv">On-demand · from your phone</p>
-  <h2 id="od-h" class="rv">The rest of the day, it's one tap away.</h2>
+  <p class="sec-label rv">On-demand · from anyone's phone</p>
+  <h2 id="od-h" class="rv">Every leak above has a webhook that plugs it.</h2>
   <div class="bento">
     <div class="bcard wide rv" style="--acc: var(--amber)">
       <div>
-        <span class="hook mono">POST /apply</span>
-        <h3>Fill the application queue</h3>
-        <p>The scouted jobs PAIS queued in the morning? One webhook and a browser
-           agent opens each application, pastes a tailored brief, and engages an AI
-           form-filler — sequentially, one window per job, left open for your review
-           and final submit. You stay the human in the loop; PAIS does the typing.</p>
+        <span class="hook mono">POST /remind</span>
+        <h3>Stop tomorrow's no-shows tonight</h3>
+        <p>One tap and an agent works tomorrow's appointment book: it sends every
+           reminder, confirms the replies, drafts a personal text for anyone who
+           stays quiet, and pulls the overdue clients nobody's recalled in months —
+           with a win-back note ready for each. Every message waits for your OK
+           before it goes out; the agent does the chasing.</p>
       </div>
       <div class="mock"><div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
-        <div class="mock-body"><div class="tg">💼 <b>Filling 3 from the job queue</b> (oldest first).<br>
-          📩 <b>Capital One</b>: brief sent — click "Start task"<br>
-          📩 <b>Vanguard</b>: brief sent<br>
-          ⚠️ <b>Discover</b>: needs a look — kept in queue
-          <div class="tg-meta">2/3 engaged · each open in its own window</div></div></div></div>
+        <div class="mock-body"><div class="tg">📅 <b>Working tomorrow's book</b> (14 appointments).<br>
+          ✅ <b>11 confirmed</b> off the first reminder<br>
+          📲 <b>2 quiet</b> — personal follow-up texts drafted<br>
+          🔔 <b>5 overdue clients</b> found — recall notes ready
+          <div class="tg-meta">7 drafts awaiting your OK · 1 chair still open tonight</div></div></div></div>
     </div>
     <div class="bcard rv" style="--acc: var(--rose)">
-      <span class="hook mono">POST /outreach</span>
-      <h3>Pitch one prospect, now</h3>
-      <p>Met a business that needs help? Send the name + website from your phone;
-         a personalized draft and contact email come back in minutes.</p>
+      <span class="hook mono">POST /winback</span>
+      <h3>Catch regulars before they're gone</h3>
+      <p>Fire it from any phone and an agent scans your bookings for the regulars
+         quietly drifting and the first-timers who never heard back — then drafts
+         a personal note to each one, in your voice, before they're someone
+         else's customer.</p>
     </div>
     <div class="bcard rv" style="--acc: var(--blue)">
-      <span class="hook mono">POST /triage</span>
-      <h3>Inbox check, anytime</h3>
-      <p>Expecting something important? Trigger a triage on demand and get the
-         digest in Telegram — read-only unless you say otherwise.</p>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─────────────────── TALK TO YOUR BRAIN ───────────────── -->
-<section class="brain" id="brain" aria-labelledby="brain-h">
-  <div class="brain-wrap">
-    <div class="brain-copy">
-      <p class="sec-label rv">Your brain, on call</p>
-      <h2 id="brain-h" class="rv">Sign in. Upload your second brain. Then just ask.</h2>
-      <p class="rv">PAIS doesn't only run your mornings — it <b>knows you</b>. Connect your
-        Obsidian or Notion vault and it's embedded into a <b>private vector brain</b>
-        only you can query. From then on, ask anything in plain language and get
-        answers drawn from your own notes — from your phone, your laptop, anywhere.</p>
-      <ul class="brain-points rv">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Sign in with Google — your brain is yours, in a private namespace</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Grounded in your real notes — it says "I don't see that yet" instead of bluffing</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>Same login powers the workflows — buy PAIS, run it on this site</li>
-      </ul>
-      <div class="hero-cta rv">
-        <a class="btn btn-primary" href="/app">Open your assistant
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
-        <button class="btn btn-ghost" type="button" data-open-chat>Quick try</button>
-      </div>
-    </div>
-    <div class="brain-orb rv" aria-hidden="true">
-      <div class="orb"></div>
-      <div class="orb-ring"></div>
-      <div class="orb-label mono">private&nbsp;vector&nbsp;brain</div>
+      <span class="hook mono">POST /digest</span>
+      <h3>Your numbers, without the guessing</h3>
+      <p>Busiest hours, average ticket, which services actually profit, who's due
+         back next week — trigger it any time and the digest lands on your phone
+         in minutes. Read-only, no spreadsheet night required.</p>
     </div>
   </div>
 </section>
 
 <!-- ─────────────────────── PRICING ──────────────────────── -->
-<section class="pricing" id="pricing" aria-labelledby="pricing-h">
-  <p class="sec-label rv">Pricing</p>
-  <h2 id="pricing-h" class="rv">Start free. Unlock the whole team for less than a coffee.</h2>
-  <div class="price-grid">
-    <div class="price-card rv">
-      <div class="pc-tag">Free trial</div>
-      <div class="pc-amount"><b>$0</b><span>for 1 month</span></div>
-      <p class="pc-sub">Meet your team, no card required.</p>
-      <ul class="pc-feat">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>The <b>Briefing</b> agent</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><b>One more agent</b> of your choice</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Talk to your own second brain</li>
-        <li class="muted">After 30 days, agents pause until you upgrade.</li>
-      </ul>
-      <a class="btn btn-ghost pc-cta" href="/app">Start free</a>
-    </div>
-    <div class="price-card featured rv">
-      <div class="pc-tag pro">PAIS Pro</div>
-      <div class="pc-amount"><b>$4.99</b><span>/month</span></div>
-      <p class="pc-sub">The full team, always on.</p>
-      <ul class="pc-feat">
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg><b>All 8 agents</b> unlocked, unlimited</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Briefing · Email · Career · Outreach</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>LinkedIn · Code · Reviewer · Control Room</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Stack them into one daily routine</li>
-        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>Cancel anytime</li>
-      </ul>
-      <a class="btn btn-primary pc-cta" href="/app">Get Pro — $4.99/mo</a>
-    </div>
-  </div>
-  <p class="price-foot">One simple plan. No tiers, no upsells, no per-seat math.</p>
-</section>
+
 
 <!-- ──────────────────────── FAQ ─────────────────────────── -->
 <section class="faq" id="faq" aria-labelledby="faq-h">
   <p class="sec-label rv">FAQ</p>
   <h2 id="faq-h" class="rv">Questions, answered.</h2>
   <div class="faq-grid">
-    <div class="faq-item rv"><h3>What's actually free?</h3><p>The Briefing agent plus one agent you pick — your choice of Email, Career, Outreach, LinkedIn, Code, or Reviewer — free for 30 days. After that they pause until you go Pro.</p></div>
-    <div class="faq-item rv"><h3>How does it know me?</h3><p>You connect your second brain (your Obsidian/Notion vault). Your agents answer and work from your own notes — no 20-question setup, no generic templates.</p></div>
+    <div class="faq-item rv"><h3>How does an engagement work?</h3><p>We start with a call to map your operations, then design and build the agent workflows that fit — your inboxes, your pipeline, your tools. You watch them run in your own Control Room before anything goes live.</p></div>
+    <div class="faq-item rv"><h3>How does it know our business?</h3><p>Your docs and knowledge become a private vector brain the agents query — so they draft in your voice, know your customers, and follow your playbooks. No generic templates.</p></div>
     <div class="faq-item rv"><h3>Is my data private?</h3><p>Your notes become a private vector brain scoped to your account. Agents run on your own machine with your own accounts — your data stays on hardware you control.</p></div>
-    <div class="faq-item rv"><h3>What do agents do?</h3><p>They do real work and message you on the site: brief your day, triage your inbox, scout live job postings, draft outreach, sync your repos, and audit your routine.</p></div>
-    <div class="faq-item rv"><h3>What's PAIS Pro?</h3><p>$4.99/month unlocks all 8 agents, unlimited, and lets you stack them into one daily routine. One plan. Cancel anytime.</p></div>
+    <div class="faq-item rv"><h3>What do agents do?</h3><p>They do real work and message you on the site: brief your day, triage your inbox, scout and qualify leads, draft outreach, sync your repos, and audit your routine.</p></div>
+    <div class="faq-item rv"><h3>What does it cost?</h3><p>Scoped per engagement — it depends on how many workflows we build and what they touch. Book a call and you'll have a number before we hang up.</p></div>
     <div class="faq-item rv"><h3>Do I need to babysit it?</h3><p>No. Set your team up once, connect your desktop, and they run on a schedule — reporting back to your Control Room.</p></div>
   </div>
   <div class="hero-cta rv" style="justify-content:center;margin-top:40px">
@@ -411,8 +150,9 @@
 
 
 
-<footer
+<footer>
   <span class="wordmark">PAIS<span class="tick">_</span></span>
+  <span>📍 Based in King of Prussia, PA — happy to demo in person</span>
   <span>your AI team clocks in while you sleep</span>
 </footer>
 
@@ -495,6 +235,31 @@ if (big) {
     big.textContent = `T-${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(x).padStart(2,"0")}`;
   };
   tick(); setInterval(tick, 1000);
+}
+
+/* Analytics: funnel events (Vercel Web Analytics) */
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest("a");
+  if (!a) return;
+  const wrap = a.closest("section, header, footer");
+  const from = wrap && (wrap.id || (wrap.tagName !== "SECTION" && wrap.tagName.toLowerCase())
+    || wrap.className.split(" ")[0]) || "page";
+  if (a.href.includes("cal.com/taranveer")) va("event", { name: "book_call_click", data: { from } });
+  else if (a.getAttribute("href") === "/app") va("event", { name: "try_control_room_click", data: { from } });
+});
+const demoSec = document.getElementById("demo");
+if (demoSec) {
+  const demoIO = new IntersectionObserver((es) => {
+    if (es.some(e => e.isIntersecting)) { va("event", { name: "demo_section_view" }); demoIO.disconnect(); }
+  }, { threshold: 0.5 });
+  demoIO.observe(demoSec);
+}
+const demoVid = document.querySelector(".demo-frame video");
+if (demoVid) {
+  let unmuted = false;
+  demoVid.addEventListener("volumechange", () => {
+    if (!unmuted && !demoVid.muted) { unmuted = true; va("event", { name: "demo_video_unmute" }); }
+  });
 }
 </script>
 </body>
