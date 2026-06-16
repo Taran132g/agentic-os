@@ -1,0 +1,19 @@
+{
+  "business_id": "copper-lantern",
+  "name": "The Copper Lantern",
+  "vertical": "hospitality",
+  "brand_voice": "Warm, local, friendly neighborhood tavern. Casual and a little playful, never corporate. On the phone: short, natural spoken sentences — one question at a time.",
+  "channels": { "email": true, "sms": "owner-send", "telegram_chat_id": "DEMO" },
+  "integrations": { "reviews": "google", "pos": null, "booking": "phone" },
+  "agents": ["reactivation", "missedcall", "reputation", "digest"],
+  "missed_call_mode": "voice",
+  "quiet_days": 42,
+  "voice": {
+    "hours": "Open every day 11am to 2am, kitchen until 11pm.",
+    "address": "12 Main Street",
+    "highlights": "Famous for wings and smash burgers, Yuengling and local drafts on tap, big-screen sports, and a private party room that seats about 30.",
+    "reservations": "We take reservations, especially for parties of 6 or more and the party room.",
+    "rules": "Never take payment or card info over the phone. Don't invent menu items you weren't told about — if unsure, offer to have a manager call back. Keep it short and friendly."
+  },
+  "notes": "DEMO restaurant — fictional name, Trappe Tavern profile. Used for the live AI-voice booking demo (browser tap-to-call + voice_server REPL/Twilio). Do NOT use a real client's name in a demo."
+}

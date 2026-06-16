@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Win-back Queue · PAIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◓</span>
+      <div class="brand-text">
+        <strong id="bizName">Trappe Tavern</strong>
+        <span class="brand-sub">Win-back queue</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <label class="biz-switch" title="Switch business">
+        <span>Business</span>
+        <select id="bizSwitch">
+          <option value="trappe-tavern">🍺 Trappe Tavern</option>
+          <option value="trufit">💪 TruFit</option>
+          <option value="advanced-dentistry">🦷 Advanced Dentistry</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main class="react-wrap">
+    <div class="react-head">
+      <div>
+        <h1 class="react-h" id="reactKind">Regulars who've drifted away</h1>
+        <p class="react-note" id="reactNote"></p>
+      </div>
+      <div class="react-summary">
+        <div class="rs-stat"><span class="rs-num" id="rsCount">0</span><span class="rs-lbl">to win back</span></div>
+        <div class="rs-stat"><span class="rs-num" id="rsValue">$0</span><span class="rs-lbl">at stake</span></div>
+        <button class="btn btn-primary" id="approveAll">Approve all</button>
+      </div>
+    </div>
+
+    <ul class="react-list" id="reactList"></ul>
+    <p class="react-more" id="reactMore" hidden></p>
+    <p class="react-recovered" id="reactRecovered" hidden></p>
+  </main>
+
+  <div class="toaster" id="toaster" aria-live="polite"></div>
+
+  <script src="reactivation-data.js"></script>
+  <script src="reactivation.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>

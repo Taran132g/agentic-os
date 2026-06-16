@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Voice Demo · The Copper Lantern</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="tavern">
+  <div class="call-wrap">
+
+    <div class="phone">
+      <div class="phone-head">
+        <div class="callee">
+          <span class="callee-av" id="callOrb">🍺</span>
+          <div>
+            <strong>The Copper Lantern</strong>
+            <span class="callee-sub" id="callStatus">Tap to call — the AI will answer</span>
+          </div>
+        </div>
+        <span class="call-badge" id="callBadge">Idle</span>
+      </div>
+
+      <ul class="call-log" id="callLog"></ul>
+
+      <div class="booking-card" id="bookingCard" hidden>
+        <div class="bk-row"><span>Party</span><b id="bkParty">—</b></div>
+        <div class="bk-row"><span>Date</span><b id="bkDate">—</b></div>
+        <div class="bk-row"><span>Time</span><b id="bkTime">—</b></div>
+        <div class="bk-row"><span>Name</span><b id="bkName">—</b></div>
+        <div class="bk-status" id="bkStatus">Taking your reservation…</div>
+      </div>
+
+      <div class="answer-chips" id="chips"></div>
+
+      <div class="answer-row" id="answerRow" hidden>
+        <button class="mic-btn" id="micBtn" hidden title="Tap to talk">🎤</button>
+        <input id="textInput" class="text-input" placeholder="Type what you'd say…" autocomplete="off" />
+        <button class="send-btn" id="sendBtn">Send</button>
+      </div>
+
+      <div class="call-controls">
+        <button class="call-btn start" id="callBtn">📞 Call now</button>
+      </div>
+      <p class="call-hint" id="callHint">The AI speaks out loud — turn your volume up. Talk back (mic, Chrome) or type your reply. It's a real model, so just talk to it naturally.</p>
+    </div>
+
+    <section class="calls-panel">
+      <div class="calls-head">
+        <h2>Calls the AI handled</h2>
+        <span class="calls-sub">Every call answered while you were busy — tap one to read the whole conversation.</span>
+      </div>
+      <ul class="calls-list" id="callsList"></ul>
+    </section>
+  </div>
+
+  <script src="voice-demo.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>

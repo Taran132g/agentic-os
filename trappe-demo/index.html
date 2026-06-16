@@ -21,6 +21,14 @@
     </div>
 
     <div class="topbar-right">
+      <label class="biz-switch" title="Switch the demo between verticals">
+        <span>Demo for</span>
+        <select id="bizSwitch">
+          <option value="trappe-tavern">🍺 Trappe Tavern · bar</option>
+          <option value="trufit">💪 TruFit · gym</option>
+          <option value="advanced-dentistry">🦷 Advanced Dentistry</option>
+        </select>
+      </label>
       <div class="runtime-pill" id="runtimePill" title="Agents are running on your Mac in the back office">
         <span class="dot"></span>
         <span class="runtime-text">Agents online</span>
@@ -34,7 +42,7 @@
     <!-- ───────────────── Overnight briefing (hero) ───────────────── -->
     <section class="card hero" aria-labelledby="hero-h">
       <div class="hero-copy">
-        <p class="eyebrow">While you were closed</p>
+        <p class="eyebrow" id="eyebrow">While you were closed</p>
         <h1 id="hero-h" class="hero-title">Your agents worked the floor last night.</h1>
         <p class="hero-line" id="heroLine"></p>
         <div class="hero-actions">
@@ -63,6 +71,13 @@
           <button class="seg-btn" data-filter="missedcall">Missed calls</button>
         </div>
       </div>
+      <div class="voicebar">
+        <span class="voicebar-label">Missed calls handled by</span>
+        <div class="seg voice-seg" id="voiceToggle" role="tablist">
+          <button class="seg-btn is-active" data-voice="off">☎ Text-back</button>
+          <button class="seg-btn" data-voice="on">🎙 AI Voice — never miss a call</button>
+        </div>
+      </div>
       <ul class="approvals" id="approvals"></ul>
       <p class="inbox-empty" id="inboxEmpty" hidden>All caught up. Your agents will queue the next batch tonight. 🍺</p>
     </section>
@@ -86,15 +101,11 @@
     <section class="card digest" aria-labelledby="digest-h">
       <div class="card-head">
         <h2 id="digest-h">Last night's room</h2>
-        <p class="card-sub">Busiest hours &amp; average tab</p>
+        <p class="card-sub" id="digestSub">Busiest hours &amp; average tab</p>
       </div>
       <div class="digest-body">
         <div class="hours" id="hoursChart" aria-hidden="true"></div>
-        <div class="digest-stats">
-          <div class="stat"><span class="stat-num" id="avgTicket">$0</span><span class="stat-lbl">avg tab</span></div>
-          <div class="stat"><span class="stat-num" id="peakHour">—</span><span class="stat-lbl">peak hour</span></div>
-          <div class="stat"><span class="stat-num" id="topItem">—</span><span class="stat-lbl">top seller</span></div>
-        </div>
+        <div class="digest-stats" id="digestStats"></div>
       </div>
     </section>
 
@@ -113,6 +124,8 @@
   <!-- toast notifications -->
   <div class="toaster" id="toaster" aria-live="polite"></div>
 
+  <script src="data.js"></script>
   <script src="app.js"></script>
+  <script src="nav.js"></script>
 </body>
 </html>

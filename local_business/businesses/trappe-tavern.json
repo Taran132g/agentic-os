@@ -13,7 +13,8 @@
     "pos": null,
     "booking": "phone"
   },
-  "agents": ["reputation", "reactivation", "missedcall", "digest"],
+  "agents": ["reactivation", "missedcall", "reputation", "digest"],
+  "missed_call_mode": "text-back",
   "quiet_days": 42,
-  "notes": "No POS, no first-party ordering — contacts come from the reservation phone log. Digest stays estimate-only until a POS is connected. Reminders off (no booking system)."
+  "notes": "LEAD with reactivation + missed-call (highest ROI). missed_call_mode: 'text-back' = AI texts back after a ring-out (owner-send); switch to 'voice' to have the AI receptionist answer live so calls are never missed (voice_workflow.py). No POS/booking → Digest estimate-only, Reminders off."
 }
