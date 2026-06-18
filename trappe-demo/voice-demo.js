@@ -1,21 +1,47 @@
 /* ============================================================
    In-browser AI voice demo — "The Copper Lantern".
-   The AI brain is a REAL LLM: each turn POSTs the conversation to
-   /api/voice (served by serve.py → claude -p Haiku) and gets back
-   {say, booking, done}. The AI actually understands the caller —
-   no client-side keyword matching. UI = speech out + mic/typed in.
-   Run with:  python3 serve.py   (NOT plain http.server)
+
+   The brain is now an ElevenLabs restaurant-HOST agent: ElevenLabs owns the
+   voice, speech-to-text, the conversational LLM, and the turn-taking. We connect
+   over a short-lived signed URL (key stays on the server) and answer the agent's
+   two CLIENT tools in the browser:
+     • check_availability(day,time,party_size) → "open" | "limited" | "full"
+     • book_table(...)  → updates the booking card + the call history, and POSTs
+       the reservation to /api/booking → the owner-approval queue.
+
+   Run with:  python3 serve.py   (NOT plain http.server — needs the signed-url
+   + booking endpoints, and an ElevenLabs agent provisioned for copper-lantern).
    ============================================================ */
+
+import { Conversation } from "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
 
 const $ = (s) => document.querySelector(s);
 
-const GREETING = "Thanks for calling The Copper Lantern! How can I help you tonight?";
-const STARTERS = ["I'd like to book a table for 2", "Do you have a party room?", "What are your hours?"];
-
-let messages = [];          // [{role:'user'|'assistant', content}]
+let conversation = null;
 let active = false;
+let booking = { party: "", day: "", time: "", name: "" };
 
-/* Past calls the AI handled (seed) — newest first. Live demo calls prepend here. */
+/* ── availability (mirrors serve.py) — answered locally, zero latency ── */
+const AVAILABILITY = {
+  Friday:   { "6:00 PM": "open", "6:30 PM": "open", "7:00 PM": "full",
+              "7:30 PM": "limited", "8:00 PM": "open", "8:30 PM": "open" },
+  Saturday: { "6:00 PM": "limited", "6:30 PM": "full", "7:00 PM": "full",
+              "7:30 PM": "full", "8:00 PM": "limited", "8:30 PM": "open" },
+  Sunday:   { "11:00 AM": "open", "12:00 PM": "limited", "1:00 PM": "open",
+              "6:00 PM": "open", "7:00 PM": "open" },
+  _default: { "6:00 PM": "open", "7:00 PM": "open", "8:00 PM": "open", "9:00 PM": "open" },
+};
+function checkAvailability({ day = "", time = "", party_size = "" }) {
+  const size = parseInt(String(party_size).replace(/\D/g, ""), 10) || 0;
+  if (size >= 9) return "full"; // 9+ needs the private party room + 48h notice
+  const norm = (s) => s.trim().replace(/\s+/g, " ").toUpperCase();
+  const dayKey = Object.keys(AVAILABILITY).find((d) => norm(d) === norm(day)) || "_default";
+  const slots = AVAILABILITY[dayKey];
+  const slotKey = Object.keys(slots).find((t) => norm(t) === norm(time));
+  return slotKey ? slots[slotKey] : "open";
+}
+
+/* ── past calls the AI handled (seed) — newest first; live calls prepend ── */
 const CALLS = [
   { time: "Last night · 9:14pm", caller: "(610) 555-0148", outcome: "booked",
     summary: "Booked · party of 6 · Friday 8:00 PM · Marcus",
@@ -57,24 +83,7 @@ const CALLS = [
     ] },
 ];
 
-/* ---------------- speech out ---------------- */
-let voice = null;
-function loadVoice() {
-  const vs = speechSynthesis.getVoices();
-  voice = vs.find(v => /Samantha|Google US English|Jenny|Aria/i.test(v.name) && /en/i.test(v.lang))
-       || vs.find(v => /en-US/i.test(v.lang)) || vs[0] || null;
-}
-if ("speechSynthesis" in window) { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; }
-function speak(text) {
-  if (!("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  if (voice) u.voice = voice;
-  u.rate = 1.02;
-  speechSynthesis.speak(u);
-}
-
-/* ---------------- UI helpers ---------------- */
+/* ── UI helpers ── */
 function addBubble(role, text) {
   const li = document.createElement("li");
   li.className = `cl-msg ${role}`;
@@ -83,21 +92,12 @@ function addBubble(role, text) {
   $("#callLog").scrollTop = $("#callLog").scrollHeight;
   return li;
 }
-function thinkingBubble() {
-  const li = addBubble("ai", `<span class="dots"><i></i><i></i><i></i></span>`);
-  li.classList.add("thinking");
-  return li;
-}
-function setChips(arr) {
-  $("#chips").innerHTML = (arr || []).map(c => `<button class="chip-ans">${c}</button>`).join("");
-}
 function setStatus(badge, sub) {
   $("#callBadge").textContent = badge;
   if (sub) $("#callStatus").textContent = sub;
 }
 function updateBooking(b) {
-  if (!b) return;
-  const has = Object.values(b).some(v => v);
+  const has = Object.values(b).some((v) => v);
   if (has) $("#bookingCard").hidden = false;
   if (b.party) $("#bkParty").textContent = b.party;
   if (b.day)   $("#bkDate").textContent  = b.day;
@@ -121,114 +121,117 @@ function renderCalls() {
     </li>`).join("");
 }
 
-/* ---------------- call lifecycle ---------------- */
-function startCall() {
-  active = true; messages = [];
-  $("#callLog").innerHTML = "";
-  $("#bookingCard").hidden = true;
-  ["#bkParty", "#bkDate", "#bkTime", "#bkName"].forEach(id => $(id).textContent = "—");
-  $("#bkStatus").textContent = "Taking your reservation…"; $("#bkStatus").classList.remove("booked");
-  $("#callBtn").textContent = "End call"; $("#callBtn").classList.replace("start", "end");
-  $("#callOrb").classList.add("ringing"); setStatus("In call", "Connected — the AI is answering…");
-  $("#answerRow").hidden = false;
-  if (recog) $("#micBtn").hidden = false;
-  $("#textInput").focus();
+/* ── client tool: book_table ── */
+async function bookTable(args) {
+  booking = {
+    party: args.party_size || booking.party,
+    day: args.day || booking.day,
+    time: args.time || booking.time,
+    name: args.name || booking.name,
+  };
+  updateBooking(booking);
+  $("#bkStatus").textContent = "Booked ✓ — added to the book";
+  $("#bkStatus").classList.add("booked");
+  setStatus("Booked ✓", "Reservation captured");
 
-  messages.push({ role: "assistant", content: GREETING });
-  addBubble("ai", GREETING);
-  setChips(STARTERS);
-  speak(GREETING);
+  CALLS.unshift({
+    time: "Just now · live demo", caller: "Demo call", outcome: "booked",
+    summary: `Booked · ${booking.party || "?"} · ${booking.day || "?"} ${booking.time || ""} · ${booking.name || "?"}`,
+    transcript: [...$("#callLog").querySelectorAll(".cl-msg")].map((li) => [
+      li.classList.contains("ai") ? "ai" : "you",
+      li.textContent.replace(/^(Copper Lantern|You)/, ""),
+    ]),
+  });
+  renderCalls();
+
+  try {
+    await fetch("/api/booking", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify(args),
+    });
+  } catch (e) { /* demo UI already updated; owner queue is best-effort */ }
+  return "Booked and added to the reservation book.";
 }
 
-function endCall(silent) {
+/* ── call lifecycle ── */
+async function startCall() {
+  setStatus("Connecting", "Asking for your microphone…");
+  $("#callBtn").disabled = true;
+  let signed;
+  try {
+    const res = await fetch("/api/voice/signed-url");
+    signed = await res.json();
+  } catch (e) {
+    signed = { error: "Could not reach the demo server." };
+  }
+  if (!signed.signed_url) {
+    $("#callBtn").disabled = false;
+    setStatus("Setup needed", "Agent not connected");
+    addBubble("ai", "Voice agent isn't provisioned yet — run the ElevenLabs setup "
+      + "(see ELEVENLABS_VOICE.md). " + (signed.error ? `(${signed.error})` : ""));
+    return;
+  }
+
+  try {
+    conversation = await Conversation.startSession({
+      signedUrl: signed.signed_url,
+      clientTools: {
+        check_availability: (args) => checkAvailability(args || {}),
+        book_table: (args) => bookTable(args || {}),
+      },
+      onConnect: () => {
+        active = true;
+        $("#callLog").innerHTML = "";
+        $("#bookingCard").hidden = true;
+        ["#bkParty", "#bkDate", "#bkTime", "#bkName"].forEach((id) => ($(id).textContent = "—"));
+        $("#bkStatus").textContent = "Taking your reservation…";
+        $("#bkStatus").classList.remove("booked");
+        booking = { party: "", day: "", time: "", name: "" };
+        $("#callBtn").disabled = false;
+        $("#callBtn").textContent = "End call";
+        $("#callBtn").classList.replace("start", "end");
+        $("#callOrb").classList.add("ringing");
+        setStatus("In call", "Connected — start talking");
+      },
+      onDisconnect: () => endCall(true),
+      onError: (err) => { addBubble("ai", "Connection hiccup — try calling again."); console.error(err); },
+      onModeChange: ({ mode }) => {
+        if (!active) return;
+        $("#callOrb").classList.toggle("speaking", mode === "speaking");
+        setStatus("In call", mode === "speaking" ? "The host is speaking…" : "Listening…");
+      },
+      onMessage: ({ message, source }) => {
+        if (message) addBubble(source === "user" ? "you" : "ai", message);
+      },
+    });
+  } catch (e) {
+    $("#callBtn").disabled = false;
+    setStatus("Idle", "Mic blocked or connection failed");
+    addBubble("ai", "I couldn't start the call — check microphone permission and try again.");
+    console.error(e);
+  }
+}
+
+async function endCall(silent) {
   active = false;
-  $("#callBtn").textContent = "📞 Call now"; $("#callBtn").classList.replace("end", "start");
-  $("#callOrb").classList.remove("ringing");
-  $("#answerRow").hidden = true; $("#micBtn").hidden = true; setChips([]);
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
-  if (recog) { try { recog.stop(); } catch (e) {} }
+  if (conversation) { try { await conversation.endSession(); } catch (e) {} conversation = null; }
+  $("#callBtn").disabled = false;
+  $("#callBtn").textContent = "📞 Call again";
+  $("#callBtn").classList.replace("end", "start");
+  $("#callOrb").classList.remove("ringing", "speaking");
   if (!silent) setStatus("Idle", "Tap to call — the AI will answer");
 }
 
-async function handleInput(text) {
-  if (!active || !text.trim()) return;
-  addBubble("you", text);
-  setChips([]);
-  messages.push({ role: "user", content: text });
-
-  const thinking = thinkingBubble();
-  setStatus("In call", "The AI is thinking…");
-  let data;
-  try {
-    const res = await fetch("/api/voice", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages }),
-    });
-    data = await res.json();
-  } catch (e) {
-    data = { say: "Sorry — I lost you there. Could you say that again?", booking: {}, done: false };
-  }
-  thinking.remove();
-
-  const say = data.say || "Sorry, could you repeat that?";
-  messages.push({ role: "assistant", content: say });
-  addBubble("ai", say);
-  updateBooking(data.booking);
-  speak(say);
-  setStatus("In call", "Connected");
-
-  if (data.done) {
-    $("#bkStatus").textContent = "Booked ✓ — added to the book";
-    $("#bkStatus").classList.add("booked");
-    setStatus("Booked ✓", "Reservation captured");
-    active = false;
-    $("#answerRow").hidden = true; $("#micBtn").hidden = true;
-    $("#callBtn").textContent = "📞 Call again"; $("#callBtn").classList.replace("end", "start");
-    $("#callOrb").classList.remove("ringing");
-    // log this live call into the history the restaurant sees
-    const b = { party: $("#bkParty").textContent, day: $("#bkDate").textContent,
-                time: $("#bkTime").textContent, name: $("#bkName").textContent };
-    CALLS.unshift({
-      time: "Just now · live demo", caller: "Demo call", outcome: "booked",
-      summary: `Booked · ${b.party} · ${b.day} ${b.time} · ${b.name}`.replace(/—/g, "?"),
-      transcript: messages.map(m => [m.role === "assistant" ? "ai" : "you", m.content]),
-    });
-    renderCalls();
-  } else if (recog) {
-    $("#micBtn").hidden = false;
-  }
-}
-
-/* ---------------- mic (optional) ---------------- */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recog = null, listening = false;
-if (SR) {
-  recog = new SR();
-  recog.lang = "en-US"; recog.interimResults = false; recog.maxAlternatives = 1;
-  recog.onresult = (e) => { const t = e.results[0][0].transcript; listening = false; setMic(false); handleInput(t); };
-  recog.onerror = () => { listening = false; setMic(false); };
-  recog.onend = () => { listening = false; setMic(false); };
-}
-function setMic(on) { const b = $("#micBtn"); if (b) b.classList.toggle("listening", on); }
-function toggleMic() {
-  if (!recog) return;
-  if (listening) { try { recog.stop(); } catch (e) {} return; }
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
-  try { recog.start(); listening = true; setMic(true); } catch (e) {}
-}
-
-/* ---------------- wire-up ---------------- */
+/* ── wire-up ── */
 document.addEventListener("DOMContentLoaded", () => {
-  $("#callBtn").addEventListener("click", () => { active ? endCall() : startCall(); });
-  $("#micBtn").addEventListener("click", toggleMic);
-  $("#sendBtn").addEventListener("click", () => { const v = $("#textInput").value; $("#textInput").value = ""; handleInput(v); });
-  $("#textInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { const v = $("#textInput").value; $("#textInput").value = ""; handleInput(v); } });
-  $("#chips").addEventListener("click", (e) => { const c = e.target.closest(".chip-ans"); if (c) handleInput(c.textContent); });
+  $("#answerRow")?.setAttribute("hidden", "");   // voice-first: no typed input
+  $("#callBtn").addEventListener("click", () => (active ? endCall() : startCall()));
   $("#callsList").addEventListener("click", (e) => {
-    const row = e.target.closest(".call-row"); if (!row) return;
+    const row = e.target.closest(".call-row");
+    if (!row) return;
     const t = row.querySelector(".cr-transcript");
-    t.hidden = !t.hidden; row.classList.toggle("open", !t.hidden);
+    t.hidden = !t.hidden;
+    row.classList.toggle("open", !t.hidden);
   });
   renderCalls();
-  if (!SR) $("#micBtn")?.setAttribute("hidden", "");
 });

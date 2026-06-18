@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <base href="/demo/">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Brief · PAIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">◓</span>
+      <div class="brand-text">
+        <strong id="bizName">Trappe Tavern</strong>
+        <span class="brand-sub">Daily Brief</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <label class="biz-switch" title="Switch business">
+        <span>Business</span>
+        <select id="bizSwitch">
+          <option value="trappe-tavern">🍺 Trappe Tavern</option>
+          <option value="trufit">💪 TruFit</option>
+          <option value="advanced-dentistry">🦷 Advanced Dentistry</option>
+        </select>
+      </label>
+    </div>
+  </header>
+
+  <main class="brief-wrap">
+    <div class="brief-head">
+      <span class="brief-date" id="briefDate">Last night</span>
+      <span class="est-badge" id="estBadge" hidden title="No POS connected — estimated from bookings + foot traffic">~ estimated</span>
+    </div>
+    <h1 class="brief-headline" id="briefHeadline"></h1>
+
+    <!-- the morning text, as if from PAIS -->
+    <div class="brief-msg">
+      <span class="msg-av">◓</span>
+      <div class="msg-body" id="msgBody"></div>
+    </div>
+
+    <div class="brief-tiles" id="briefTiles"></div>
+
+    <div class="brief-todo">
+      <span class="todo-tag">Today</span>
+      <p id="briefTodo"></p>
+    </div>
+
+    <p class="brief-tie" id="briefTie"></p>
+
+    <p class="brief-foot">Delivered to your phone every morning at 7am · tap any number to see the detail in <a href="analytics.html" id="anaFoot">Google insights</a>.</p>
+  </main>
+
+  <script src="digest-data.js"></script>
+  <script src="digest.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>

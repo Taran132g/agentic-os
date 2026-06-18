@@ -90,6 +90,10 @@ python3 piontrix_scout.py || log "piontrix scout FAILED"
 OUTREACH_GMAIL_DRAFT=1 python3 piontrix_outreach.py --batch || log "piontrix draft FAILED"
 python3 backfill_phones.py || log "phone-find FAILED"
 
+# --- daily: refill the cold-call sheet with new qualified local prospects ---
+log "sales-agent (refill cold-call sheet)"
+python3 sales_agent.py || log "sales-agent FAILED"
+
 # --- weekdays only: one LinkedIn connect draft per day (manual send) ---
 if [ "$dow" -le 5 ]; then
   log "linkedin-internship (1 draft)"

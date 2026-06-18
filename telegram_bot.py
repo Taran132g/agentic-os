@@ -798,8 +798,13 @@ async def send_photo(image_bytes: bytes, caption: str = ""):
     )
 
 
-async def send_approval_request(action_id: str, text: str):
-    """Send an approval request with Approve/Deny buttons."""
+async def send_approval_request(action_id: str, text: str, action: str = "approve"):
+    """Send an approval request with Approve/Deny buttons.
+
+    Accepts (and ignores) `action` so it stays call-compatible with the approval
+    watcher's keyword call (action_id=, text=, action=) no matter which sender
+    registration wins — otherwise a TypeError here turns every approval into a
+    silent 600s timeout-deny."""
     if _app is None:
         log.warning("Bot not ready, cannot send approval request")
         return

@@ -56,12 +56,15 @@ _SIG_KEYWORDS = re.compile(
     re.I,
 )
 
-_PRICE_PAT    = re.compile(r"[\$]?([\d,]+(?:\.\d+)?)[kK]?")
-_ENTRY_PAT    = re.compile(r"(?:entry|enter|buy(?:\s+at)?|price)[:\s]+[\$]?([\d,]+(?:\.\d+)?)", re.I)
-_SL_PAT       = re.compile(r"(?:sl|stop.?loss|stop)[:\s]+[\$]?([\d,]+(?:\.\d+)?)", re.I)
-_TP_PAT       = re.compile(r"(?:tp\d?|take.?profit|target\s*\d*)[:\s]+[\$]?([\d,]+(?:\.\d+)?)", re.I)
+# Capture an optional k/K suffix INSIDE the group so _clean_price can scale it —
+# otherwise "Entry: 3.5k" parsed as 3.5 instead of 3500 (1000× wrong sizing).
+_NUM = r"[\d,]+(?:\.\d+)?\s*[kK]?"
+_PRICE_PAT    = re.compile(rf"[\$]?({_NUM})")
+_ENTRY_PAT    = re.compile(rf"(?:entry|enter|buy(?:\s+at)?|price)[:\s]+[\$]?({_NUM})", re.I)
+_SL_PAT       = re.compile(rf"(?:sl|stop.?loss|stop)[:\s]+[\$]?({_NUM})", re.I)
+_TP_PAT       = re.compile(rf"(?:tp\d?|take.?profit|target\s*\d*)[:\s]+[\$]?({_NUM})", re.I)
 _LEV_PAT      = re.compile(r"(\d+)[xX]\s*(?:leverage|lev)?", re.I)
-_RANGE_PAT    = re.compile(r"[\$]?([\d,]+(?:\.\d+)?)\s*[-–]\s*[\$]?([\d,]+(?:\.\d+)?)")
+_RANGE_PAT    = re.compile(rf"[\$]?({_NUM})\s*[-–]\s*[\$]?({_NUM})")
 
 
 def _clean_price(s: str) -> float:
@@ -83,10 +86,11 @@ def parse_signal(text: str) -> dict | None:
     if not _SIG_KEYWORDS.search(text):
         return None
 
-    # Detect asset
+    # Detect asset — word-boundary match so tickers aren't matched as substrings
+    # inside other words ("OP" inside "STOP", "ATOM" inside "ATOMIC", etc.).
     asset = None
     for a in _ASSETS:
-        if a in text_upper:
+        if re.search(rf"\b{re.escape(a)}\b", text_upper):
             asset = a
             break
     if not asset:

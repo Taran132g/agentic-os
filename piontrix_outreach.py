@@ -47,8 +47,8 @@ LEADS_FILE = AGENTIC_DIR / "piontrix_leads.json"
 SENDER_NAME = "Taranveer Singh"
 SIGNATURE = (
     f"{SENDER_NAME}\n"
-    "Founder, Piontrix — student-run tech consulting\n"
-    "Penn State University · Pennsylvania"
+    "Founder, PAIS — an AI agency\n"
+    "https://getpais.company"
 )
 
 # Fixed local-business pitch. Reproduced near-verbatim per business — only the
@@ -168,7 +168,7 @@ def _draft_email(business: str, website: str, site_text: str,
     if not which("claude"):
         return fallback_subject, fallback_body
 
-    prompt = f"""You are writing one short cold outreach email for Taran (Piontrix) to a
+    prompt = f"""You are writing one short cold outreach email for Taran (PAIS) to a
 local business. Use the FIXED TEMPLATE below as the email body — reproduce it word for
 word, changing ONLY these things:
   1) replace [Business] with the real business name;
@@ -308,12 +308,12 @@ def process(business: str, website: str, mode: str, context: str = "",
     if mode == "send" and to_email:
         try:
             _send_gmail(to_email, subject, body)
-            _tg_text(f"📨 <b>Piontrix outreach SENT</b>\n"
+            _tg_text(f"📨 <b>PAIS outreach SENT</b>\n"
                      f"To: {contact.get('name') or ''} &lt;{to_email}&gt; ({business})\n"
                      f"Subj: {subject}")
             return {"business": business, "to": to_email, "mode": "sent"}
         except Exception as e:
-            _tg_text(f"⚠️ <b>Piontrix send failed</b> for {business}: {e}")
+            _tg_text(f"⚠️ <b>PAIS send failed</b> for {business}: {e}")
             return {"business": business, "to": to_email, "mode": "send_failed", "error": str(e)}
 
     # REVIEW mode (default) — Telegram Taran the draft to approve
@@ -321,7 +321,7 @@ def process(business: str, website: str, mode: str, context: str = "",
     conf = f" · {contact.get('conf')}% conf" if contact.get("conf") else ""
     gmail_note = "✅ Saved to Gmail Drafts\n" if gmail_draft else ""
     review = (
-        f"📝 <b>Piontrix draft — {business}</b>\n"
+        f"📝 <b>PAIS draft — {business}</b>\n"
         f"🌐 {domain or '(no website)'}\n"
         f"📧 <b>{to_email or 'NO EMAIL FOUND — reach out via Facebook/call'}</b>{conf}\n"
         f"👤 {who}\n{gmail_note}\n"
@@ -347,7 +347,7 @@ def main() -> int:
         if not pending:
             # idle heartbeat — so a scheduled run is never silently a no-op
             done = sum(1 for l in leads if l.get("contacted"))
-            msg = (f"📭 <b>Piontrix outreach</b> — ran, but no pending leads "
+            msg = (f"📭 <b>PAIS outreach</b> — ran, but no pending leads "
                    f"({done}/{len(leads)} already contacted). Add leads to "
                    f"piontrix_leads.json to queue more.")
             print(msg)

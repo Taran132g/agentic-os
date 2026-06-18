@@ -149,22 +149,42 @@ def _space_search(wid) -> bool:
     return False
 
 
-def _open_gemini_panel(wid) -> bool:
-    """Open the 'Ask Gemini' side panel. Idempotent + auto-collapse-proof: if the
-    panel is already open (greeting visible) use it as-is; otherwise click the
-    toolbar button to toggle it open. A click can land on an already-open panel
-    and close it, so retry the toggle once (max 2 clicks — no endless retry)."""
-    # Already open from a prior step? Use it — don't toggle it closed.
-    if _computer("find_text_in_window", str(wid), "Taranveer").get("found"):
+def _panel_open(wid) -> bool:
+    """The side panel is open if any of its greeting/structure markers are visible.
+    Checked with several needles because the 2026 panel greeting varies (signed-in
+    name, generic 'Hello', or the empty-state prompt)."""
+    for needle in ("Taranveer", "Hello", "Ask Gemini anything", "How can I help"):
+        if _computer("find_text_in_window", str(wid), needle).get("found"):
+            return True
+    return False
+
+
+def _open_gemini_panel(wid, attempts: int = 4) -> bool:
+    """Open the 'Ask Gemini' side panel — tolerant of a still-loading page and the
+    2026 toolbar layout. Polls for a toolbar entry point ('Ask Gemini' or 'Gemini'),
+    clicks it, and confirms the panel greeting appears. Idempotent + auto-collapse-
+    proof: a click can toggle an already-open panel shut, so we re-check and retry
+    (bounded — no endless loop). Returns True once the panel is confirmed open.
+
+    This is the historic failure point ('could not open the Ask Gemini side panel'):
+    the old code OCR'd a single needle once and bailed the instant the toolbar
+    hadn't rendered yet. Now we wait + retry both entry points before giving up."""
+    if _panel_open(wid):                       # already open from a prior step
         return True
-    for _ in range(2):
-        g = _computer("find_text_in_window", str(wid), "Gemini")
-        if not g.get("found"):
-            return False
+    for _ in range(attempts):
+        target = None
+        for needle in ("Ask Gemini", "Gemini"):
+            g = _computer("find_text_in_window", str(wid), needle)
+            if g.get("found"):
+                target = g
+                break
+        if not target:                         # toolbar likely still loading — wait + retry
+            time.sleep(2)
+            continue
         _activate_chrome()
-        _computer("click", str(g["x"]), str(g["y"]))
+        _computer("click", str(target["x"]), str(target["y"]))
         time.sleep(2.5)
-        if _computer("find_text_in_window", str(wid), "Taranveer").get("found"):
+        if _panel_open(wid):
             return True
     return False
 

@@ -59,12 +59,17 @@ def _norm(u: str) -> str:
 
 def main() -> int:
     from tools.tracker import load_applications, save_application
+    from tools.atomic_state import read_json, write_json, locked_update
 
-    queue = json.loads(QUEUE.read_text()) if QUEUE.exists() else []
+    queue = read_json(QUEUE, [])
+    if not isinstance(queue, list):
+        queue = []
     # One-time seed: if the queue is empty, fall back to scout_jobs.json so we
     # don't lose the latest scout run when migrating to the queue.
-    if not queue and CACHE.exists():
-        queue = json.loads(CACHE.read_text())
+    if not queue:
+        seed = read_json(CACHE, [])
+        if isinstance(seed, list):
+            queue = seed
 
     applied = {_norm(a.get("url")) for a in load_applications()
                if a.get("status") == "applied" and a.get("url")}
@@ -77,7 +82,7 @@ def main() -> int:
         print(msg)
         if os.environ.get("FILL_SCOUTED_DRY") != "1":
             _tg(msg)
-            QUEUE.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
+            write_json(QUEUE, queue)
         return 0
 
     # FIFO: take the OLDEST jobs first, up to a per-run cap (default 5).
@@ -103,7 +108,11 @@ def main() -> int:
         job.setdefault("id", f"scouted_{uuid.uuid4().hex[:8]}")
         print(f"\n===== [{i}/{len(batch)}] {job['company']} — {job['role']} =====")
         try:
-            res = browser_fill(job, notify=True, start_task=False)
+            # start_task=True so Gemini actually CLICKS "Start task" and fills the
+            # form (the old start_task=False only pasted the brief — nothing ever
+            # filled). The merged 'jobs' agent is the live path; this is the
+            # standalone/fallback runner.
+            res = browser_fill(job, notify=True, start_task=True)
             ok = bool(res.get("ok"))
             status = res.get("status", "?")
         except Exception as e:
@@ -117,6 +126,11 @@ def main() -> int:
                 save_application(job, status="applied", platform="gemini")
             except Exception as te:
                 print("! tracker save failed:", te)
+            try:                                # advance the vault Job Pipeline row
+                from tools import job_sheet
+                job_sheet.mark_applied(job.get("url", ""))
+            except Exception as se:
+                print("! job_sheet mark_applied failed:", se)
         else:
             job["attempts"] = job.get("attempts", 0) + 1
             (dropped if job["attempts"] >= MAX_ATTEMPTS else retry).append(job)
@@ -126,10 +140,19 @@ def main() -> int:
         if i < len(batch):
             time.sleep(5)
 
-    # Rebuild the queue: failed-but-retryable stay at the FRONT (FIFO), then the
-    # untouched tail. Successful + exhausted jobs drop off.
-    new_queue = retry + rest
-    QUEUE.write_text(json.dumps(new_queue, ensure_ascii=False, indent=2))
+    # Rebuild the queue under lock so a concurrent scout run's appends survive:
+    # reload the current file, drop everything in THIS batch, then put the
+    # failed-but-retryable jobs back at the FRONT (FIFO). Successful + exhausted
+    # jobs drop off; untouched tail + any new scout additions are preserved.
+    batch_urls = {_norm(j.get("url")) for j in batch}
+
+    def _rebuild(current):
+        if not isinstance(current, list):
+            current = []
+        survivors = [j for j in current if _norm(j.get("url")) not in batch_urls]
+        return retry + survivors
+
+    new_queue = locked_update(QUEUE, _rebuild, default=[])
 
     done = sum(1 for r in results if r["ok"])
     summary = [f"<b>📩 Briefs sent — {done}/{len(batch)} ready to start</b>",

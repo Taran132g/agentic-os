@@ -21,11 +21,15 @@ def _load_lessons(max_chars: int = 2000) -> str:
     return "\n\n## Past Lessons (learn from these)\n" + text[-max_chars:]
 
 
-def _load_rag_context(query: str, n_results: int = 3) -> str:
-    """Semantic search the vault for context relevant to this task. Silent on failure."""
+async def _load_rag_context(query: str, n_results: int = 3) -> str:
+    """Semantic search the vault for context relevant to this task. Silent on failure.
+
+    rag.search does blocking HTTP (Ollama embed + Chroma query) — run it off the
+    event loop so a slow/hung embedding can't freeze ALL the parallel workers and
+    the WebSocket/Telegram intake while one RAG-backed prompt builds."""
     try:
         from tools.rag import search
-        ctx = search(query, n_results=n_results)
+        ctx = await asyncio.to_thread(search, query, n_results)
         return ("\n\n" + ctx) if ctx else ""
     except Exception:
         return ""
@@ -146,7 +150,7 @@ Write via Bash (iCloud sync requires this):
 async def run_chat(text: str, broadcast=None, task_id: str | None = None) -> tuple[str, str, dict]:
     """Run a conversational chat task — no routing, no verification step."""
     from tools.llm import run_llm_command
-    rag = _load_rag_context(text, n_results=2)
+    rag = await _load_rag_context(text, n_results=2)
     full_prompt = f"{CHAT_CONTEXT}{_load_lessons()}{rag}\n\n## Message\n{text}"
     res = await run_llm_command(
         prompt=full_prompt, broadcast=broadcast,
@@ -174,7 +178,7 @@ async def run_task(
     """
     from tools.llm import run_llm_command
 
-    rag = _load_rag_context(task, n_results=3)
+    rag = await _load_rag_context(task, n_results=3)
     full_prompt = f"{SYSTEM_CONTEXT}{_load_lessons()}{rag}\n\n## Task\n{task}"
 
     res = await run_llm_command(

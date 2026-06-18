@@ -4,12 +4,13 @@ Fires due tasks every 60 seconds. Stores schedule state in schedules.json.
 """
 
 import asyncio
-import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+
+from tools.atomic_state import read_json, write_json
 
 log = logging.getLogger(__name__)
 
@@ -36,18 +37,19 @@ class ScheduledTask:
 
 
 def load_schedules() -> list[ScheduledTask]:
-    if not SCHEDULE_FILE.exists():
+    raw = read_json(SCHEDULE_FILE, [])
+    if not isinstance(raw, list):
         return []
     try:
-        return [ScheduledTask(**t) for t in json.loads(SCHEDULE_FILE.read_text())]
+        return [ScheduledTask(**t) for t in raw]
     except Exception as e:
-        log.warning("Failed to load schedules: %s", e)
+        log.warning("Failed to parse schedules: %s", e)
         return []
 
 
 def save_schedules(tasks: list[ScheduledTask]):
     try:
-        SCHEDULE_FILE.write_text(json.dumps([asdict(t) for t in tasks], indent=2))
+        write_json(SCHEDULE_FILE, [asdict(t) for t in tasks])
     except Exception as e:
         log.warning("Failed to save schedules: %s", e)
 
@@ -229,22 +231,28 @@ async def run_scheduler(dispatch_fn):
         try:
             tasks = load_schedules()
             now = datetime.now()
-            changed = False
+            updates: dict[str, tuple[str, str]] = {}   # id -> (last_run, next_run)
             fired_once: list[str] = []
             for task in tasks:
                 if _is_due(task, now):
                     log.info("[scheduler] Firing: %s (%s)", task.name, task.id)
-                    await dispatch_fn(task)
-                    task.last_run = now.isoformat()
-                    task.next_run = _calc_next_run(task, now).isoformat()
-                    changed = True
+                    await dispatch_fn(task)            # yield point — API edits can land here
+                    updates[task.id] = (now.isoformat(), _calc_next_run(task, now).isoformat())
                     # One-shot schedules are spent once fired — drop them so
                     # they don't linger in the list showing "Overdue" forever.
                     if task.schedule_type == "once":
                         fired_once.append(task.id)
-            if fired_once:
-                tasks = [t for t in tasks if t.id not in fired_once]
-            if changed:
-                save_schedules(tasks)
+            if updates or fired_once:
+                # Re-load to MERGE any schedules the API created/deleted during the
+                # dispatch await, instead of saving back the stale pre-await list
+                # (which would silently clobber a concurrent create/delete).
+                merged: list[ScheduledTask] = []
+                for t in load_schedules():
+                    if t.id in fired_once:
+                        continue
+                    if t.id in updates:
+                        t.last_run, t.next_run = updates[t.id]
+                    merged.append(t)
+                save_schedules(merged)
         except Exception as e:
             log.exception("[scheduler] Error: %s", e)

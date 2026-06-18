@@ -237,15 +237,21 @@ def fetch_broll(keyword: str, duration_needed: float, out_path: Path) -> None:
     r.raise_for_status()
     videos = r.json().get("videos", [])
 
-    # Pick shortest clip that is long enough
-    candidates = [v for v in videos if v["duration"] >= duration_needed]
+    # Pick shortest clip that is long enough (.get guards malformed API rows)
+    candidates = [v for v in videos if (v.get("duration") or 0) >= duration_needed]
     if not candidates:
         candidates = videos  # fallback: use whatever is available
+    if not candidates:
+        # Empty result (no match / rate-limited) — raise a clear error instead of
+        # letting random.choice([]) blow up with a cryptic IndexError.
+        raise RuntimeError(f"No Pexels clips returned for '{keyword}'")
 
     clip = random.choice(candidates[:5])  # randomise from top 5 matches
 
     # Prefer HD file
-    files = sorted(clip["video_files"], key=lambda f: f.get("width", 0), reverse=True)
+    files = sorted(clip.get("video_files") or [], key=lambda f: f.get("width", 0), reverse=True)
+    if not files or not files[0].get("link"):
+        raise RuntimeError(f"Pexels clip for '{keyword}' has no downloadable file")
     download_url = files[0]["link"]
 
     data = requests.get(download_url, timeout=60).content
@@ -429,7 +435,14 @@ def get_duration(path: Path) -> float:
          "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
         capture_output=True, text=True,
     )
-    return float(r.stdout.strip())
+    # Don't float('') a failed probe — surface a clear error so a single bad
+    # asset doesn't abort the whole render with an opaque ValueError.
+    if r.returncode != 0 or not r.stdout.strip():
+        raise RuntimeError(f"ffprobe failed for {path}: {(r.stderr or '').strip()[-200:]}")
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        raise RuntimeError(f"ffprobe non-numeric duration for {path}: {r.stdout.strip()[:80]}")
 
 
 # ── Assemble one segment ────────────────────────────────────────────────────────

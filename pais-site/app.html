@@ -22,12 +22,13 @@
     <div class="gate-orb" aria-hidden="true"></div>
     <span class="wordmark">PAIS<span class="tick" style="color:var(--green)">_</span></span>
     <h1>Your personal AI team,<br>that actually knows you.</h1>
-    <p>Sign in to explore the demo workspace — the same Control Room we build
-       your agent workflows into.</p>
+    <p>Sign in to load your own Control Room — or skip it and explore the
+       live demo, no account needed.</p>
     <button class="btn btn-primary" type="button" id="gateGoogle">
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#04130c" d="M21.35 11.1H12v2.83h5.35c-.23 1.5-1.6 4.4-5.35 4.4a5.94 5.94 0 010-11.88 5.3 5.3 0 013.76 1.47l2.04-1.96A8.7 8.7 0 0012 4.5a9 9 0 100 18c5.2 0 8.64-3.65 8.64-8.8 0-.59-.07-1.04-.16-1.5z"/></svg>
       Continue with Google
     </button>
+    <button class="btn btn-ghost" type="button" id="gateGuest" style="margin-top:12px">Continue without signing in →</button>
     <p class="fine">your brain stays private to your account · <a href="/" style="color:var(--muted)">back to site</a></p>
   </div>
 </div>
@@ -131,28 +132,6 @@
   </div>
 </div>
 
-<!-- ── upgrade modal (the paywall) ──────────────────────── -->
-<div class="modal-scrim" id="upModal" hidden>
-  <div class="modal up-modal" role="dialog" aria-labelledby="up-h" aria-modal="true">
-    <button class="modal-x" id="upClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <p class="up-kicker">// PAIS PRO</p>
-    <h3 id="up-h">Unlock your whole team</h3>
-    <p class="up-value" id="upValue">One plan. Every agent, every run, no limits.</p>
-    <div class="cmp" role="table">
-      <div class="cmp-row cmp-head" role="row"><span></span><span>Free trial</span><span class="pro-col">Pro</span></div>
-      <div class="cmp-row"><span>Briefing agent</span><span class="y">✓</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>One agent of your choice</span><span class="y">✓</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>Control Room chat — your brain</span><span class="y">✓</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>All 8 agents — Career, Job Apply, Outreach…</span><span class="n">—</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>Full Routine Grand Prix, every morning</span><span class="n">—</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>Reviewer audits your whole routine</span><span class="n">—</span><span class="y pro-col">✓</span></div>
-      <div class="cmp-row"><span>Time limit</span><span class="n">30 days</span><span class="y pro-col">none</span></div>
-    </div>
-    <div class="up-price"><b>$4.99</b><span>/month</span></div>
-    <button class="btn btn-primary up-cta" id="upCta">Unlock PAIS Pro →</button>
-    <p class="up-trust">Secure checkout by Stripe · cancel anytime · your brain stays yours</p>
-  </div>
-</div>
 
 <script>
 const PAIS_API = "https://api.129.159.182.210.nip.io";
@@ -161,8 +140,7 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 const ICON = {
   briefing:'<path d="M4 4h16v4H4zM4 11h10M4 16h16M4 20h10"/>',
-  career:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 018 0v2"/>',
-  apply:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h4"/><path d="M14.5 16.5l2 2 3.5-3.5"/>',
+  jobs:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 018 0v2"/><path d="M9.5 14l1.8 1.8L15 12"/>',
   outreach:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
   email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   linkedin:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 014 0v4"/>',
@@ -173,9 +151,9 @@ const TEAM = [
   { id:"assistant", name:"Control Room",  role:"Runs your workflows", ac:"var(--green)",  chief:true },
   { id:"briefing",  name:"Briefing",     role:"Daily analyst", ac:"var(--blue)" },
   { id:"email",     name:"Email",        role:"Inbox analyst", ac:"var(--violet)" },
-  { id:"career",    name:"Career",       role:"Recruiter",     ac:"var(--amber)" },
-  { id:"apply",     name:"Job Apply",    role:"Application filler", ac:"var(--orange)", attn:true },
+  { id:"jobs",      name:"Jobs",         role:"Scout + apply", ac:"var(--amber)", attn:true },
   { id:"outreach",  name:"Outreach",     role:"BD rep",        ac:"var(--rose)" },
+  { id:"sales",     name:"Sales",        role:"Lead scout",    ac:"#a3e635" },
   { id:"linkedin",  name:"LinkedIn",     role:"Networker",     ac:"var(--sky)" },
   { id:"code",      name:"Code",         role:"Engineer",      ac:"var(--teal)" },
   { id:"reviewer",  name:"Reviewer",     role:"Routine auditor", ac:"var(--indigo)" },
@@ -186,15 +164,22 @@ Object.assign(ICON, ICONX);
    run executes the same script as the scheduled morning routine on your Mac. */
 const STEPS = {
   briefing:["Read vault","Digest","Post"], email:["Fetch inbox","Classify","Digest","Post"],
-  career:["Live scout","Verify","Queue jobs","Post"], apply:["Queue jobs","Open windows","Fill forms","You review & submit"],
+  jobs:["Scout roles","Add to pipeline","Gemini fill","You review & submit"],
   outreach:["Scout leads","Draft","Gmail drafts","Post"],
+  sales:["Search territory","Screen & qualify","Dedupe vs sheet","Add to call sheet"],
   linkedin:["Find hiring managers","Draft connect + PAIS pitch","Copy-paste from Pipeline"], code:["Scan","Guard","Commit","Push"],
   reviewer:["Read routine","Analyze","Suggest fixes"],
 };
-const RUNNABLE = ["briefing","email","career","apply","outreach","linkedin","code","reviewer"];
+const RUNNABLE = ["briefing","email","jobs","outreach","sales","linkedin","code","reviewer"];
+/* Sales call-sheet statuses — editable in the Pipeline tab, saved to the vault note. */
+const SALES_STATUSES = ["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"];
+/* Job pipeline statuses — editable in the Jobs Pipeline tab, saved to the vault note. */
+const JOB_STATUSES = ["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"];
+/* LinkedIn pipeline statuses — editable in the LinkedIn Pipeline tab, saved to the vault note. */
+const LI_STATUSES = ["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"];
 const TM = id => TEAM.find(t => t.id === id);
 /* Generated android portraits (Higgsfield) for the 8 working agents. */
-const AVA = new Set(["assistant","briefing","email","career","apply","outreach","linkedin","code","reviewer"]);
+const AVA = new Set(["assistant","briefing","email","jobs","outreach","sales","linkedin","code","reviewer"]);
 function avatarHtml(id, cls="", fallback=""){
   const t=TM(id)||{};
   const inner = AVA.has(id) ? `<img src="/av-${id}.webp" alt="" loading="lazy">` : (fallback || (t.chief?"◉":(t.name||"?")[0]));
@@ -225,22 +210,27 @@ function wShow(session){ $("gate").style.display="none"; $("workspace").hidden=f
   const av=u.user_metadata&&u.user_metadata.avatar_url; if(av){ $("acctAvatar").src=av; $("acctAvatar").hidden=false; } }
 function signIn(){ if(!sb){ alert("Auth SDK failed to load."); return; } sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:location.href } }); }
 $("gateGoogle").addEventListener("click", signIn);
+$("gateGuest").addEventListener("click", ()=>{ location.href="/demo"; });   // explore without an account → live demo
 $("signoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut({ scope: 'local' }); token=null; gShow(); });   // scope local — global signOut revokes the desktop runtime's session
 if(sb){ sb.auth.getSession().then(({data})=>onSession(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSession(s)); } else gShow();
+/* The real Control Room is owner-only. Anyone else who signs in lands on the
+   live demo instead — keep this list in sync with the landing's OWNER_EMAILS. */
+const OWNER_EMAILS = ["taran.impact@gmail.com", "taranalt8@gmail.com"];
+const isOwnerEmail = e => !!e && OWNER_EMAILS.includes(String(e).toLowerCase());
 function onSession(session){
-  if(session){ token=session.access_token; userId=session.user.id; wShow(session); renderTeam(); greet(); loadConfig(); loadBrainStatus(); loadAccount(); setTimeout(resumeGp, 400); setTimeout(refreshUnread, 800); }
+  if(session){
+    if(!isOwnerEmail(session.user && session.user.email)){ location.replace("/demo"); return; }
+    token=session.access_token; userId=session.user.id; wShow(session); renderTeam(); greet(); loadConfig(); loadBrainStatus(); loadAccount(); setTimeout(resumeGp, 400); setTimeout(refreshUnread, 800);
+  }
   else { token=null; gShow(); }
 }
 
 /* ── plan / entitlements ──────────────────────────────── */
 let acct = null;
 async function loadAccount(){ try{ acct = await api("/api/agents/account"); }catch{ acct=null; } renderPlan(); renderTeam(); loadBrainStatus(); if(selected==="assistant") renderKitchen(); }
-function isPro(){ return acct && (acct.plan==="pro" || (acct.allowed||[]).includes("*")); }
-function isAllowed(id){ return true; }   /* demo workspace — no client-side locks */
-function renderPlan(){ const c=$("planChip"); if(!acct){ c.hidden=true; return; } c.hidden=false;
-  if(isPro()){ c.className="plan-chip pro"; c.innerHTML="◆ PRO"; c.onclick=null; }
-  else { c.className="plan-chip trial"; c.innerHTML="◆ DEMO WORKSPACE — book a call"; c.onclick=openUpgrade; }
-}
+function isPro(){ return true; }   /* /app is owner-only — full access, no self-serve tiers */
+function isAllowed(id){ return true; }
+function renderPlan(){ const c=$("planChip"); if(c) c.hidden=true; }   /* B2B only — no plan/trial chip */
 const DEMO_BODY = "<b>This is a demo workspace</b> — the agents here don't execute. On a call we map your workflows, build your agent team around your business, and it runs on your own machine.";
 function upgradePanel(title, body){
   return `<div class="upsell">
@@ -256,17 +246,9 @@ function showDemoLock(title){
   d.innerHTML='<button class="wf-back" id="kBack">← all workflows</button><div class="lock-wrap">'+upgradePanel(title, DEMO_BODY)+'</div>';
   $("kBack").addEventListener("click",renderKitchen);
 }
-/* The paywall modal: value recap (their real usage) → comparison → checkout. */
-const upModal=$("upModal");
-function openUpgrade(){ window.open("https://cal.com/taranveer/workflows","_blank"); }   /* demo workspace → book a call */
-$("upClose").addEventListener("click",()=>{ upModal.hidden=true; });
-upModal.addEventListener("click",e=>{ if(e.target===upModal) upModal.hidden=true; });
-$("upCta").addEventListener("click",()=>startCheckout("pro"));
+function openUpgrade(){ window.open("https://cal.com/taranveer/workflows","_blank"); }   /* any locked/upsell path → book a call */
 function api(path, opts={}){ return fetch(PAIS_API+path, { ...opts, headers:{ "Authorization":"Bearer "+token, ...(opts.headers||{}) } })
   .then(async r=>{ if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; try{ e.detail=(await r.json()).detail; }catch{} throw e; } return r.json(); }); }
-async function startCheckout(product){
-  try{ const r=await fetch(PAIS_API+"/api/payment/create-checkout",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({product:product||"brain_card"})});
-    if(!r.ok) throw 0; const {url}=await r.json(); if(url){location.href=url; return true;} }catch(e){} return false; }
 async function loadConfig(){ try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} renderTeam(); if(selected!=="assistant") renderAgent(selected); }
 
 /* ── unread: blue rail dot when an agent posted something you haven't seen ── */
@@ -589,6 +571,16 @@ async function renderPipeline(id){
     <div style="border:1px solid var(--border-l);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--muted);white-space:pre-wrap">${esc(last.text)}</div></div>`:"";
   const steps=(STEPS[id]||[]).map((st,i)=>`<span style="font-family:var(--font-mono);font-size:11px;color:var(--green);border:1px solid rgba(52,211,153,.3);border-radius:999px;padding:4px 12px">${i+1}. ${esc(st)}</span>`).join('<span style="color:var(--dim)">→</span>');
   const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||"";
+  if(id==="sales"){ renderSalesPipeline(body, items, steps, report, persona);
+    body.querySelectorAll("select[data-biz]").forEach(sel=>sel.addEventListener("change",()=>setSalesStatus(sel)));
+    return; }
+  if(id==="jobs"){ renderJobPipeline(body, items, steps, report, persona);
+    body.querySelectorAll("select[data-url]").forEach(sel=>sel.addEventListener("change",()=>setJobStatus(sel)));
+    return; }
+  if(id==="linkedin"){ renderLinkedInPipeline(body, items, steps, report, persona);
+    body.querySelectorAll("select[data-name]").forEach(sel=>sel.addEventListener("change",()=>setLinkedInStatus(sel)));
+    body.querySelectorAll("button[data-copy]").forEach(btn=>btn.addEventListener("click",()=>copyConnect(btn)));
+    return; }
   const done=items.filter(x=>x.done).length;
   body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">${steps}</div>
@@ -605,6 +597,195 @@ async function renderPipeline(id){
     </div>`).join("")}</div>`:""}
     ${report || (items.length?"":'<p class="feed-empty">Nothing in the pipeline yet — run this agent and its work appears here.</p>')}
   </div>`;
+}
+/* The Sales agent's Pipeline tab = the live, editable cold-call sheet.
+   Each row's status is a dropdown that writes straight back to the vault note. */
+const SALES_STAT_COLOR = {"🟣 To call":"#a78bfa","🟡 Demo sent":"var(--amber)","🔴 Call back":"var(--rose)",
+                          "🟢 WON":"var(--green)","⚫ Rejected":"var(--dim)","⚪ Skip":"var(--dim)"};
+// Call-sheet ordering: Call back on top → To call in the middle → Demo sent at the bottom (WON/closed last).
+const SALES_STATUS_RANK = {"🔴 Call back":0,"🟣 To call":1,"🟡 Demo sent":2,"🟢 WON":3,"⚫ Rejected":4,"⚪ Skip":5};
+// Rejected/Skip drop off the active sheet on refresh (they stay in the vault, just out of the way)…
+const SALES_DROP_STATUSES = new Set(["⚫ Rejected","⚪ Skip"]);
+// …but only after a 5-minute grace window when set live, so an accidental click can be undone by re-picking a status.
+const SALES_DROP_GRACE_MS = 5*60*1000;
+const salesDropTimers = new Map();   // business → pending row-removal timeout
+function renderSalesPipeline(body, items, steps, report, persona){
+  const counts={}; SALES_STATUSES.forEach(s=>counts[s]=0);
+  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
+  // Active sheet = everything except Rejected/Skip, ordered by urgency (stable within a status).
+  const visible=items
+    .map((it,i)=>({it,i}))
+    .filter(({it})=>!SALES_DROP_STATUSES.has(it.status))
+    .sort((a,b)=>((SALES_STATUS_RANK[a.it.status]??99)-(SALES_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
+    .map(({it})=>it);
+  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
+  const row=l=>{
+    const opts=SALES_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
+    const tel=l.phone&&/\d/.test(l.phone)?` · <a href="tel:${esc(l.phone)}" style="color:var(--sky)">📞 ${esc(l.phone)}</a>`:"";
+    return `<div class="sales-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
+      <span style="min-width:0"><b>${esc(l.title||"?")}</b>
+        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}${tel}</span></span>
+      <select data-biz="${esc(l.title)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${SALES_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
+    </div>`;
+  };
+  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live call sheet — change a status here and it saves straight to your Obsidian note. The Sales agent appends new prospects below.</p>
+    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
+      ${stat("in pipeline",visible.length,"var(--text)")}
+      ${stat("to call",counts["🟣 To call"],"#a78bfa")}
+      ${stat("demo sent",counts["🟡 Demo sent"],"var(--amber)")}
+      ${stat("call back",counts["🔴 Call back"],"var(--rose)")}
+      ${stat("won",counts["🟢 WON"],"var(--green)")}</div>
+    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
+      :'<p class="feed-empty">No prospects yet — run the Sales agent and it fills your call sheet.</p>'}
+    ${report||""}</div>`;
+}
+async function setSalesStatus(sel){
+  const business=sel.dataset.biz, status=sel.value, prev=sel.style.borderColor;
+  const rowEl=sel.closest(".sales-row");
+  // Any status change cancels a pending auto-removal — this is the undo for an accidental Rejected/Skip.
+  if(salesDropTimers.has(business)){ clearTimeout(salesDropTimers.get(business)); salesDropTimers.delete(business); if(rowEl) rowEl.style.opacity=""; }
+  sel.disabled=true; sel.style.color=SALES_STAT_COLOR[status]||"var(--text)";
+  try{
+    await api("/api/agents/sales/status",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({business,status})});
+    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
+    // Rejected/Skip: dim the row now, then drop it after a 5-min grace window (re-pick a status to keep it).
+    if(SALES_DROP_STATUSES.has(status) && rowEl){
+      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
+      const t=setTimeout(()=>{ salesDropTimers.delete(business); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, SALES_DROP_GRACE_MS);
+      salesDropTimers.set(business,t);
+    }
+  }catch(e){
+    sel.style.borderColor="var(--rose)";
+    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
+  }finally{ sel.disabled=false; }
+}
+/* The Jobs agent's Pipeline tab = the live, editable application tracker.
+   Each row's status is a dropdown that writes straight back to the vault note,
+   so Taran keeps an organized record of everything he's applied to. */
+const JOB_STAT_COLOR = {"🔍 To apply":"#a78bfa","📤 Applied":"var(--sky)","📞 Interview":"var(--amber)",
+                        "🎯 Offer":"var(--green)","⚫ Rejected":"var(--dim)","⚪ Skip":"var(--dim)"};
+// Most actionable on top: interviews (don't miss them) → offers → still-to-apply → applied (waiting).
+const JOB_STATUS_RANK = {"📞 Interview":0,"🎯 Offer":1,"🔍 To apply":2,"📤 Applied":3,"⚫ Rejected":4,"⚪ Skip":5};
+const JOB_DROP_STATUSES = new Set(["⚫ Rejected","⚪ Skip"]);
+const JOB_DROP_GRACE_MS = 5*60*1000;
+const jobDropTimers = new Map();
+function renderJobPipeline(body, items, steps, report, persona){
+  const counts={}; JOB_STATUSES.forEach(s=>counts[s]=0);
+  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
+  const visible=items
+    .map((it,i)=>({it,i}))
+    .filter(({it})=>!JOB_DROP_STATUSES.has(it.status))
+    .sort((a,b)=>((JOB_STATUS_RANK[a.it.status]??99)-(JOB_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
+    .map(({it})=>it);
+  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
+  const row=l=>{
+    const opts=JOB_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
+    const title=l.url?`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(l.title||"?")}</a>`:esc(l.title||"?");
+    return `<div class="job-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
+      <span style="min-width:0"><b>${title}</b>
+        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
+      <select data-url="${esc(l.url)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${JOB_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
+    </div>`;
+  };
+  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live application tracker — change a status here and it saves straight to your Obsidian note. The Jobs agent scouts fresh roles and adds them below as 🔍 To apply.</p>
+    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
+      ${stat("in pipeline",visible.length,"var(--text)")}
+      ${stat("to apply",counts["🔍 To apply"],"#a78bfa")}
+      ${stat("applied",counts["📤 Applied"],"var(--sky)")}
+      ${stat("interview",counts["📞 Interview"],"var(--amber)")}
+      ${stat("offer",counts["🎯 Offer"],"var(--green)")}</div>
+    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
+      :'<p class="feed-empty">No roles yet — run the Jobs agent and it scouts + fills your pipeline.</p>'}
+    ${report||""}</div>`;
+}
+async function setJobStatus(sel){
+  const url=sel.dataset.url, status=sel.value, prev=sel.style.borderColor;
+  const rowEl=sel.closest(".job-row");
+  if(jobDropTimers.has(url)){ clearTimeout(jobDropTimers.get(url)); jobDropTimers.delete(url); if(rowEl) rowEl.style.opacity=""; }
+  sel.disabled=true; sel.style.color=JOB_STAT_COLOR[status]||"var(--text)";
+  try{
+    await api("/api/agents/jobs/status",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url,status})});
+    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
+    if(JOB_DROP_STATUSES.has(status) && rowEl){
+      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
+      const t=setTimeout(()=>{ jobDropTimers.delete(url); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, JOB_DROP_GRACE_MS);
+      jobDropTimers.set(url,t);
+    }
+  }catch(e){
+    sel.style.borderColor="var(--rose)";
+    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
+  }finally{ sel.disabled=false; }
+}
+/* The LinkedIn agent's Pipeline tab = the live, editable networking tracker.
+   Status dropdown writes to the vault note; each row carries its drafted connect
+   note with a one-tap copy so Taran can paste the invite by hand (ToS-safe). */
+const LI_STAT_COLOR = {"🔍 To send":"#a78bfa","📨 Invite sent":"var(--sky)","🤝 Connected":"var(--green)",
+                       "💬 Replied":"var(--amber)","⚪ Skip":"var(--dim)"};
+// Most actionable on top: replies (respond!) → connected (send follow-up) → still-to-send → invite sent (waiting).
+const LI_STATUS_RANK = {"💬 Replied":0,"🤝 Connected":1,"🔍 To send":2,"📨 Invite sent":3,"⚪ Skip":4};
+const LI_DROP_STATUSES = new Set(["⚪ Skip"]);
+const LI_DROP_GRACE_MS = 5*60*1000;
+const liDropTimers = new Map();
+function renderLinkedInPipeline(body, items, steps, report, persona){
+  const counts={}; LI_STATUSES.forEach(s=>counts[s]=0);
+  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
+  const visible=items
+    .map((it,i)=>({it,i}))
+    .filter(({it})=>!LI_DROP_STATUSES.has(it.status))
+    .sort((a,b)=>((LI_STATUS_RANK[a.it.status]??99)-(LI_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
+    .map(({it})=>it);
+  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
+  const row=l=>{
+    const opts=LI_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
+    const copy=l.connect?`<button type="button" data-copy="${esc(l.connect)}" title="Copy connect note" style="margin-left:8px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:10px;font-family:var(--font-mono);cursor:pointer">⧉ note</button>`:"";
+    return `<div class="li-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
+      <span style="min-width:0"><b>${esc(l.title||"?")}</b>
+        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
+      <span style="display:flex;align-items:center">
+        <select data-name="${esc(l.title)}" data-company="${esc(l.company||"")}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${LI_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>${copy}</span>
+    </div>`;
+  };
+  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live networking tracker — change a status here and it saves to your Obsidian note. The LinkedIn agent adds new targets below as 🔍 To send. Tap ⧉ note to copy the drafted invite, send it by hand, then mark it 📨 Invite sent.</p>
+    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
+      ${stat("in pipeline",visible.length,"var(--text)")}
+      ${stat("to send",counts["🔍 To send"],"#a78bfa")}
+      ${stat("invite sent",counts["📨 Invite sent"],"var(--sky)")}
+      ${stat("connected",counts["🤝 Connected"],"var(--green)")}
+      ${stat("replied",counts["💬 Replied"],"var(--amber)")}</div>
+    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
+      :'<p class="feed-empty">No targets yet — run the LinkedIn agent and it scouts + drafts your pipeline.</p>'}
+    ${report||""}</div>`;
+}
+async function copyConnect(btn){
+  try{ await navigator.clipboard.writeText(btn.dataset.copy); const o=btn.textContent; btn.textContent="✓ copied"; setTimeout(()=>btn.textContent=o,1200); }
+  catch(e){ alert("Connect note:\n\n"+btn.dataset.copy); }
+}
+async function setLinkedInStatus(sel){
+  const name=sel.dataset.name, company=sel.dataset.company||"", status=sel.value, prev=sel.style.borderColor;
+  const rowEl=sel.closest(".li-row"), k=name+"|"+company;
+  if(liDropTimers.has(k)){ clearTimeout(liDropTimers.get(k)); liDropTimers.delete(k); if(rowEl) rowEl.style.opacity=""; }
+  sel.disabled=true; sel.style.color=LI_STAT_COLOR[status]||"var(--text)";
+  try{
+    await api("/api/agents/linkedin/status",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,company,status})});
+    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
+    if(LI_DROP_STATUSES.has(status) && rowEl){
+      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
+      const t=setTimeout(()=>{ liDropTimers.delete(k); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, LI_DROP_GRACE_MS);
+      liDropTimers.set(k,t);
+    }
+  }catch(e){
+    sel.style.borderColor="var(--rose)";
+    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
+  }finally{ sel.disabled=false; }
 }
 function renderSettings(id, spec, ac, m){
   const conns=(cfg&&cfg.connections)||{};
@@ -710,7 +891,7 @@ $("vaultFile").addEventListener("change",async ()=>{ const f=$("vaultFile").file
   const btn=$("brainUploadBtn"); btn.disabled=true; const prev=btn.innerHTML; btn.innerHTML="Building your brain…"; $("brainCardText").textContent="Reading "+f.name+"…";
   try{ const fd=new FormData(); fd.append("file",f,f.name);
     const r=await fetch(PAIS_API+"/api/upload/"+encodeURIComponent(userId),{method:"POST",headers:{"Authorization":"Bearer "+token},body:fd});
-    if(r.status===402){ let p="brain_card"; try{const d=await r.json(); p=d.detail?.required_product||p;}catch{} if(!(await startCheckout(p))) $("brainCardText").textContent="Building your brain needs access."; }
+    if(r.status===402){ $("brainCardText").textContent="Building your brain runs on your own machine — book a call to get set up."; }
     else if(!r.ok){ $("brainCardText").textContent="Upload failed — try again."; }
     else { loadBrainStatus(); }
   }catch{ $("brainCardText").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.innerHTML=prev; } });
@@ -721,8 +902,7 @@ $("connectDesktopBtn").addEventListener("click", openConnect);
 $("cdClose").addEventListener("click",()=>{ cdModal.hidden=true; });
 cdModal.addEventListener("click",e=>{ if(e.target===cdModal) cdModal.hidden=true; });
 document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return;
-  if(!cdModal.hidden) cdModal.hidden=true;
-  if(!upModal.hidden) upModal.hidden=true; });
+  if(!cdModal.hidden) cdModal.hidden=true; });
 async function openConnect(){ cdModal.hidden=false;
   $("cdInstall").textContent="git clone https://github.com/Taran132g/pais-runtime && cd pais-runtime && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt";
   $("cdToken").textContent="generating…";

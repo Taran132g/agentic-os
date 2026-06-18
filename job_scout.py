@@ -41,22 +41,30 @@ def _norm_url(u: str) -> str:
 
 def _enqueue(jobs: list[dict]) -> int:
     """Append newly-found jobs to the FIFO queue, skipping ones already queued or
-    already applied. Returns how many were added."""
+    already applied. Cross-process-safe (the webhook fill writes this same file).
+    Returns how many were added."""
     sys.path.insert(0, str(AGENTIC_DIR))
     from tools.tracker import load_applications
-    queue = json.loads(QUEUE.read_text()) if QUEUE.exists() else []
-    seen = {_norm_url(j.get("url")) for j in queue}
-    seen |= {_norm_url(a.get("url")) for a in load_applications()
-             if a.get("status") == "applied"}
+    from tools.atomic_state import locked_update
+    applied = {_norm_url(a.get("url")) for a in load_applications()
+               if a.get("status") == "applied"}
     added = 0
-    for j in jobs:
-        nu = _norm_url(j.get("url"))
-        if not nu or nu in seen:
-            continue
-        seen.add(nu)
-        queue.append({**j, "attempts": 0})  # appended to END → FIFO
-        added += 1
-    QUEUE.write_text(json.dumps(queue, ensure_ascii=False, indent=2))
+
+    def _mutate(queue):
+        nonlocal added
+        if not isinstance(queue, list):
+            queue = []
+        seen = {_norm_url(j.get("url")) for j in queue} | applied
+        for j in jobs:
+            nu = _norm_url(j.get("url"))
+            if not nu or nu in seen:
+                continue
+            seen.add(nu)
+            queue.append({**j, "attempts": 0})  # appended to END → FIFO
+            added += 1
+        return queue
+
+    locked_update(QUEUE, _mutate, default=[])
     return added
 VAULT_RESUME = (Path.home() / "Library/Mobile Documents/iCloud~md~obsidian"
                 / "Documents/Digital Brain" / "About Taran/Resume.md")
@@ -176,6 +184,11 @@ def main() -> int:
     if not dry:
         CACHE.write_text(json.dumps(jobs, ensure_ascii=False, indent=2))
         added = _enqueue(jobs)  # append new finds to the FIFO queue
+        try:                    # mirror into the editable vault Job Pipeline (source of truth)
+            from tools import job_sheet
+            job_sheet.append_jobs(jobs)
+        except Exception as e:
+            print("(job_sheet append skipped:", str(e)[:120], ")")
 
     lines = [f"💼 <b>Summer 2027 matches — {today}</b>",
              f"<i>{len(jobs)} researched + URL-verified · ranked by fit</i>", ""]

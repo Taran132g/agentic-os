@@ -95,3 +95,6 @@ My Movie final.mp4
 My Movie v2.mp4
 My Movie v3.mp4
 *.mov
+
+# Local business runtime state (booking/customer data — never commit)
+local_business/.state/

@@ -456,6 +456,14 @@ async def _run_agent_task(item: dict, agent: str):
             })
         else:
             await broadcast({"type": "task_error", "id": tid, "text": err_str, "agent": agent})
+    finally:
+        # Per-task sandbox is disposable working space — remove it so tmp/<tid>
+        # dirs can't accumulate without bound on this always-on daemon.
+        try:
+            import shutil
+            shutil.rmtree(sandbox, ignore_errors=True)
+        except Exception:
+            pass
 
 
 # ── Verification handlers (called when user clicks Complete / sends follow-up) ─
@@ -1423,6 +1431,11 @@ def _load_usage():
             if data.get("week") == _current_week():
                 _weekly_tokens = data.get("tokens", 0)
                 _weekly_by_agent = data.get("by_agent", {}) or {}
+            else:
+                # Stale week on disk (rollover happened while we were down) —
+                # start the new week clean instead of leaving last week's totals.
+                _weekly_tokens = 0
+                _weekly_by_agent = {}
             _session_tasks_done = data.get("tasks_done", 0)
         except Exception:
             pass
@@ -1440,11 +1453,12 @@ def _save_usage(force: bool = False):
         return
     _last_usage_save = now
     try:
-        USAGE_FILE.write_text(json.dumps({
+        from tools.atomic_state import write_json
+        write_json(USAGE_FILE, {
             "week": _current_week(), "tokens": _weekly_tokens,
             "tasks_done": _session_tasks_done,
             "by_agent": _weekly_by_agent,
-        }))
+        }, indent=0)
     except Exception as e:
         log.warning("Failed to save usage: %s", e)
 

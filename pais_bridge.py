@@ -19,10 +19,12 @@ Env:
 
 import json
 import os
+import re
 import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 TOKEN = os.environ.get("BRIDGE_TOKEN", "")
 DEFAULT_MODEL = os.environ.get("BRIDGE_MODEL", "claude-sonnet-4-6")
@@ -62,6 +64,33 @@ N8N_APPLY_WEBHOOK = os.environ.get("N8N_APPLY_WEBHOOK", "http://localhost:5678/w
 AGENTIC_DIR = os.path.dirname(os.path.abspath(__file__))
 SCOUT_JOBS = os.path.join(AGENTIC_DIR, "scout_jobs.json")
 
+# Shared job pipeline (the vault Job Pipeline.md note = single source of truth for
+# scouting, the apply queue, and the Control Room tracker) + the MERGED Jobs runner.
+# Reusing pais-runtime's run_jobs means an on-demand "Run" is byte-identical to the
+# scheduled morning routine — no second fill implementation to drift.
+import importlib.util
+import sys
+try:
+    from tools import job_sheet  # type: ignore
+except Exception:
+    job_sheet = None
+try:
+    from tools import linkedin_sheet  # type: ignore
+except Exception:
+    linkedin_sheet = None
+# Load pais-runtime/agents.py under a UNIQUE name — agentic_os already has an
+# `agents/` package, so `import agents` would resolve to the wrong module.
+_PAIS_RUNTIME = os.path.expanduser("~/pais-runtime")
+pais_agents = None
+try:
+    _spec = importlib.util.spec_from_file_location(
+        "pais_runtime_agents", os.path.join(_PAIS_RUNTIME, "agents.py"))
+    if _spec and _spec.loader:
+        pais_agents = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(pais_agents)
+except Exception:
+    pais_agents = None
+
 # Real execution: each web agent runs the SAME script as the n8n morning stack
 # (morning_stack.sh), so a website run is identical to the scheduled routine.
 # Telegram pings, Gmail drafts, scout_jobs.json, git pushes — all real.
@@ -71,6 +100,7 @@ SCRIPT_AGENTS = {
     "career":   {"cmd": "python3 job_scout.py"},
     "outreach": {"cmd": "python3 piontrix_scout.py; "
                         "OUTREACH_GMAIL_DRAFT=1 python3 piontrix_outreach.py --batch; python3 backfill_phones.py"},
+    "sales":    {"cmd": "python3 sales_agent.py"},
     "linkedin": {"cmd": "python3 linkedin_pais.py"},
     "code":     {"cmd": "python3 tools/repo_sync.py"},
 }
@@ -239,6 +269,72 @@ def search_brain(query: str, top_k: int) -> list:
     return out
 
 
+# ── Sales pipeline: the editable cold-call sheet lives in the Obsidian vault.
+# The Control Room reads + writes it through these helpers (owner-only, gated
+# on the backend). Source of truth stays the markdown note Taran edits directly.
+SALES_SHEET = (Path.home() / "Library" / "Mobile Documents" / "iCloud~md~obsidian" /
+               "Documents" / "Digital Brain" / "Projects & Building" / "Piontrix Sales Pipeline.md")
+SALES_BELOW = "<!-- SALES_AGENT_APPEND_BELOW"
+SALES_ABOVE = "<!-- SALES_AGENT_APPEND_ABOVE -->"
+SALES_STATUSES = ["🟣 To call", "🟡 Demo sent", "🔴 Call back", "🟢 WON", "⚫ Rejected", "⚪ Skip"]
+
+
+def _sales_rows() -> list:
+    """Parse the pipeline table (between the markers) into row dicts."""
+    if not SALES_SHEET.exists():
+        return []
+    rows = []
+    in_p = False
+    for line in SALES_SHEET.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if SALES_BELOW in s:
+            in_p = True
+            continue
+        if SALES_ABOVE in s:
+            break
+        if not (in_p and s.startswith("|")):
+            continue
+        cols = [c.strip() for c in s.strip("|").split("|")]
+        if len(cols) < 2 or not cols[1] or cols[1].lower() == "business" or re.fullmatch(r"-+", cols[1]):
+            continue
+        rows.append({
+            "status": cols[0],
+            "business": cols[1],
+            "vertical": cols[2] if len(cols) > 2 else "",
+            "phone": cols[3] if len(cols) > 3 else "",
+            "window": cols[4] if len(cols) > 4 else "",
+            "workflow": cols[5] if len(cols) > 5 else "",
+            "notes": cols[7] if len(cols) > 7 else "",
+        })
+    return rows
+
+
+def _sales_set_status(business: str, status: str) -> bool:
+    """Change one row's Status cell in the vault sheet, atomically. Only the
+    matching row is touched — every other line is left byte-identical."""
+    if status not in SALES_STATUSES or not SALES_SHEET.exists():
+        return False
+    out, in_p, changed = [], False, False
+    for line in SALES_SHEET.read_text(encoding="utf-8").splitlines(keepends=True):
+        s = line.strip()
+        if SALES_BELOW in s:
+            in_p = True
+        elif SALES_ABOVE in s:
+            in_p = False
+        if in_p and not changed and s.startswith("|"):
+            cols = [c.strip() for c in s.strip("|").split("|")]
+            if len(cols) >= 2 and cols[1].lower() != "business" and cols[1].lower() == business.strip().lower():
+                cols[0] = status
+                line = "| " + " | ".join(cols) + " |" + ("\n" if line.endswith("\n") else "")
+                changed = True
+        out.append(line)
+    if changed:
+        tmp = str(SALES_SHEET) + ".tmp"
+        Path(tmp).write_text("".join(out), encoding="utf-8")
+        os.replace(tmp, str(SALES_SHEET))
+    return changed
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, obj: dict):
         body = json.dumps(obj).encode()
@@ -255,7 +351,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/job-status", "/linkedin-status"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -285,13 +381,29 @@ class Handler(BaseHTTPRequestHandler):
             query = (data.get("query") or persona or agent).strip()
             use_web = bool(data.get("web"))
 
-            # Job Apply runs ON this computer (n8n → fill_scouted.py browser
-            # fills) and needs the user's attention — no LLM call needed.
-            if agent == "apply":
-                try:
-                    return self._send(200, {"text": trigger_job_apply()})
-                except Exception as e:
-                    return self._send(502, {"error": str(e)[:300]})
+            # Jobs = the MERGED scout + apply agent. On-demand reuses the exact
+            # pais-runtime runner (scout fresh roles → vault pipeline → Gemini fill
+            # with open-tab fallback → mark Applied), so it matches the scheduled
+            # morning routine. 'career'/'apply' are back-compat aliases.
+            if agent in ("jobs", "career", "apply"):
+                if pais_agents is not None:
+                    try:
+                        if agent == "apply":
+                            text = pais_agents.run_apply({}, fields, persona)
+                        else:
+                            res = pais_agents.run_jobs({}, fields, persona)
+                            text = res.get("text", "") if isinstance(res, dict) else str(res)
+                        return self._send(200, {"text": text})
+                    except subprocess.TimeoutExpired:
+                        return self._send(504, {"error": "jobs agent timed out"})
+                    except Exception as e:
+                        return self._send(502, {"error": str(e)[:300]})
+                if agent != "career":          # no merged runner → fill-only fallback
+                    try:
+                        return self._send(200, {"text": trigger_job_apply()})
+                    except Exception as e:
+                        return self._send(502, {"error": str(e)[:300]})
+                # career falls through to its scout script below
 
             # Script agents run the REAL n8n-equivalent job on this computer —
             # identical to the scheduled morning routine.
@@ -363,23 +475,93 @@ class Handler(BaseHTTPRequestHandler):
                         items.append({"title": l.get("business",""), "sub": l.get("website",""),
                                       "phone": l.get("phone",""), "done": bool(l.get("contacted")),
                                       "note": str(l.get("last_result",""))[:60]})
-                elif agent in ("career", "apply"):
-                    with open(SCOUT_JOBS) as f:
-                        d = json.load(f)
-                    for j in (d if isinstance(d, list) else d.get("jobs", [])):
-                        items.append({"title": j.get("company",""), "sub": j.get("role") or j.get("title",""),
-                                      "url": j.get("url",""), "done": False,
-                                      "note": f"match {j.get('match_score','?')}"})
+                elif agent in ("jobs", "career", "apply"):
+                    if job_sheet is not None:        # vault Job Pipeline = source of truth
+                        for r in job_sheet.rows():
+                            st = r["status"]
+                            note = (f"match {r['match']}" if r["match"] else "")
+                            if r["applied"]:
+                                note = (note + " · " if note else "") + f"applied {r['applied']}"
+                            items.append({"title": r["company"], "sub": r["role"],
+                                          "url": r["url"], "status": st,
+                                          "done": st in (job_sheet.APPLIED_STATUS, "📞 Interview", "🎯 Offer"),
+                                          "note": note, "notes": r["notes"]})
+                    else:                            # legacy fallback: raw scout cache
+                        with open(SCOUT_JOBS) as f:
+                            d = json.load(f)
+                        for j in (d if isinstance(d, list) else d.get("jobs", [])):
+                            items.append({"title": j.get("company",""), "sub": j.get("role") or j.get("title",""),
+                                          "url": j.get("url",""), "done": False,
+                                          "note": f"match {j.get('match_score','?')}"})
                 elif agent == "linkedin":
-                    with open(os.path.join(AGENTIC_DIR, "linkedin_pais_queue.json")) as f:
-                        d = json.load(f)
-                    for t in (d if isinstance(d, list) else d):
-                        items.append({"title": t.get("name",""), "sub": f"{t.get('role','')} · {t.get('company','')}",
-                                      "done": bool(t.get("contacted")), "note": str(t.get("why",""))[:60]})
-                self._send(200, {"items": items})
+                    if linkedin_sheet is not None:   # vault LinkedIn Pipeline = source of truth
+                        for r in linkedin_sheet.rows():
+                            st = r["status"]
+                            note = str(r["why"])[:70]
+                            if r["sent"]:
+                                note = (note + " · " if note else "") + f"sent {r['sent']}"
+                            items.append({"title": r["name"], "sub": f"{r['role']} · {r['company']}",
+                                          "status": st,
+                                          "done": st in ("🤝 Connected", "💬 Replied"),
+                                          "note": note, "company": r["company"], "connect": r["connect"]})
+                    else:                            # legacy fallback: raw queue json
+                        with open(os.path.join(AGENTIC_DIR, "linkedin_pais_queue.json")) as f:
+                            d = json.load(f)
+                        for t in (d if isinstance(d, list) else d):
+                            items.append({"title": t.get("name",""), "sub": f"{t.get('role','')} · {t.get('company','')}",
+                                          "done": bool(t.get("contacted")), "note": str(t.get("why",""))[:60]})
+                elif agent == "sales":
+                    for r in _sales_rows():
+                        st = r["status"]
+                        items.append({"title": r["business"], "sub": r["vertical"],
+                                      "phone": r["phone"], "status": st, "done": "WON" in st,
+                                      "note": r["workflow"] or r["window"], "notes": r["notes"]})
+                statuses = None
+                if agent == "sales":
+                    statuses = SALES_STATUSES
+                elif agent in ("jobs", "career", "apply") and job_sheet is not None:
+                    statuses = job_sheet.STATUSES
+                elif agent == "linkedin" and linkedin_sheet is not None:
+                    statuses = linkedin_sheet.STATUSES
+                self._send(200, {"items": items, "statuses": statuses})
             except Exception as e:
                 self._send(200, {"items": [], "error": str(e)[:100]})
             return
+
+        if self.path == "/sales-status":
+            biz = (data.get("business") or "").strip()
+            status = (data.get("status") or "").strip()
+            if not biz or status not in SALES_STATUSES:
+                return self._send(400, {"error": "business + valid status required"})
+            try:
+                return self._send(200, {"ok": _sales_set_status(biz, status)})
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/job-status":
+            # Owner edits a job row's status in the Control Room → write it straight
+            # to the vault Job Pipeline note (keyed by the posting URL).
+            url = (data.get("url") or "").strip()
+            status = (data.get("status") or "").strip()
+            if not url or job_sheet is None or status not in job_sheet.STATUSES:
+                return self._send(400, {"error": "url + valid status required"})
+            try:
+                return self._send(200, {"ok": job_sheet.set_status(url, status)})
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/linkedin-status":
+            # Owner edits a LinkedIn target's status → write to the vault note
+            # (keyed by name + company).
+            name = (data.get("name") or "").strip()
+            company = (data.get("company") or "").strip()
+            status = (data.get("status") or "").strip()
+            if not name or linkedin_sheet is None or status not in linkedin_sheet.STATUSES:
+                return self._send(400, {"error": "name + valid status required"})
+            try:
+                return self._send(200, {"ok": linkedin_sheet.set_status(name, company, status)})
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
 
         if self.path == "/stats":
             try:

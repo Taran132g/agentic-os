@@ -24,7 +24,7 @@
     <a href="#ondemand">How it works</a>
   </nav>
   <div style="display:flex;gap:10px;align-items:center">
-    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
+    <a class="btn btn-ghost" data-cta="cr" href="/demo">Try the Control Room</a>
     <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
   </div>
 </header>
@@ -45,7 +45,7 @@
     <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
     <a class="btn btn-ghost" href="#demo">Watch the demo</a>
-    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
+    <a class="btn btn-ghost" data-cta="cr" href="/demo">Try the Control Room</a>
   </div>
   
   <span class="scroll-hint" aria-hidden="true">SCROLL ▾</span>
@@ -141,8 +141,9 @@
     <div class="faq-item rv"><h3>Do I need to babysit it?</h3><p>No. Set your team up once, connect your desktop, and they run on a schedule — reporting back to your Control Room.</p></div>
   </div>
   <div class="hero-cta rv" style="justify-content:center;margin-top:40px">
-    <a class="btn btn-primary" href="/app">Start free
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+    <a class="btn btn-ghost" data-cta="cr" href="/demo">Try the Control Room</a>
   </div>
 </section>
 
@@ -238,6 +239,30 @@ if (big) {
 }
 
 /* Analytics: funnel events (Vercel Web Analytics) */
+/* Control Room CTA routing: the owner gets their real Control Room (/app);
+   everyone else gets the live demo (/demo). We read the Supabase session that
+   supabase-js persisted in localStorage on /app — no SDK or network needed. */
+const OWNER_EMAILS = ["taran.impact@gmail.com", "taranalt8@gmail.com"];
+function signedInEmail() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!/^sb-.*-auth-token$/.test(k)) continue;
+      const v = JSON.parse(localStorage.getItem(k));
+      const u = v && (v.user || (v.currentSession && v.currentSession.user));
+      if (u && u.email) return String(u.email).toLowerCase();
+    }
+  } catch (e) { /* malformed/absent session → treat as visitor */ }
+  return null;
+}
+function isOwner() {
+  const e = signedInEmail();
+  return !!e && OWNER_EMAILS.includes(e);
+}
+if (isOwner()) {
+  document.querySelectorAll('[data-cta="cr"]').forEach(a => { a.href = "/app"; });
+}
+
 document.addEventListener("click", (ev) => {
   const a = ev.target.closest("a");
   if (!a) return;
@@ -245,7 +270,7 @@ document.addEventListener("click", (ev) => {
   const from = wrap && (wrap.id || (wrap.tagName !== "SECTION" && wrap.tagName.toLowerCase())
     || wrap.className.split(" ")[0]) || "page";
   if (a.href.includes("cal.com/taranveer")) va("event", { name: "book_call_click", data: { from } });
-  else if (a.getAttribute("href") === "/app") va("event", { name: "try_control_room_click", data: { from } });
+  else if (a.dataset.cta === "cr") va("event", { name: "try_control_room_click", data: { from, dest: a.getAttribute("href") } });
 });
 const demoSec = document.getElementById("demo");
 if (demoSec) {

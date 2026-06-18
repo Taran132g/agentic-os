@@ -177,8 +177,13 @@ IMPORTANT: Only include URLs you confirmed are real application pages via WebFet
             if not isinstance(jobs_raw, list):
                 jobs_raw = []
 
-        for j in jobs_raw:
+        for i, j in enumerate(jobs_raw):
+            if not isinstance(j, dict):
+                continue  # skip malformed LLM/API rows instead of crashing the run
+            j.setdefault("id", f"job_{i}")
             j.setdefault("status", "found")
+            j.setdefault("company", "?")
+            j.setdefault("url", "")
             _jobs.append(j)
             await broadcast({"type": "career_job_found", "job": dict(j)})
         _save_jobs_cache()

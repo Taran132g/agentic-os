@@ -38,7 +38,7 @@ Run every pitch through the same five beats. Lead with the leak they *feel*, nev
 | "Another monthly software bill?" | "No bloated platform underneath, and your customer list stays on your side. You're paying me to run it — one won-back party a week covers it." |
 | "I'm too busy to learn software." | "You open one screen in the morning and tap approve. That's the whole job. I do all the setup." |
 | "How do I know it works?" | "Free 30-day pilot. You'll see exactly how many regulars came back and calls it saved before you pay a cent." |
-| "What's it cost?" | "Free 30 days, then [$400/mo], month-to-month, cancel anytime. If it's not earning its keep, fire it." |
+| "What's it cost?" | "Free 30 days, then $100/mo for reactivation + missed-call — month-to-month, cancel anytime. Add the AI voice line and it's $250. Less than one saved booking a week. If it's not earning its keep, fire it." |
 | "I already pay someone for marketing." | "This isn't marketing — it's plugging the leaks *after* they find you: the calls and regulars you're already losing. It makes the marketing you pay for actually pay off." |
 | "Is my data safe?" | "It runs on a setup in your own back office. Your customer list never leaves your side — only the messages you approve go out." |
 | "Let me think about it." | "Totally fair — that's what the free month is for. No card, no contract. Worst case you get a month of won-back regulars for nothing. Want me to set it up Thursday?" |
@@ -46,7 +46,7 @@ Run every pitch through the same five beats. Lead with the leak they *feel*, nev
 ---
 
 ## Notes to self
-- **`[$400/mo]` is a placeholder** — check 2–3 competitor offers before quoting.
+- **Pricing matches the live site** (getpais.company/pricing): **$100/mo** Reactivation + Missed-Call · **$250/mo** + AI Voice · Full Suite scoped. Lead with the $100 entry tier; quote $250 only once they want the voice line. (Old `$400` placeholder retired 2026-06-18.)
 - **Open the Google insights tab in front of them** — "you got 540 calls from Google last month" sells the missed-call fix on its own.
 - **Rehearse the two demo money-shots:** the live missed call, and the AI Voice toggle.
 - The voice agent is the **upgrade close** — offer it after they're sold on reactivation + missed-call.

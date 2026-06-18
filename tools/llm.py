@@ -12,12 +12,20 @@ import contextvars
 import datetime
 import json
 import logging
+import os
 import re
+import signal
 from pathlib import Path
 
 log = logging.getLogger(__name__)
 
 AGENTIC_DIR = Path(__file__).parent.parent
+
+# Hard wall-clock cap on a single CLI run. A hung child (stuck pytest, wedged
+# MCP/tool subprocess, network stall) is killed — the whole process GROUP —
+# instead of wedging the worker forever. Generous so legit long research/coding
+# runs finish; override with PAIS_CLI_TIMEOUT (seconds).
+CLI_TIMEOUT_SECS = int(os.environ.get("PAIS_CLI_TIMEOUT", "1800"))
 
 # Per-task process tracking — keyed by task_id so /stop can target one task
 _active_procs: dict = {}
@@ -61,8 +69,21 @@ def get_active_proc():
     return next(iter(_active_procs.values()), None) if _active_procs else None
 
 
+def _kill_proc_group(proc, sig=signal.SIGTERM):
+    """Signal the whole process GROUP. The `claude` CLI spawns node/MCP/tool
+    children; SIGTERM to the parent alone orphans them. Falls back to killing
+    just the process if the group send fails (e.g. it already exited)."""
+    try:
+        os.killpg(os.getpgid(proc.pid), sig)
+    except (ProcessLookupError, PermissionError, OSError):
+        try:
+            proc.kill()
+        except Exception:
+            pass
+
+
 def stop_active_proc(task_id: str | None = None):
-    """Terminate one task's proc (by task_id) or all if no id given."""
+    """Terminate one task's process GROUP (by task_id) or all if no id given."""
     if not _active_procs:
         return False
     targets = []
@@ -74,10 +95,10 @@ def stop_active_proc(task_id: str | None = None):
         return False
     for tid, proc in targets:
         try:
-            proc.terminate()
+            _kill_proc_group(proc, signal.SIGTERM)
         except Exception as e:
-            log.warning("Failed to terminate proc for %s: %s", tid, e)
-    log.info("Terminated %d active process(es).", len(targets))
+            log.warning("Failed to terminate proc group for %s: %s", tid, e)
+    log.info("Terminated %d active process group(s).", len(targets))
     return True
 
 
@@ -316,6 +337,7 @@ async def _run_cli_process(cmd, broadcast, send_telegram, sandbox_dir=None,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
         limit=10 * 1024 * 1024,
+        start_new_session=True,   # own process group → killpg reaps the whole tree
     )
     # Track by task_id so /stop can target one task; fall back to contextvar then a generated key
     proc_key = task_id or _current_task_id.get() or f"_anon_{id(proc)}"
@@ -330,7 +352,16 @@ async def _run_cli_process(cmd, broadcast, send_telegram, sandbox_dir=None,
 
     async def read_stream(stream):
         nonlocal assistant_text, garbage_text, new_session_id
-        async for raw_line in stream:
+        while True:
+            try:
+                raw_line = await stream.readline()
+            except (ValueError, asyncio.LimitOverrunError):
+                # A single line exceeded the 10 MB buffer — don't let the
+                # uncaught error abort the reader and leak the subprocess.
+                log.warning("CLI stream line exceeded buffer limit — truncating this stream")
+                break
+            if not raw_line:
+                break  # EOF
             try:
                 line = raw_line.decode().strip()
             except Exception:
@@ -386,15 +417,35 @@ async def _run_cli_process(cmd, broadcast, send_telegram, sandbox_dir=None,
                     usage["cache_read_input_tokens"]     = u.get("cache_read_input_tokens", 0)
                     usage["cost_usd"]                    = event.get("total_cost_usd", 0.0)
 
-    await asyncio.gather(read_stream(proc.stdout), read_stream(proc.stderr))
-    await proc.wait()
+    async def _pump():
+        await asyncio.gather(read_stream(proc.stdout), read_stream(proc.stderr))
+        await proc.wait()
 
-    _active_procs.pop(proc_key, None)
+    timed_out = False
+    try:
+        await asyncio.wait_for(_pump(), timeout=CLI_TIMEOUT_SECS)
+    except asyncio.TimeoutError:
+        timed_out = True
+        log.warning("CLI run %s exceeded %ds — killing process group", proc_key, CLI_TIMEOUT_SECS)
+        _kill_proc_group(proc, signal.SIGTERM)
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=10)
+        except asyncio.TimeoutError:
+            _kill_proc_group(proc, signal.SIGKILL)
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                log.error("CLI run %s did not exit even after SIGKILL", proc_key)
+    finally:
+        # Always drop the handle so /stop and is_running() can't see a dead proc.
+        _active_procs.pop(proc_key, None)
 
     res_text = assistant_text.strip() or garbage_text.strip()
+    if timed_out and not res_text:
+        res_text = f"[PAIS: agent run exceeded {CLI_TIMEOUT_SECS}s and was terminated]"
 
     return {
-        "success":    proc.returncode == 0,
+        "success":    (proc.returncode == 0) and not timed_out,
         "exit_code":  proc.returncode,
         "result":     res_text,
         "session_id": new_session_id,

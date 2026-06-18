@@ -31,7 +31,7 @@ from . import (reputation_workflow, reactivation_workflow, missedcall_workflow,
 
 log = logging.getLogger("pais-runtime")
 
-PAIS_BASE = os.environ.get("PAIS_BASE", "https://pais-site.vercel.app")
+PAIS_BASE = os.environ.get("PAIS_BASE", "https://getpais.company")
 HEARTBEAT_SECS = 300
 
 AGENTS = {
@@ -62,17 +62,23 @@ async def run_batch(business, state) -> None:
 
 
 def _recompute_leaks(state, business) -> None:
-    """Derive the dashboard's leak bars from current metrics."""
+    """Derive the dashboard's leak bars from current metrics.
+
+    NOTE: the `pct` bar widths are heuristic ESTIMATES (metric count × a fixed
+    weight), not measured leak severity — the `val` counts are the only hard
+    numbers. `est: True` and the "est." note flag this so a client never mistakes
+    the bar for a real measurement. Replace pct with a real model when one exists.
+    """
     m = state.data["metrics"]
     state.set_leaks([
         {"name": "Unanswered reviews → lost rank", "pct": min(95, m.get("reviews", 0) * 7),
-         "val": f"{m.get('reviews', 0)} answered", "note": "+rank trend"},
+         "val": f"{m.get('reviews', 0)} answered", "note": "+rank trend · est.", "est": True},
         {"name": "After-hours calls → lost parties", "pct": min(90, m.get("calls", 0) * 8),
-         "val": f"{m.get('calls', 0)} caught", "note": "high value"},
+         "val": f"{m.get('calls', 0)} caught", "note": "high value · est.", "est": True},
         {"name": "Customers drifting away", "pct": min(90, m.get("winbacks", 0) * 7),
-         "val": f"{m.get('winbacks', 0)} re-engaged", "note": "recurring"},
+         "val": f"{m.get('winbacks', 0)} re-engaged", "note": "recurring · est.", "est": True},
         {"name": "No-shows on booked slots", "pct": min(80, m.get("noshows", 0) * 8),
-         "val": f"{m.get('noshows', 0)} recovered", "note": "weekend"},
+         "val": f"{m.get('noshows', 0)} recovered", "note": "weekend · est.", "est": True},
     ])
 
 
@@ -102,14 +108,59 @@ async def push_state(business, state) -> None:
 
 
 async def pull_and_execute_approvals(business, state) -> None:
-    """Owner decisions made in the dashboard → execute the sends here."""
+    """Owner decisions made in the dashboard → execute the REAL sends here.
+
+    An approval is marked Sent / counted toward recovered revenue ONLY after a
+    real send actually succeeds. Until the channel integrations are wired,
+    `_execute_send` returns False, so an approved-but-undeliverable draft is
+    recorded honestly ("approved but not delivered") instead of falsely
+    reporting delivery and inflating the dashboard's recovered total.
+    """
     res = await _post("/api/runtime/approvals/pull", {"business_id": business.business_id})
     for decision in (res or {}).get("decisions", []):
-        match = state.resolve_approval(decision["id"], sent=decision["action"] == "approve")
-        if match and decision["action"] == "approve":
-            # TODO: route to tools.sms / tools.reviews based on match["type"]/channel
+        aid = decision.get("id")
+        if not aid:
+            continue
+        # Snapshot the draft before resolving (resolve removes it from the list).
+        match = next((a for a in state.data["approvals"] if a["id"] == aid), None)
+        if match is None:
+            continue
+
+        if decision.get("action") != "approve":
+            state.resolve_approval(aid, sent=False)
+            state.add_activity(ic="—", ac="#9aa0a6", body=f"<b>Dismissed</b> — {match['who']}")
+            continue
+
+        sent_ok = await _execute_send(business, state, match)
+        if sent_ok:
+            # Real send confirmed → remove from queue, count recovered, report Sent.
+            state.resolve_approval(aid, sent=True)
             state.add_activity(ic="✓", ac="var(--green)", body=f"<b>Sent</b> — {match['who']}")
+        else:
+            # Nothing was actually sent — do NOT claim Sent or add recovered $.
+            state.resolve_approval(aid, sent=False)
+            state.add_activity(
+                ic="!", ac="var(--red)",
+                body=f"<b>Approved but not delivered</b> — {match['who']} "
+                     f"(send channel not connected yet)",
+            )
     state.save()
+
+
+async def _execute_send(business, state, match) -> bool:
+    """Route an approved draft to its real channel (SMS / review reply).
+
+    Returns True ONLY on a confirmed send. The channel integrations are not wired
+    yet, so this returns False — callers must therefore never report 'Sent' or add
+    recovered revenue for a send that did not actually happen. Wire the real
+    tools.sms / tools.reviews routing here (keyed on match['type']/match['channel'])
+    and return its success boolean.
+    """
+    log.warning(
+        "send NOT delivered for %s (type=%s, channel=%s) — channel integration not wired",
+        match.get("who"), match.get("type"), match.get("channel"),
+    )
+    return False
 
 
 async def serve(business) -> None:

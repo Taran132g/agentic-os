@@ -1,56 +1,29 @@
 [
   {
-    "name": "Brandon Veiseh",
-    "role": "Co-founder",
-    "company": "MindFort (YC X25)",
-    "why": "Actively hiring 4 roles right now \u2014 Founding Engineer, AI Software Engineer, Growth Lead, and Founding SDR \u2014 listed on mindfort.ai/careers, YC Work at a Startup, and Taro; Brandon publicly announced the company and its hiring on LinkedIn.",
-    "connect": "Hi Brandon \u2014 saw MindFort is hiring founding engineers for your autonomous security agents. As a Penn State AI engineering student building agent systems, I'd love to follow what you're building.",
-    "followup": "Thanks for connecting, Brandon!\nI recently built PAIS \u2014 a platform of AI agent workflows (inbox triage, lead scouting, outreach drafting, daily reports) all run from one Control Room: https://pais-site.vercel.app\nSince MindFort is scaling across engineering and sales, I'd love to hear how you're thinking about automating sourcing and outreach.\nOpen to a quick 15-min chat sometime this month?",
+    "name": "Madhav Jha",
+    "role": "CTO & Co-Founder",
+    "company": "Emergent",
+    "why": "Penn State PhD in Theoretical Computer Science (his LinkedIn: 'Making vibe coding a reality at Emergent'); Emergent is a vibe-coding AI platform actively hiring engineers — 30 open roles on YC/Work at a Startup incl. an open new-grad-welcome engineer track, fresh off a Series B.",
+    "connect": "Hi Madhav — fellow Nittany Lion here (AI Eng '27; you did your CS PhD at Penn State). Emergent's vibe-coding work is exactly the future I'm building toward. Would love to connect.",
+    "followup": "Thanks for connecting, Madhav — always great to meet a fellow Penn Stater. I'm an AI Engineering student ('27) who vibe-codes and ships full products solo. I built PAIS, a platform of autonomous AI agent workflows run from one Control Room (https://getpais.company), plus BrainScan (open-source AI) and a live trading bot — stack's Python/React/AWS/Firebase. Saw Emergent is hiring engineers; I'd love 15 min to hear what you look for in a founding-style builder. Open to a quick chat?",
     "contacted": false
   },
   {
-    "name": "Igor Babuschkin",
+    "name": "Ryan Owen",
+    "role": "Co-Founder & President",
+    "company": "Wicket",
+    "why": "Penn State Class of 1999, Information Systems (per Invent Penn State alumni story); Wicket's careers page is actively seeking full-stack software developers for its facial-authentication sports SaaS (careers@wicketsoft.com + LinkedIn openings).",
+    "connect": "Hi Ryan — Penn State connection here (I'm AI Eng '27; saw you're a '99 IST grad). Love what Wicket's doing with facial authentication in sports. Would be great to connect.",
+    "followup": "Thanks for connecting, Ryan — always a pleasure to meet a fellow Penn Stater. I'm an AI Engineering student ('27) and a fast full-stack builder: I shipped PAIS, a platform of autonomous AI agent workflows run from one Control Room (https://getpais.company), plus BrainScan (open-source AI) and a live trading bot. Stack: Python, React, AWS, Firebase. I noticed Wicket's looking for full-stack developers — would you be open to a quick chat about the role and what you need?",
+    "contacted": false
+  },
+  {
+    "name": "Carl Nassib",
     "role": "Founder & CEO",
-    "company": "River AI",
-    "why": "Launched June 10, 2026 (Bloomberg) with former xAI/Tesla staffers; publicly 'assembling top researchers and engineers' with a live careers page, and reportedly raising up to $1B at a ~$5B valuation led by General Catalyst.",
-    "connect": "Hi Igor \u2014 congrats on launching River AI! User-owned personal agents is a vision I'm rooting for. Saw you're assembling the founding team \u2014 excited to follow the build.",
-    "followup": "Thanks for connecting, Igor \u2014 and congrats again on the launch.\nI recently built PAIS, a platform of personal AI agent workflows (inbox triage, lead scouting, outreach drafting, daily reports) run from one Control Room: https://pais-site.vercel.app\nIt's a small-scale take on the same idea River is chasing \u2014 agents that work for the user.\nAs you build out the team, I'd love 15 minutes to hear what you look for in early agent engineers.",
-    "contacted": false
-  },
-  {
-    "name": "Paddy Lambros",
-    "role": "Founder & CEO",
-    "company": "Dex",
-    "why": "Raised a $5.3M seed led by Notion Capital (April 2026, Fortune exclusive) to scale its AI talent agent \u2014 15,000+ engineers registered, 50+ client companies including ElevenLabs and Synthesia, and growing the team post-raise.",
-    "connect": "Hi Paddy \u2014 congrats on Dex's seed round with Notion Capital! An AI talent agent that actually talks to engineers is brilliant. I build AI agent workflows as a student \u2014 would love to connect.",
-    "followup": "Thanks for accepting, Paddy!\nI recently built PAIS \u2014 AI agent workflows for inbox triage, lead scouting, outreach drafting, and daily reports, all run from one Control Room: https://pais-site.vercel.app\nGiven Dex is scaling candidate and client outreach post-raise, I think there's real overlap with what I've been building.\nWould you be up for a quick chat about your hiring and automation roadmap?",
-    "contacted": false
-  },
-  {
-    "name": "Grace Martin",
-    "role": "Recruiter",
-    "company": "Citadel Securities",
-    "why": "Multiple active SWE & SWE intern job postings live on LinkedIn in 2026 (C++ SWE, Senior Options SWE, intern via WayUp) \u2014 signals an aggressive hiring cycle currently open",
-    "connect": "Hi Grace \u2014 noticed Citadel's active SWE hiring push and love the caliber of engineering there. Penn State AI Engineering student targeting elite internships. Would love to be in your network!",
-    "followup": "Thanks for connecting, Grace! I recently shipped PAIS \u2014 a platform of AI agent workflows (inbox triage, lead scouting, outreach drafting, daily reports) run from a single Control Room: https://pais-site.vercel.app\n\nI'm a Penn State AI Eng student with hands-on builds: TNFund (algo trading bot on Schwab) and Piontrix (tech consulting co-founder). Citadel's engineering culture is exactly what I'm targeting for summer 2027. Would you be open to a quick 15-min chat about the SWE intern path?",
-    "contacted": false
-  },
-  {
-    "name": "Gemma Stephens",
-    "role": "University Recruiting",
-    "company": "Cloudflare",
-    "why": "Cloudflare publicly committed to hiring 1,111 interns in 2026 (blog post + BusinessWire press release) with active Summer 2026 SWE intern postings already live \u2014 the largest intern push in their history",
-    "connect": "Hi Gemma \u2014 Cloudflare's 1,111 interns goal for 2026 caught my eye \u2014 genuinely exciting. Penn State AI Engineering student building AI agent systems. Would love to connect with your team!",
-    "followup": "Thanks for connecting, Gemma! I recently built and shipped PAIS \u2014 a platform of AI agent workflows (inbox triage, lead scouting, outreach drafting, daily reports) all run from a single Control Room: https://pais-site.vercel.app\n\nCloudflare's push into serverless and Internet infrastructure aligns closely with what I'm building. I'm targeting summer 2027 internships and would love a quick 15-min chat about your engineering intern program \u2014 would you be open to it?",
-    "contacted": false
-  },
-  {
-    "name": "Danielle Zielinski",
-    "role": "Recruiter",
-    "company": "Jane Street",
-    "why": "Jane Street has active Software Engineer (NYC) roles posted on their site in 2026 alongside an open internship program; Danielle is a named recruiter with a public LinkedIn profile actively tied to their university hiring",
-    "connect": "Hi Danielle \u2014 Jane Street's SWE roles and engineering culture have been on my radar. Penn State AI Engineering student with hands-on systems + trading projects \u2014 would love to connect!",
-    "followup": "Thanks for connecting, Danielle! I recently shipped PAIS \u2014 a platform of AI agent workflows (inbox triage, lead scouting, outreach drafting, daily reports) run from one Control Room: https://pais-site.vercel.app\n\nI also built TNFund, an algo trading bot on Schwab \u2014 so the intersection of systems engineering and trading that defines Jane Street genuinely excites me. I'm targeting summer 2027 and would love a 15-min chat about the SWE internship process if you're open to it!",
+    "company": "Rayze",
+    "why": "Penn State alumnus and elected member of the Penn State Board of Trustees (trustees.psu.edu); founder/CEO of Rayze, a venture-backed startup (NBC-reported raise) growing its small full-stack engineering team and recruiting engineers via Wellfound.",
+    "connect": "Hi Carl — fellow Penn Stater here (AI Eng '27; huge respect for your work on the Board of Trustees). Love what Rayze is building for nonprofits. Would love to connect.",
+    "followup": "Thanks for connecting, Carl — proud to share the Penn State tie. I'm an AI Engineering student ('27) who ships full products solo: PAIS, a platform of autonomous AI agent workflows run from one Control Room (https://getpais.company), plus BrainScan (open-source AI) and a live trading bot — stack's Python/React/AWS/Firebase. As Rayze grows its engineering team, I'd love 15 min to share how I build and learn what you need in a full-stack builder. Open to a quick chat?",
     "contacted": false
   }
 ]

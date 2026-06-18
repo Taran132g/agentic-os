@@ -1,23 +1,33 @@
 #!/usr/bin/env python3
 """
 Blocking approval gate — called by Claude via Bash tool.
-Writes a request file and polls until the main Python process resolves it.
+Writes a per-id request file and polls until the main Python process resolves it.
+
+Each invocation uses its OWN tmp/approvals/<id>.req.json + <id>.resp.json, so
+concurrent approvals from parallel agents never clobber each other (this mirrors
+tools/approval.py — keep the two in sync).
 
 Usage (in Claude's bash command):
     result=$(python3 ~/agentic_os/scripts/approve.py "Action label" "Full details")
     if [ "$result" = "denied" ]; then exit 0; fi
 """
 
-import sys
 import json
+import os
+import sys
 import time
 import uuid
 from pathlib import Path
 
-TMP_DIR = Path(__file__).parent.parent / "tmp"
-REQUEST_FILE = TMP_DIR / "approval_request.json"
-RESPONSE_FILE = TMP_DIR / "approval_response.json"
+APPROVALS_DIR = Path(__file__).parent.parent / "tmp" / "approvals"
 TIMEOUT_SECONDS = 600
+
+
+def _write_atomic(path: Path, obj: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+    tmp.write_text(json.dumps(obj))
+    os.replace(tmp, path)
 
 
 def main():
@@ -28,38 +38,37 @@ def main():
     action = sys.argv[1]
     details = sys.argv[2]
     request_id = str(uuid.uuid4())[:8]
+    req = APPROVALS_DIR / f"{request_id}.req.json"
+    resp = APPROVALS_DIR / f"{request_id}.resp.json"
 
-    TMP_DIR.mkdir(exist_ok=True)
-
-    # Clear any stale response
-    RESPONSE_FILE.unlink(missing_ok=True)
-
-    # Write the request
-    REQUEST_FILE.write_text(json.dumps({
+    # Clear any stale response for this id, then write the request.
+    resp.unlink(missing_ok=True)
+    _write_atomic(req, {
         "id": request_id,
         "action": action,
         "details": details,
         "status": "pending",
-    }))
+    })
 
-    # Poll for response
+    # Poll for THIS id's response.
     deadline = time.time() + TIMEOUT_SECONDS
     while time.time() < deadline:
         time.sleep(0.5)
-        if not RESPONSE_FILE.exists():
+        if not resp.exists():
             continue
         try:
-            data = json.loads(RESPONSE_FILE.read_text())
+            data = json.loads(resp.read_text())
             if data.get("id") == request_id:
-                RESPONSE_FILE.unlink(missing_ok=True)
-                REQUEST_FILE.unlink(missing_ok=True)
+                resp.unlink(missing_ok=True)
+                req.unlink(missing_ok=True)
                 print(data.get("status", "denied"))
                 return
         except Exception:
             pass
 
-    # Timed out
-    REQUEST_FILE.unlink(missing_ok=True)
+    # Timed out — clear this id's request and default to denied.
+    req.unlink(missing_ok=True)
+    resp.unlink(missing_ok=True)
     print("denied")
 
 

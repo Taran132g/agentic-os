@@ -7,6 +7,7 @@
     { href: "index.html",        label: "Dashboard",   icon: "▦" },
     { href: "reactivation.html", label: "Win-back",    icon: "↩" },
     { href: "voice-demo.html",   label: "Voice",       icon: "🎙" },
+    { href: "reputation.html",   label: "Reputation",  icon: "★" },
     { href: "digest.html",       label: "Daily brief", icon: "📰" },
     { href: "analytics.html",    label: "Insights",    icon: "📊" },
     { href: "script.html",       label: "Script",      icon: "📋" },

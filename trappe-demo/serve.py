@@ -20,13 +20,17 @@ import json
 import os
 import re
 import subprocess
+import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 DEMO_DIR = Path(__file__).parent
-CFG = json.loads((DEMO_DIR.parent / "local_business" / "businesses" / "copper-lantern.json").read_text())
+AGENTIC_OS = DEMO_DIR.parent
+sys.path.insert(0, str(AGENTIC_OS))  # so we can import the local_business package
+CFG = json.loads((AGENTIC_OS / "local_business" / "businesses" / "copper-lantern.json").read_text())
 V = CFG["voice"]
 MODEL = "claude-haiku-4-5"
+BUSINESS_ID = CFG["business_id"]
 
 # ── Availability (the demo's "reservation book"). In production this is a query
 #    against their booking system / POS or a PAIS-hosted table store. Status per
@@ -123,24 +127,69 @@ def llm_turn(messages):
         return {"say": "Sorry, could you repeat that?", "booking": {}, "done": False}
 
 
+# ── ElevenLabs bridge ────────────────────────────────────────────────────────
+# The new voice brain is an ElevenLabs restaurant-host agent (voice + STT + LLM +
+# turn-taking owned by ElevenLabs). The browser connects via a short-lived signed
+# URL so the API key never leaves this server. The agent's `book_table` client
+# tool POSTs here → the SAME owner-approval queue the old flow used.
+def el_signed_url():
+    from local_business import business as lb
+    from local_business import elevenlabs_voice as ev
+    try:
+        b = lb.load(BUSINESS_ID)
+        return {"signed_url": ev.signed_url(b)}
+    except Exception as e:  # missing key / agent not provisioned yet
+        return {"error": str(e)}
+
+
+def el_book(args):
+    from local_business import business as lb
+    from local_business import elevenlabs_voice as ev
+    from local_business.state import RuntimeState
+    b = lb.load(BUSINESS_ID)
+    dt = " ".join(x for x in (args.get("day", ""), args.get("time", "")) if x).strip()
+    booking = {
+        "name": args.get("name", ""), "phone": args.get("phone", ""),
+        "datetime": dt, "party_size": args.get("party_size", ""),
+        "notes": args.get("notes", ""),
+    }
+    state = RuntimeState.load_or_new(b.business_id)
+    return ev.queue_owner_booking(b, state, booking)
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **k):
         super().__init__(*a, directory=str(DEMO_DIR), **k)
 
+    def _json(self, obj, code=200):
+        payload = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/api/voice/signed-url":
+            self._json(el_signed_url()); return
+        super().do_GET()
+
     def do_POST(self):
-        if self.path != "/api/voice":
-            self.send_error(404); return
+        path = self.path.split("?")[0]
         length = int(self.headers.get("content-length", 0))
         try:
             body = json.loads(self.rfile.read(length) or "{}")
         except Exception:
             body = {}
-        payload = json.dumps(llm_turn(body.get("messages", []))).encode()
-        self.send_response(200)
-        self.send_header("content-type", "application/json")
-        self.send_header("content-length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+        if path == "/api/voice":            # legacy claude -p fallback brain
+            self._json(llm_turn(body.get("messages", []))); return
+        if path == "/api/booking":          # ElevenLabs book_table client tool
+            try:
+                self._json(el_book(body))
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
+            return
+        self.send_error(404)
 
     def log_message(self, *a):
         pass
