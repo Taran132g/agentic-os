@@ -11,9 +11,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="product.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
-<script defer src="/_vercel/insights/script.js"></script>
+<script>
+/* Vercel Analytics with per-browser self-exclusion.
+   Visit ?noanalytics=1 to stop counting this browser; ?noanalytics=0 to re-enable. */
+(function () {
+  try {
+    var KEY = "pais-no-analytics", qs = new URLSearchParams(location.search);
+    if (qs.get("noanalytics") === "1") localStorage.setItem(KEY, "1");
+    else if (qs.get("noanalytics") === "0") localStorage.removeItem(KEY);
+    if (localStorage.getItem(KEY) === "1") { window.va = function () {}; return; }
+  } catch (e) {}
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  var s = document.createElement("script");
+  s.defer = true; s.src = "/_vercel/insights/script.js";
+  document.head.appendChild(s);
+})();
+</script>
 </head>
 <body>
 
@@ -21,13 +34,44 @@
   <a class="wordmark" href="#top">PAIS<span class="tick">_</span></a>
   <nav aria-label="Main navigation">
     <a href="#demo">Demo</a>
-    <a href="#ondemand">How it works</a>
+    <a href="#ondemand">Services</a>
+    <a href="/pricing">Pricing</a>
   </nav>
-  <div style="display:flex;gap:10px;align-items:center">
-    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
+  <div class="header-cta">
+    <a class="btn btn-ghost" data-cta="cr" href="/app">Try the Control Room</a>
     <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
   </div>
+  <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+    <span></span><span></span><span></span>
+  </button>
 </header>
+<div class="mobile-menu" id="mobileMenu" hidden>
+  <nav aria-label="Mobile navigation">
+    <a href="#demo">Demo</a>
+    <a href="#ondemand">Services</a>
+    <a href="/pricing">Pricing</a>
+  </nav>
+  <a class="btn btn-ghost" data-cta="cr" href="/app">Try the Control Room</a>
+  <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
+</div>
+<script>
+/* Mobile nav toggle — accessible, closes on link tap / Escape / resize-up */
+(function () {
+  var btn = document.getElementById("navToggle"), menu = document.getElementById("mobileMenu");
+  if (!btn || !menu) return;
+  function setOpen(open) {
+    menu.hidden = !open;
+    btn.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    document.body.classList.toggle("nav-open", open);
+  }
+  btn.addEventListener("click", function () { setOpen(menu.hidden); });
+  menu.addEventListener("click", function (e) { if (e.target.closest("a")) setOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !menu.hidden) setOpen(false); });
+  window.addEventListener("resize", function () { if (window.innerWidth > 600 && !menu.hidden) setOpen(false); });
+})();
+</script>
 
 <main id="top">
 
@@ -44,8 +88,8 @@
   <div class="hero-cta">
     <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+    <a class="btn btn-ghost" data-cta="cr" href="/app">Try the Control Room</a>
     <a class="btn btn-ghost" href="#demo">Watch the demo</a>
-    <a class="btn btn-ghost" href="/app">Try the Control Room</a>
   </div>
   
   <span class="scroll-hint" aria-hidden="true">SCROLL ▾</span>
@@ -54,41 +98,88 @@
 <!-- ─────────────────────── PROBLEM ──────────────────────── -->
 <section class="problem rv" aria-labelledby="problem-h">
   <p class="sec-label">The problem</p>
-  <h2 id="problem-h">Every business we study leaks the same revenue — on work that <s>needs a human</s>.</h2>
-  <div class="chiplist" aria-label="Revenue leaks PAIS agents absorb">
-    <span class="chip">no-shows nobody reminded</span>
-    <span class="chip">booking requests that sit till morning</span>
-    <span class="chip">regulars quietly drifting away</span>
-    <span class="chip">first-timers who never hear back</span>
-    <span class="chip">overdue clients nobody recalls</span>
-    <span class="chip">guessing which hours &amp; services actually profit</span>
-    <span class="chip">middlemen skimming every order</span>
-    <span class="chip">…and the same leaks again tomorrow</span>
+  <h2 id="problem-h">You're not short on customers. You're losing the ones you already earned.</h2>
+  <p class="problem-lede">Every local business leaks the same revenue every week — and none of it shows up on a P&amp;L.
+    Here's what each leak is quietly worth:</p>
+  <div class="leak-ledger" aria-label="What each weekly revenue leak is worth">
+    <div class="leak"><span class="amt">$200–500</span><span class="lab">every booking call that rings out after the rush</span></div>
+    <div class="leak"><span class="amt">$60–120</span><span class="lab">every no-show you couldn't sell back</span></div>
+    <div class="leak"><span class="amt">$300+</span><span class="lab">every regular who quietly stopped coming in</span></div>
+    <div class="leak"><span class="amt">hundreds</span><span class="lab">every review you earned but never asked for</span></div>
   </div>
+  <p class="problem-foot">We don't sell you "AI." We <b>plug the leak</b> — text the no-show back, answer the
+    call you'd have missed, win back the regular — and you watch the money come back.</p>
 </section>
 
 <!-- ──────────────────────── DEMO ─────────────────────────── -->
 <section class="demo rv" id="demo" aria-labelledby="demo-h">
-  <p class="sec-label">The Control Room</p>
-  <h2 id="demo-h">Your whole operation, run by agents — watch it happen.</h2>
-  <p class="demo-lede">One dashboard. Eight specialist agents. Press <b>Run whole routine</b> and they
-     triage the inbox, scout the pipeline, draft the outreach, ship the code — then a Reviewer
-     grades the whole run. <b>We design and build these workflows around your business.</b></p>
-  <div class="demo-frame">
-    <video src="demo.mp4" poster="demo-control-room.webp" width="1920" height="1080"
-           autoplay muted loop playsinline controls preload="metadata"
-           aria-label="PAIS demo — the Outreach agent runs a workflow autonomously"></video>
-    <p class="demo-unmute">🔊 unmute for the walkthrough</p>
+  <p class="sec-label">The AI Voice Receptionist</p>
+  <h2 id="demo-h">The booking call you'd have missed — answered, and booked.</h2>
+  <p class="demo-lede">The phone rings mid-rush and no one can grab it. The AI picks up live —
+     books the table, answers the question, or flags a callback, all in your voice —
+     then hands you every conversation. <b>We build this around your business.</b></p>
+
+  <div class="voicecall-row">
+
+    <!-- left · callback -->
+    <div class="voicecall">
+      <div class="vc-head">
+        <span class="vc-tag vc-amber">↩ Callback</span>
+        <div class="vc-meta">
+          <strong>(610) 555-0177</strong>
+          <span>Yesterday · 7:32pm</span>
+        </div>
+        <span class="vc-chev" aria-hidden="true">›</span>
+      </div>
+      <p class="vc-flag vc-flag-amber">Party room · 12 for a birthday · flagged for callback</p>
+      <ol class="vc-chat" aria-label="AI voice conversation — callback flagged"></ol>
+      <p class="vc-foot"><span class="vc-dot"></span> AI answered in 1.2s · lead captured · no missed booking</p>
+    </div>
+
+    <!-- center · answered -->
+    <div class="voicecall">
+      <div class="vc-head">
+        <span class="vc-tag">✓ Answered</span>
+        <div class="vc-meta">
+          <strong>(484) 555-0210</strong>
+          <span>Last night · 8:47pm</span>
+        </div>
+        <span class="vc-chev" aria-hidden="true">›</span>
+      </div>
+      <p class="vc-flag">Answered · hours + dog-friendly patio question</p>
+      <ol class="vc-chat" aria-label="AI voice conversation — question answered"></ol>
+      <p class="vc-foot"><span class="vc-dot"></span> AI answered in 1.2s · question handled · caller never hit voicemail</p>
+    </div>
+
+    <!-- right · booked -->
+    <div class="voicecall">
+      <div class="vc-head">
+        <span class="vc-tag">Booked ✓</span>
+        <div class="vc-meta">
+          <strong>(610) 555-0148</strong>
+          <span>Last night · 9:14pm</span>
+        </div>
+        <span class="vc-chev" aria-hidden="true">›</span>
+      </div>
+      <p class="vc-flag">Booked · party of 6 · Friday 8:00 PM · Marcus</p>
+      <ol class="vc-chat" aria-label="AI voice conversation — table booked"></ol>
+      <p class="vc-foot"><span class="vc-dot"></span> AI answered in 1.2s · table booked · added to the book</p>
+    </div>
+
   </div>
+
   <div class="hero-cta" style="justify-content:center;margin-top:34px">
-    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call — let's map your workflows</a>
+    <a class="btn btn-primary" href="/demo/voice-demo">Hear it live — then book a call
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+    <a class="btn btn-ghost" href="https://cal.com/taranveer/workflows">Book a call</a>
   </div>
 </section>
 
 <!-- ────────────────────── ON-DEMAND ─────────────────────── -->
 <section class="ondemand" id="ondemand" aria-labelledby="od-h">
-  <p class="sec-label rv">On-demand · from anyone's phone</p>
-  <h2 id="od-h" class="rv">Every leak above has a webhook that plugs it.</h2>
+  <p class="sec-label rv">The services · try the Control Room</p>
+  <h2 id="od-h" class="rv">Every leak above has a workflow that plugs it — click in and drive it yourself.</h2>
+  <p class="demo-lede rv" style="text-align:center;max-width:62ch;margin:0 auto 6px">These are the agents we build around a local business. Open the Control Room and run them — approve a win-back, watch a missed call get answered, read the morning brief.</p>
   <div class="bento">
     <div class="bcard wide rv" style="--acc: var(--amber)">
       <div>
@@ -99,6 +190,7 @@
            stays quiet, and pulls the overdue clients nobody's recalled in months —
            with a win-back note ready for each. Every message waits for your OK
            before it goes out; the agent does the chasing.</p>
+        <a class="see-live" data-cta="cr" href="/app">Open the Control Room →</a>
       </div>
       <div class="mock"><div class="mock-bar"><span class="lights"><i></i><i></i><i></i></span>telegram · PAIS</div>
         <div class="mock-body"><div class="tg">📅 <b>Working tomorrow's book</b> (14 appointments).<br>
@@ -114,6 +206,7 @@
          quietly drifting and the first-timers who never heard back — then drafts
          a personal note to each one, in your voice, before they're someone
          else's customer.</p>
+      <a class="see-live" href="/demo/reactivation">See the win-back queue →</a>
     </div>
     <div class="bcard rv" style="--acc: var(--blue)">
       <span class="hook mono">POST /digest</span>
@@ -121,7 +214,29 @@
       <p>Busiest hours, average ticket, which services actually profit, who's due
          back next week — trigger it any time and the digest lands on your phone
          in minutes. Read-only, no spreadsheet night required.</p>
+      <a class="see-live" href="/demo/digest">Read a morning brief →</a>
     </div>
+    <div class="bcard rv" style="--acc: var(--green)">
+      <span class="hook mono">AI Voice Receptionist</span>
+      <h3>Never miss another booking call</h3>
+      <p>When the phone rings and no one can grab it, the AI answers live — books
+         the table, captures the lead, and hands you a summary to confirm. After
+         hours, mid-rush, every time.</p>
+      <a class="see-live" href="/demo/voice-demo">Hear it &amp; see the call log →</a>
+    </div>
+    <div class="bcard rv" style="--acc: var(--blue)">
+      <span class="hook mono">Google Insights</span>
+      <h3>See exactly where the money leaks</h3>
+      <p>Searches, calls, directions, review trends — the numbers that show where
+         customers find you and where they fall through. Each one tied to the
+         agent that plugs it.</p>
+      <a class="see-live" href="/demo/analytics">See the insights →</a>
+    </div>
+  </div>
+  <div class="hero-cta rv" style="justify-content:center;margin-top:36px">
+    <a class="btn btn-primary" data-cta="cr" href="/app">Try the Control Room
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+    <a class="btn btn-ghost" href="https://cal.com/taranveer/workflows">Book a call</a>
   </div>
 </section>
 
@@ -141,8 +256,9 @@
     <div class="faq-item rv"><h3>Do I need to babysit it?</h3><p>No. Set your team up once, connect your desktop, and they run on a schedule — reporting back to your Control Room.</p></div>
   </div>
   <div class="hero-cta rv" style="justify-content:center;margin-top:40px">
-    <a class="btn btn-primary" href="/app">Start free
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+    <a class="btn btn-ghost" data-cta="cr" href="/app">Try the Control Room</a>
   </div>
 </section>
 
@@ -237,6 +353,10 @@ if (big) {
   tick(); setInterval(tick, 1000);
 }
 
+/* Control Room CTAs go to the gate (/app), which offers sign-in or guest
+   access: owner → their real Control Room, everyone else → the live demo.
+   A signed-in owner is taken straight to their workspace by /app itself. */
+
 /* Analytics: funnel events (Vercel Web Analytics) */
 document.addEventListener("click", (ev) => {
   const a = ev.target.closest("a");
@@ -245,7 +365,7 @@ document.addEventListener("click", (ev) => {
   const from = wrap && (wrap.id || (wrap.tagName !== "SECTION" && wrap.tagName.toLowerCase())
     || wrap.className.split(" ")[0]) || "page";
   if (a.href.includes("cal.com/taranveer")) va("event", { name: "book_call_click", data: { from } });
-  else if (a.getAttribute("href") === "/app") va("event", { name: "try_control_room_click", data: { from } });
+  else if (a.dataset.cta === "cr") va("event", { name: "try_control_room_click", data: { from, dest: a.getAttribute("href") } });
 });
 const demoSec = document.getElementById("demo");
 if (demoSec) {
@@ -254,12 +374,75 @@ if (demoSec) {
   }, { threshold: 0.5 });
   demoIO.observe(demoSec);
 }
-const demoVid = document.querySelector(".demo-frame video");
-if (demoVid) {
-  let unmuted = false;
-  demoVid.addEventListener("volumechange", () => {
-    if (!unmuted && !demoVid.muted) { unmuted = true; va("event", { name: "demo_video_unmute" }); }
-  });
+/* ── voice-call transcript replay (3 cards, each independent) ──────── */
+const vcChats = document.querySelectorAll(".vc-chat");
+if (vcChats.length) {
+  const transcripts = [
+    [ // left · callback
+      { who: "ai",     text: "Thanks for calling The Copper Lantern! How can I help you?" },
+      { who: "caller", text: "I want to do a birthday for about twelve people next weekend." },
+      { who: "ai",     text: "Twelve's perfect for our party room! That one needs about 48 hours' notice — I'll have a manager call you to lock the date. What's the best number?" },
+      { who: "caller", text: "This number's fine, six one zero, five five five, oh one seven seven." },
+      { who: "ai",     text: "Got it — someone will call you today to set it up. Thanks!" },
+    ],
+    [ // center · answered
+      { who: "ai",     text: "Thanks for calling The Copper Lantern! How can I help you?" },
+      { who: "caller", text: "What time do you close, and is your patio dog friendly?" },
+      { who: "ai",     text: "We're open till 2 AM, kitchen till 11 — and yep, the patio's dog friendly. Bring the pup!" },
+      { who: "caller", text: "Awesome, thanks." },
+      { who: "ai",     text: "Anytime — see you soon!" },
+    ],
+    [ // right · booked
+      { who: "ai",     text: "Thanks for calling The Copper Lantern! How can I help you tonight?" },
+      { who: "caller", text: "Hey, do you have room for six this Friday around seven?" },
+      { who: "ai",     text: "Six on Friday — love it. 7 o'clock is actually full, but I've got 6:30 or 8 open. Either work?" },
+      { who: "caller", text: "Let's do eight." },
+      { who: "ai",     text: "Perfect, 8 PM. And a name for the table?" },
+      { who: "caller", text: "Marcus." },
+      { who: "ai",     text: "You're all set, Marcus — six of you Friday at 8. See you then!" },
+    ],
+  ];
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const makeTurn = (t) => {
+    const li = document.createElement("li");
+    li.className = "vc-turn vc-" + t.who;
+    li.innerHTML = `<span class="vc-role">${t.who === "ai" ? "AI" : "Caller"}</span>`
+      + `<p class="vc-bubble">${t.text}</p>`;
+    return li;
+  };
+  const makeTyping = () => {
+    const li = document.createElement("li");
+    li.className = "vc-turn vc-ai vc-typing";
+    li.innerHTML = `<span class="vc-role">AI</span><p class="vc-bubble"><i></i><i></i><i></i></p>`;
+    return li;
+  };
+
+  async function playCard(chat, turns, startDelay) {
+    if (reduce) { turns.forEach(t => { const el = makeTurn(t); el.classList.add("in"); chat.appendChild(el); }); return; }
+    await sleep(startDelay);
+    chat.innerHTML = "";
+    for (const t of turns) {
+      if (t.who === "ai") {
+        const dots = makeTyping(); chat.appendChild(dots);
+        requestAnimationFrame(() => dots.classList.add("in"));
+        await sleep(900);
+        dots.remove();
+      }
+      const el = makeTurn(t); chat.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("in"));
+      await sleep(t.who === "ai" ? 1700 : 1200);
+    }
+  }
+  // start each card (staggered) when the row scrolls into view
+  const playIO = new IntersectionObserver((es) => {
+    if (es.some(e => e.isIntersecting)) {
+      vcChats.forEach((chat, i) => playCard(chat, transcripts[i] || transcripts[0], i * 600));
+      playIO.disconnect();
+    }
+  }, { threshold: 0.25 });
+  playIO.observe(vcChats[0]);
 }
 </script>
 </body>
