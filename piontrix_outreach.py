@@ -59,7 +59,7 @@ LOCAL_PITCH_TEMPLATE = (
     "Collegeville. I help [Business] plug money leaks — for example the calls you "
     "miss when it's slammed, and the regulars who quietly stop coming in. I'm "
     "setting the first few places up free for 30 days. Can I swing by and show you "
-    "what it'd look like with [Business]'s name on it — ten minutes?"
+    "what it'd look like with [ShortName]'s name on it — ten minutes?"
 )
 
 
@@ -130,21 +130,53 @@ except Exception:                       # standalone/odd-cwd runs: no-op
         return ""
 
 
+_NAME_SUFFIXES = (
+    " automotive specialties", " auto repair", " automotive", " drive-in", " drive in",
+    " spin and fitness", " spin & fitness", " brewing co.", " brewing company", " brewing",
+    " restaurant & bar", " restaurant and bar", " bar and grille", " bar & grille",
+    " pizza & pasta", " salon & spa", " salon and spa", " salon & day spa", " day spa",
+    " family dental", " dental", " fitness", " distilling", " inc.", " inc", " llc", " co.",
+)
+
+
+def _short_name(business: str) -> str:
+    """A short, possessive-base form of a business name so the template's
+    "[ShortName]'s name on it" reads naturally — drops trailing descriptors AND a
+    trailing possessive (e.g. 'Jim's Automotive Specialties' -> 'Jim', so the
+    template yields 'Jim's name'; 'Stride Spin and Fitness' -> 'Stride')."""
+    name = business.strip()
+    low = name.lower()
+    for suf in _NAME_SUFFIXES:
+        if low.endswith(suf):
+            name = (name[: len(name) - len(suf)].strip() or name)
+            break
+    for poss in ("'s", "’s"):          # avoid "Jim's's name on it"
+        if name.endswith(poss):
+            name = name[: -len(poss)]
+            break
+    return name
+
+
 def _draft_email(business: str, website: str, site_text: str,
                  context: str = "") -> tuple[str, str]:
     """(subject, body) drafted by claude using Taran's fixed local-business pitch,
     tailored per business. Body reproduces LOCAL_PITCH_TEMPLATE near-verbatim."""
-    fallback_body = LOCAL_PITCH_TEMPLATE.replace("[Business]", business)
+    fallback_body = (LOCAL_PITCH_TEMPLATE
+                     .replace("[Business]", business)
+                     .replace("[ShortName]", _short_name(business)))
     fallback_subject = f"quick idea for {business}"
     if not which("claude"):
         return fallback_subject, fallback_body
 
     prompt = f"""You are writing one short cold outreach email for Taran (Piontrix) to a
 local business. Use the FIXED TEMPLATE below as the email body — reproduce it word for
-word, changing ONLY two things:
-  1) replace every [Business] with the real business name;
+word, changing ONLY these things:
+  1) replace [Business] with the real business name;
   2) tailor ONLY the "for example ..." clause so the money-leak examples fit THIS
-     business type (keep it to one short clause, same sentence shape).
+     business type (keep it to one short clause, same sentence shape);
+  3) replace [ShortName] with a SHORT, natural form of the name (drop trailing
+     descriptors like "Automotive Specialties", "Drive-In", "Spin and Fitness") so the
+     possessive reads naturally — e.g. Jim's, Speck's, Stride.
 Do not add, drop, or reorder any other sentence. Keep the casual, no-pressure tone.
 
 Target business: {business}
