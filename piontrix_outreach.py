@@ -51,6 +51,17 @@ SIGNATURE = (
     "Penn State University · Pennsylvania"
 )
 
+# Fixed local-business pitch. Reproduced near-verbatim per business — only the
+# business name and the one "money leaks — for example …" clause are tailored.
+# Kept in sync with pais-runtime/agents.py OUTREACH_TEMPLATE.
+LOCAL_PITCH_TEMPLATE = (
+    "Hi, is this the owner? I'll be quick — my name's Taran, I'm local here in "
+    "Collegeville. I help [Business] plug money leaks — for example the calls you "
+    "miss when it's slammed, and the regulars who quietly stop coming in. I'm "
+    "setting the first few places up free for 30 days. Can I swing by and show you "
+    "what it'd look like with [Business]'s name on it — ten minutes?"
+)
+
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -121,52 +132,35 @@ except Exception:                       # standalone/odd-cwd runs: no-op
 
 def _draft_email(business: str, website: str, site_text: str,
                  context: str = "") -> tuple[str, str]:
-    """(subject, body) drafted by claude in Taran's Piontrix voice."""
-    fallback_subject = f"An AI workflow wrote this email to {business}"
-    fallback_body = (
-        f"Hi there,\n\n"
-        f"Full transparency: an AI workflow found {business}, read your website, wrote "
-        f"this email, and sent it \u2014 no human touched it. That's what I build: AI agent "
-        f"workflows that run a business's repetitive work (inbox triage, lead follow-up, "
-        f"daily reports, form-filling) from one dashboard.\n\n"
-        f"This email is one tiny example. For {business}, an agent could be handling the "
-        f"busywork your team does by hand every morning \u2014 that's just one idea the AI "
-        f"generated; a 30-minute call surfaces the real ones.\n\n"
-        f"See it run: https://pais-site.vercel.app \u2014 or just reply and we'll set up a call.\n\n"
-        f"Best,\n{SIGNATURE}"
-    )
+    """(subject, body) drafted by claude using Taran's fixed local-business pitch,
+    tailored per business. Body reproduces LOCAL_PITCH_TEMPLATE near-verbatim."""
+    fallback_body = LOCAL_PITCH_TEMPLATE.replace("[Business]", business)
+    fallback_subject = f"quick idea for {business}"
     if not which("claude"):
         return fallback_subject, fallback_body
 
-    prompt = f"""Write a short cold outreach email pitching PAIS (https://pais-site.vercel.app):
-we design and build AI agent workflows around a business's actual operations — inbox
-triage, lead scouting and follow-up, outreach drafting, daily reports, form-filling —
-all run from one Control Room dashboard.
+    prompt = f"""You are writing one short cold outreach email for Taran (Piontrix) to a
+local business. Use the FIXED TEMPLATE below as the email body — reproduce it word for
+word, changing ONLY two things:
+  1) replace every [Business] with the real business name;
+  2) tailor ONLY the "for example ..." clause so the money-leak examples fit THIS
+     business type (keep it to one short clause, same sentence shape).
+Do not add, drop, or reorder any other sentence. Keep the casual, no-pressure tone.
 
 Target business: {business}
 Their website: {website}
 What their site looks like (scraped):
 {site_text[:1800]}
-Why they likely could use automation (from local research): {context or "n/a"}
+Why they likely could use this (local research): {context or "n/a"}
 
-CRITICAL FRAMING — this email is itself the demo:
-1. OPEN by saying plainly that an AI workflow found their business, read their site,
-   wrote this email and sent it — no human touched it. State it as a fact, not a gimmick.
-2. Then pitch ONE concrete workflow we could build for THIS business, grounded in the
-   research above — name it specifically (who it helps, what it does each day). Then say
-   explicitly: this is just one idea the AI generated in seconds; a short call is where
-   we map the real ones around how they actually work.
-3. Close with: watch it run at https://pais-site.vercel.app, and a soft ask — reply to
-   this email and we'll set up a quick call.
+FIXED TEMPLATE:
+{LOCAL_PITCH_TEMPLATE}
 
-Style: ~110 words, warm and plain, write like a person not a brochure, no hype words,
-no fake stats or numbers, ONE call to action.
 {persona_block()}
 Output EXACTLY this format and nothing else:
-SUBJECT: <one line>
+SUBJECT: <a short, casual, lowercase subject line, e.g. "quick idea for {business}">
 <blank line>
-<email body, ending with a sign-off line "Best," then nothing — the signature is
-added automatically, so do not write a signature>"""
+<the tailored template as the email body — no signature, it is added automatically>"""
     try:
         res = subprocess.run(["claude", "-p", prompt], capture_output=True,
                              text=True, timeout=120)
