@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIS — Pricing</title>
+<meta name="description" content="Free 30-day pilot, then one flat monthly rate. You approve every message. Cancel anytime.">
+<meta name="theme-color" content="#08090d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Pricing P3 — Three quiet cards. Restrained tier grid, one featured. */
+.mini-head { display: flex; align-items: center; gap: 1.4rem; padding: 1.4rem clamp(1.2rem, 5vw, 3rem); border-bottom: 1px solid var(--hair-soft); }
+.mini-head nav { margin-left: auto; display: flex; gap: 1.5rem; }
+.mini-head nav a { font-size: 0.9rem; color: var(--muted); }
+.mini-head nav a:hover { color: var(--text); }
+@media (max-width: 640px) { .mini-head nav { display: none; } }
+
+.head { text-align: center; max-width: 60ch; margin: 0 auto; padding: clamp(3rem, 6vw, 5.5rem) clamp(1.2rem, 5vw, 3rem) 0; }
+.head .eyebrow { display: block; margin-bottom: 1.2rem; }
+.head h1 { font-size: clamp(2.1rem, 1.3rem + 2.8vw, 3.4rem); }
+.head h1 .em { font-style: italic; color: var(--gold); }
+.head p { color: var(--muted); margin-top: 1.1rem; font-size: 1.05rem; }
+.head .founding { display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1.5rem; font-family: var(--mono); font-size: 0.74rem; color: var(--gold-2); border: 1px solid var(--gold-line); background: var(--gold-dim); border-radius: 999px; padding: 0.45em 1em; }
+
+.grid { max-width: 1060px; margin: clamp(2.5rem, 5vw, 4rem) auto 0; padding: 0 clamp(1.2rem, 5vw, 3rem); display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; align-items: stretch; }
+@media (max-width: 880px) { .grid { grid-template-columns: 1fr; max-width: 460px; } }
+.card { display: flex; flex-direction: column; padding: 1.7rem 1.6rem; position: relative; }
+.card.feat { border-color: var(--gold-line); box-shadow: 0 1px 0 var(--glow-top) inset, 0 30px 70px -36px rgba(201,163,94,0.45); }
+.card .badge { position: absolute; top: -10px; left: 1.6rem; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: #1c1407; background: linear-gradient(180deg, var(--gold-2), var(--gold)); border-radius: 999px; padding: 0.3em 0.7em; }
+.card .nm { font-family: var(--display); font-size: 1.2rem; }
+.card .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.5rem; min-height: 2.6rem; }
+.card .pr { margin: 1.2rem 0 0.2rem; font-family: var(--display); font-variant-numeric: tabular-nums; color: var(--gold); font-size: 2.6rem; line-height: 1; }
+.card .pr small { font-size: 0.34em; color: var(--muted); }
+.card .pilot { font-family: var(--mono); font-size: 0.66rem; color: var(--faint); }
+.card ul { list-style: none; margin: 1.3rem 0 0; display: grid; gap: 0.65rem; }
+.card li { display: flex; gap: 0.55rem; font-size: 0.86rem; color: var(--text); line-height: 1.4; }
+.card li svg { color: var(--gold); flex: none; margin-top: 3px; }
+.card .spacer { flex: 1; min-height: 1.4rem; }
+.card .btn { width: 100%; justify-content: center; }
+
+.assure { max-width: 1060px; margin: 2.4rem auto 0; padding: 0 clamp(1.2rem, 5vw, 3rem); display: flex; flex-wrap: wrap; gap: 0.6rem 1.6rem; justify-content: center; font-family: var(--mono); font-size: 0.74rem; color: var(--faint); }
+.assure b { color: var(--gold); }
+.endcta { text-align: center; padding: clamp(3rem, 6vw, 5rem) 1.2rem 4rem; }
+.endcta p { color: var(--muted); margin-bottom: 1.4rem; }
+</style>
+</head>
+<body>
+<header class="mini-head">
+  <a class="wordmark" href="index.html">PAIS<span class="tick">_</span></a>
+  <nav><a href="control-room.html">Control Room</a><a href="index.html">Home</a></nav>
+  <a class="btn btn-primary btn-sm" href="https://cal.com/taranveer/workflows">Book a call</a>
+</header>
+
+<div class="head">
+  <span class="eyebrow">Pricing</span>
+  <h1>Free for 30 days. Pay only when <span class="em">it pays you back.</span></h1>
+  <p>We set it up for you and run it against your real customers first. Then one flat rate — usually less than a single saved booking a week.</p>
+  <div class="founding">★ Founding clients: pilot free · no setup fee · rate locked for good</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="nm">Reactivation + Missed-Call</div>
+    <div class="sub">Start here — the two leaks every local business already feels.</div>
+    <div class="pr">$100<small>/mo</small></div>
+    <div class="pilot">free 30-day pilot first</div>
+    <ul>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Win back lapsed regulars, from your own number</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Instant text-back on every missed call</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> You approve every message</li>
+    </ul>
+    <div class="spacer"></div>
+    <a class="btn btn-ghost" href="https://cal.com/taranveer/workflows">Start the pilot</a>
+  </div>
+
+  <div class="card feat">
+    <span class="badge">Most popular</span>
+    <div class="nm">+ AI Voice Receptionist</div>
+    <div class="sub">Everything above, plus a live voice when no one can grab the phone.</div>
+    <div class="pr">$250<small>/mo</small></div>
+    <div class="pilot">free 30-day pilot first</div>
+    <ul>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Everything in Reactivation + Missed-Call</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> AI answers live — books the table, after hours</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Review growth — replies + happy-customer nudges</li>
+    </ul>
+    <div class="spacer"></div>
+    <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
+  </div>
+
+  <div class="card">
+    <div class="nm">Full Suite</div>
+    <div class="sub">Voice, reviews, reporting + any custom workflow you run by hand.</div>
+    <div class="pr" style="font-size:1.9rem">Let's scope it</div>
+    <div class="pilot">priced to your operation</div>
+    <ul>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Everything in Voice</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Daily digest — hours, average ticket, what profits</li>
+      <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Custom workflows mapped to how you run</li>
+    </ul>
+    <div class="spacer"></div>
+    <a class="btn btn-ghost" href="https://cal.com/taranveer/workflows">Map my workflows</a>
+  </div>
+</div>
+
+<div class="assure"><span><b>✓</b> You approve every message</span><span><b>✓</b> Cancel anytime — no contract</span><span><b>✓</b> Your data stays yours, on your machine</span><span><b>✓</b> Local — happy to set it up in person</span></div>
+
+<div class="endcta">
+  <p>Not sure which fits? We'll map it on a call.</p>
+  <a class="btn btn-primary btn-lg" href="https://cal.com/taranveer/workflows">Book a call — start your free pilot
+    <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+</div>
+</body>
+</html>

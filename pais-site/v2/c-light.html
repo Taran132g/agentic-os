@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIS — never miss another customer</title>
+<meta name="description" content="An AI receptionist & win-back system for local businesses. See the Control Room.">
+<meta name="theme-color" content="#f3efe6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Option C — Light Luxury / Swiss. Warm paper, ink, brass. The dark product
+   card stays dark for premium contrast. Lots of whitespace, single CTA. */
+:root { --paper: #f4f0e7; --paper-2: #ece6d9; --ink2: #20201c; --ink-mut: #6b665b; --brass: #9a7636; --brass-2: #b88f44; --line2: #ddd6c6; }
+body { background: var(--paper); color: var(--ink2); }
+body::before { background: radial-gradient(55% 45% at 12% -5%, rgba(154,118,54,0.10), transparent 60%); }
+body::after { opacity: 0.05; mix-blend-mode: multiply; }
+::selection { background: rgba(154,118,54,0.18); color: var(--brass); }
+
+.lhead { display: flex; align-items: center; gap: 1.4rem; padding: 1.5rem clamp(1.4rem, 5vw, 3.5rem); border-bottom: 1px solid var(--line2); }
+.lhead .wordmark { font-size: 1.3rem; color: var(--ink2); }
+.lhead .wordmark .tick { color: var(--brass); }
+.lhead nav { margin-left: auto; display: flex; gap: 1.6rem; }
+.lhead nav a { font-size: 0.9rem; color: var(--ink-mut); }
+.lhead nav a:hover { color: var(--ink2); }
+.lhead .btn { border-color: var(--line2); }
+@media (max-width: 760px) { .lhead nav { display: none; } }
+
+.stage { max-width: 1160px; margin: 0 auto; padding: clamp(3rem, 7vw, 7rem) clamp(1.4rem, 5vw, 3.5rem);
+  display: grid; grid-template-columns: 1.05fr 0.95fr; align-items: center; gap: clamp(2.5rem, 5vw, 6rem); }
+@media (max-width: 900px) { .stage { grid-template-columns: 1fr; gap: 3rem; } }
+
+.kick { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); display: block; margin-bottom: 1.5rem; }
+.stage h1 { font-family: var(--display); font-weight: 400; line-height: 1.02; letter-spacing: -0.015em; font-size: clamp(2.9rem, 1.4rem + 6vw, 5.8rem); color: var(--ink2); }
+.stage h1 .em { font-style: italic; color: var(--brass); }
+.stage .lede { color: var(--ink-mut); font-size: clamp(1.05rem, 1rem + 0.4vw, 1.3rem); max-width: 42ch; margin-top: 1.6rem; line-height: 1.62; }
+.stage .lede b { color: var(--ink2); font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 2.4rem; }
+.btn-line { background: transparent; border: 1px solid var(--ink2); color: var(--ink2); }
+.btn-line:hover { background: var(--ink2); color: var(--paper); }
+.rule { margin-top: 2.4rem; padding-top: 1.4rem; border-top: 1px solid var(--line2); display: flex; gap: 1.6rem; flex-wrap: wrap; font-family: var(--mono); font-size: 0.76rem; color: var(--ink-mut); }
+.rule b { color: var(--brass); }
+
+/* dark product card on the light page */
+.peek { display: block; position: relative; border-radius: 22px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08);
+  background: linear-gradient(180deg, #11141c, #0c0e14); box-shadow: 0 40px 90px -40px rgba(40,30,10,0.45);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.peek:hover { transform: translateY(-4px); box-shadow: 0 50px 110px -45px rgba(40,30,10,0.55); }
+.peek-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.peek-bar i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+.peek-bar i:first-child { background: var(--brass-2); }
+.peek-bar .t { font-family: var(--mono); font-size: 0.66rem; color: rgba(245,242,235,0.4); margin-left: 0.4rem; }
+.peek-bar .pill { margin-left: auto; display: inline-flex; align-items: center; gap: 0.4em; font-family: var(--mono); font-size: 0.58rem; color: rgba(245,242,235,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 0.22em 0.55em; }
+.peek-bar .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: #6fcfa1; }
+.peek-body { padding: 1.1rem 1.15rem 1.3rem; color: rgba(245,242,235,0.92); }
+.peek-roi { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+.peek-roi .lab { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(245,242,235,0.4); }
+.peek-roi .big { font-family: var(--display); font-size: 2.3rem; font-variant-numeric: tabular-nums; color: var(--brass-2); }
+.pc { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.015); padding: 0.85rem 0.9rem; }
+.pc + .pc { margin-top: 0.6rem; }
+.pc .who { font-size: 0.86rem; font-weight: 600; }
+.pc .ctx { font-size: 0.74rem; color: rgba(245,242,235,0.55); margin-top: 0.15rem; }
+.pc .draft { font-size: 0.77rem; margin-top: 0.55rem; padding: 0.5rem 0.6rem; border-left: 2px solid rgba(184,143,68,0.5); background: rgba(255,255,255,0.02); border-radius: 0 6px 6px 0; }
+.pc .row { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+.chip { font-family: var(--mono); font-size: 0.62rem; padding: 0.3em 0.55em; border-radius: 6px; }
+.chip.ok { background: rgba(184,143,68,0.16); color: var(--brass-2); border: 1px solid rgba(184,143,68,0.4); }
+.chip.no { background: rgba(255,255,255,0.03); color: rgba(245,242,235,0.55); border: 1px solid rgba(255,255,255,0.1); }
+.peek-hint { position: absolute; inset: auto 0 0 0; text-align: center; padding: 0.55rem; font-family: var(--mono); font-size: 0.66rem; color: var(--brass-2); background: linear-gradient(0deg, rgba(8,9,13,0.95), transparent); opacity: 0; transition: opacity var(--dur); }
+.peek:hover .peek-hint { opacity: 1; }
+</style>
+</head>
+<body>
+<header class="lhead">
+  <a class="wordmark" href="#">PAIS<span class="tick">_</span></a>
+  <nav><a href="/pricing.html">Pricing</a><a href="control-room.html">Control Room</a></nav>
+  <a class="btn btn-primary btn-sm" href="https://cal.com/taranveer/workflows">Book a call</a>
+</header>
+
+<main class="stage">
+  <div>
+    <span class="kick">AI receptionist &amp; win-back · for local businesses</span>
+    <h1>Never miss<br>another customer.<br><span class="em">Even while you sleep.</span></h1>
+    <p class="lede">PAIS answers your phone, brings back regulars who drifted away, and reminds people about appointments — <b>and nothing sends without your OK.</b></p>
+    <div class="cta">
+      <a class="btn btn-primary btn-lg" href="control-room.html">See the Control Room
+        <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      <a class="btn btn-line btn-lg" href="https://cal.com/taranveer/workflows">Book a call</a>
+    </div>
+    <div class="rule"><span><b>✓</b> Connects to what you use</span><span><b>✓</b> No new software to learn</span><span><b>✓</b> Built in King of Prussia, PA</span></div>
+  </div>
+
+  <a class="peek" href="control-room.html" aria-label="Open the Control Room">
+    <div class="peek-bar"><i></i><i></i><i></i><span class="t">PAIS Control · The Copper Lantern</span><span class="pill"><span class="dot"></span>online</span></div>
+    <div class="peek-body">
+      <div class="peek-roi"><span class="lab">Recovered this month</span><span class="big">$546</span></div>
+      <div class="pc">
+        <div class="who">Win back 4 quiet regulars</div>
+        <div class="ctx">No visit in 42+ days · pulled from your list</div>
+        <div class="draft">"Hey Marcus — the kitchen missed you! Your wings are on us this week if you swing by."</div>
+        <div class="row"><span class="chip ok">✓ Approve &amp; send</span><span class="chip no">Skip</span></div>
+      </div>
+      <div class="pc"><div class="who">☎ Text back (484) 555-0210</div><div class="ctx">Missed at 8:47pm · the floor was slammed</div></div>
+    </div>
+    <span class="peek-hint">↳ open your Control Room</span>
+  </a>
+</main>
+</body>
+</html>

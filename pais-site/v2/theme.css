@@ -1,0 +1,204 @@
+/* ============================================================================
+   PAIS · shared design system (v2)
+   Dark editorial luxury — one theme for the marketing site AND the Control Room,
+   so the two finally look like the same product.
+
+   Principles: near-black layered surfaces · brass accent used sparingly ·
+   Fraunces serif for display, Inter for body, JetBrains Mono for data labels ·
+   tabular figures on every number · hairline borders + soft depth · subtle grain.
+   ========================================================================== */
+
+:root {
+  /* —— surfaces (warm near-black, layered) —— */
+  --ink:        #08090d;
+  --ink-2:      #0c0e14;
+  --raise:      #11141c;          /* card base */
+  --raise-2:    #161a24;          /* nested / hover */
+  --hair:       rgba(238,232,220,0.085);   /* hairline border */
+  --hair-soft:  rgba(238,232,220,0.05);
+  --glow-top:   rgba(255,255,255,0.05);    /* inner top highlight on cards */
+
+  /* —— ink / text (warm white) —— */
+  --text:       rgba(245,242,235,0.93);
+  --muted:      rgba(245,242,235,0.56);
+  --faint:      rgba(245,242,235,0.34);
+
+  /* —— accent: brass —— */
+  --gold:       #c9a35e;
+  --gold-2:     #e6cb93;
+  --gold-deep:  #a8823f;
+  --gold-dim:   rgba(201,163,94,0.14);
+  --gold-line:  rgba(201,163,94,0.34);
+
+  /* —— status —— */
+  --live:       #6fcfa1;
+  --live-dim:   rgba(111,207,161,0.14);
+  --warn:       #e0a85a;
+  --rose:       #e08a8a;
+
+  /* —— type —— */
+  --display: "Fraunces", "Times New Roman", serif;
+  --sans:    "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --t-hero: clamp(2.9rem, 1.1rem + 7vw, 6.6rem);
+  --t-h2:   clamp(2rem, 1.2rem + 2.6vw, 3.4rem);
+  --t-h3:   clamp(1.3rem, 1.05rem + 1vw, 1.75rem);
+  --t-num:  clamp(2.4rem, 1.4rem + 3.4vw, 4rem);
+
+  /* —— rhythm —— */
+  --r:    14px;
+  --r-sm: 9px;
+  --r-lg: 24px;
+  --pad:  clamp(1.1rem, 0.8rem + 1vw, 1.7rem);
+  --sec:  clamp(5rem, 3rem + 7vw, 11rem);
+  --maxw: 1180px;
+
+  --dur:  280ms;
+  --dur-f: 160ms;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --shadow:    0 1px 0 var(--glow-top) inset, 0 18px 50px -28px rgba(0,0,0,0.9);
+  --shadow-lg: 0 1px 0 var(--glow-top) inset, 0 40px 90px -40px rgba(0,0,0,0.95);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  background: var(--ink);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  overflow-x: hidden;
+}
+
+/* atmosphere: a soft brass aurora top-left + fine grain over everything */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(60% 50% at 12% -8%, rgba(201,163,94,0.10), transparent 60%),
+    radial-gradient(50% 40% at 100% 0%, rgba(111,207,161,0.05), transparent 55%);
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.04; pointer-events: none; z-index: 0; mix-blend-mode: overlay;
+}
+main, header, footer { position: relative; z-index: 1; }
+
+/* —— type primitives —— */
+h1, h2, h3 { font-family: var(--display); font-weight: 400; line-height: 1.04; letter-spacing: -0.012em; }
+.serif-italic { font-style: italic; }
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--gold);
+}
+.eyebrow.muted { color: var(--faint); }
+.num { font-family: var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mono { font-family: var(--mono); }
+b, strong { font-weight: 600; color: rgba(245,242,235,0.98); }
+
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--gold-dim); color: var(--gold-2); }
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
+
+/* —— buttons —— */
+.btn {
+  --bg: transparent;
+  display: inline-flex; align-items: center; gap: 0.5em;
+  font-family: var(--sans); font-size: 0.95rem; font-weight: 550;
+  padding: 0.82em 1.4em; border-radius: 999px;
+  border: 1px solid var(--hair); background: var(--bg);
+  color: var(--text); cursor: pointer;
+  transition: transform var(--dur-f) var(--ease), background var(--dur) var(--ease),
+              border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  white-space: nowrap;
+}
+.btn svg { transition: transform var(--dur) var(--ease); }
+.btn:hover { transform: translateY(-1px); }
+.btn:hover svg.arr { transform: translateX(3px); }
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--gold-2), var(--gold) 55%, var(--gold-deep));
+  color: #1c1407; border-color: transparent; font-weight: 650;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 12px 30px -12px rgba(201,163,94,0.5);
+}
+.btn-primary:hover { box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 16px 40px -12px rgba(201,163,94,0.6); }
+
+.btn-ghost { background: rgba(255,255,255,0.02); }
+.btn-ghost:hover { background: var(--raise-2); border-color: var(--hair); }
+
+.btn-lg { padding: 1em 1.7em; font-size: 1.02rem; }
+.btn-sm { padding: 0.55em 0.95em; font-size: 0.83rem; }
+
+/* —— pills / tags —— */
+.pill {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em;
+  padding: 0.4em 0.8em; border-radius: 999px;
+  border: 1px solid var(--hair); color: var(--muted);
+  background: rgba(255,255,255,0.02);
+}
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--live);
+  box-shadow: 0 0 0 0 var(--live); animation: pulse 2.4s var(--ease) infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 var(--live-dim); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .pill .dot { animation: none; } }
+
+/* —— card —— */
+.card {
+  background: linear-gradient(180deg, var(--raise), var(--ink-2));
+  border: 1px solid var(--hair); border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+
+/* —— layout helpers —— */
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 clamp(1.1rem, 5vw, 2.4rem); }
+.sec { padding-block: var(--sec); }
+
+/* —— scroll reveal —— */
+.rv { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+.rv.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; } }
+
+/* —— shared header —— */
+.site-head {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 1.4rem;
+  padding: 0.85rem clamp(1.1rem, 5vw, 2.4rem);
+  background: rgba(8,9,13,0.72);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid var(--hair-soft);
+}
+.wordmark { font-family: var(--display); font-size: 1.35rem; letter-spacing: -0.01em; color: var(--text); }
+.wordmark .tick { color: var(--gold); }
+.site-head nav { display: flex; gap: 1.5rem; margin-left: auto; }
+.site-head nav a { font-size: 0.92rem; color: var(--muted); transition: color var(--dur); position: relative; }
+.site-head nav a::after { content: ""; position: absolute; left: 0; bottom: -4px; height: 1px; width: 0; background: var(--gold); transition: width var(--dur) var(--ease); }
+.site-head nav a:hover { color: var(--text); }
+.site-head nav a:hover::after { width: 100%; }
+.head-cta { display: flex; gap: 0.65rem; }
+@media (max-width: 860px) { .site-head nav { display: none; } .head-cta .btn-ghost { display: none; } }
+
+/* —— footer —— */
+footer.site {
+  border-top: 1px solid var(--hair-soft);
+  padding: 3rem clamp(1.1rem, 5vw, 2.4rem);
+  display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center;
+  color: var(--faint); font-size: 0.85rem;
+}
+footer.site .wordmark { font-size: 1.1rem; }
+footer.site .sep { margin-left: auto; }
