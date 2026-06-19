@@ -9,9 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="stylesheet" href="theme.css">
-<script>(function(){window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};var s=document.createElement('script');s.defer=true;s.src='/_vercel/insights/script.js';document.head.appendChild(s)})();</script>
 <style>
 /* Option B — Split screen. Left = the pitch. Right = the product, full height. */
 body { overflow: hidden; }
@@ -31,9 +29,8 @@ body { overflow: hidden; }
 .bullets li b { color: var(--text); font-weight: 600; }
 .bullets .d { color: var(--gold); font-family: var(--mono); flex: none; }
 .left .cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
-.left .foot { margin-top: auto; padding-top: 2rem; color: var(--muted); font-size: 0.86rem; font-family: var(--mono); }
-.left .foot a { color: var(--gold); }
-.left .foot a:hover { color: var(--gold-2); text-decoration: underline; }
+.left .foot { margin-top: auto; padding-top: 2rem; color: var(--faint); font-size: 0.78rem; font-family: var(--mono); }
+.left .foot a { color: var(--muted); }
 
 /* right: product panel filling the half, with the live control-room preview */
 .right { position: relative; background: linear-gradient(155deg, var(--ink-2), var(--ink)); border-left: 1px solid var(--hair-soft);
@@ -67,9 +64,9 @@ body { overflow: hidden; }
 <div class="split">
 
   <section class="left">
-    <a class="wordmark" href="/">PAIS<span class="tick">_</span></a>
+    <a class="wordmark" href="#">PAIS<span class="tick">_</span></a>
     <div class="mid">
-      <span class="eyebrow">Personal Artificial Intelligence System</span>
+      <span class="eyebrow">AI receptionist &amp; win-back</span>
       <h1>Never miss<br>another <span class="gold">customer</span>.</h1>
       <ul class="bullets">
         <li><span class="d">01</span><span>It <b>answers the phone</b> you'd have missed.</span></li>
@@ -77,15 +74,15 @@ body { overflow: hidden; }
         <li><span class="d">03</span><span>It <b>automates your calendar</b> — bookings, reminders, confirmations.</span></li>
       </ul>
       <div class="cta">
-        <a class="btn btn-primary btn-lg" href="/control-room">See the Control Room
+        <a class="btn btn-primary btn-lg" href="control-room.html">See the Control Room
           <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
         <a class="btn btn-ghost btn-lg" href="https://cal.com/taranveer/workflows">Book a call</a>
       </div>
     </div>
-    <div class="foot">Built local in King of Prussia, PA · <a href="/pricing">Pricing →</a></div>
+    <div class="foot">Built local in King of Prussia, PA · <a href="/pricing.html">Pricing →</a></div>
   </section>
 
-  <a class="right" href="/control-room" aria-label="Open the Control Room">
+  <a class="right" href="control-room.html" aria-label="Open the Control Room">
     <div class="frame">
       <div class="frame-bar"><i></i><i></i><i></i><span class="t">PAIS Control · The Copper Lantern</span><span class="pill"><span class="dot"></span>online</span></div>
       <div class="frame-body">

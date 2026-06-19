@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIS — the AI receptionist & win-back system for local businesses</title>
+<meta name="description" content="PAIS answers your phone, brings back customers who drifted away, and reminds people about appointments — automatically. It automates your calendar end-to-end: bookings, reminders, confirmations. See the Control Room.">
+<meta name="theme-color" content="#08090d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ───────── hero ───────── */
+.hero { padding-top: clamp(3rem, 2rem + 5vw, 6rem); padding-bottom: var(--sec); }
+.hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(2rem, 4vw, 5rem); align-items: center; }
+@media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; } }
+.hero h1 { font-size: var(--t-hero); margin: 1.2rem 0; }
+.hero h1 .gold { color: var(--gold); }
+.hero h1 .em { font-style: italic; color: var(--muted); }
+.hero .lede { font-size: clamp(1.05rem, 1rem + 0.4vw, 1.3rem); color: var(--muted); max-width: 46ch; line-height: 1.62; }
+.hero .lede b { color: var(--text); }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.1rem; }
+.trust-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; margin-top: 2rem; color: var(--faint); font-size: 0.82rem; font-family: var(--mono); }
+.trust-row span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.trust-row .tk { color: var(--gold); }
+
+/* ───────── control-room peek (the magnet) ───────── */
+.peek { display: block; position: relative; border-radius: var(--r-lg); overflow: hidden;
+  border: 1px solid var(--hair); background: linear-gradient(180deg, var(--raise), var(--ink-2));
+  box-shadow: var(--shadow-lg); transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.peek:hover { transform: translateY(-4px) rotate(-0.25deg); box-shadow: 0 1px 0 var(--glow-top) inset, 0 50px 110px -45px rgba(0,0,0,0.95); }
+.peek-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-bottom: 1px solid var(--hair-soft); }
+.peek-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--hair); }
+.peek-bar i:first-child { background: var(--gold); }
+.peek-bar .peek-t { font-family: var(--mono); font-size: 0.7rem; color: var(--faint); margin-left: 0.4rem; }
+.peek-bar .pill { margin-left: auto; padding: 0.25em 0.6em; font-size: 0.62rem; }
+.peek-body { padding: 1.1rem 1.15rem 1.3rem; }
+.peek-roi { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+.peek-roi .lab { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.peek-roi .big { font-family: var(--display); font-size: 2.4rem; font-variant-numeric: tabular-nums; color: var(--gold); letter-spacing: -0.02em; }
+.peek-card { border: 1px solid var(--hair); border-radius: var(--r); background: rgba(255,255,255,0.015); padding: 0.85rem 0.9rem; }
+.peek-card + .peek-card { margin-top: 0.6rem; }
+.peek-card .who { font-size: 0.86rem; font-weight: 600; }
+.peek-card .ctx { font-size: 0.76rem; color: var(--muted); margin-top: 0.15rem; }
+.peek-card .draft { font-size: 0.78rem; color: var(--text); margin-top: 0.55rem; padding: 0.5rem 0.6rem; border-left: 2px solid var(--gold-line); background: rgba(255,255,255,0.02); border-radius: 0 6px 6px 0; }
+.peek-card .row { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+.peek-chip { font-family: var(--mono); font-size: 0.64rem; padding: 0.32em 0.6em; border-radius: 6px; }
+.peek-chip.ok { background: var(--gold-dim); color: var(--gold-2); border: 1px solid var(--gold-line); }
+.peek-chip.no { background: rgba(255,255,255,0.03); color: var(--muted); border: 1px solid var(--hair); }
+.peek-hint { position: absolute; inset: auto 0 0 0; text-align: center; padding: 0.6rem; font-family: var(--mono); font-size: 0.68rem; color: var(--gold-2);
+  background: linear-gradient(0deg, rgba(8,9,13,0.95), transparent); opacity: 0; transition: opacity var(--dur); }
+.peek:hover .peek-hint { opacity: 1; }
+
+/* ───────── leak strip ───────── */
+.leakstrip { border-block: 1px solid var(--hair-soft); }
+.leak-head { text-align: center; max-width: 60ch; margin: 0 auto 3rem; }
+.leak-head h2 { font-size: var(--t-h2); }
+.leak-head p { color: var(--muted); margin-top: 1rem; }
+.leak-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--hair-soft); border: 1px solid var(--hair-soft); border-radius: var(--r-lg); overflow: hidden; }
+@media (max-width: 820px) { .leak-grid { grid-template-columns: repeat(2, 1fr); } }
+.leak-cell { background: var(--ink-2); padding: clamp(1.4rem, 3vw, 2.4rem); }
+.leak-cell .amt { font-family: var(--display); font-size: clamp(1.8rem, 1.2rem + 2vw, 2.8rem); font-variant-numeric: tabular-nums; color: var(--gold); }
+.leak-cell .lab { color: var(--muted); font-size: 0.9rem; margin-top: 0.6rem; line-height: 1.45; }
+
+/* ───────── feature rows ───────── */
+.feat { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+.feat + .feat { margin-top: clamp(4rem, 8vw, 8rem); }
+.feat:nth-child(even) .feat-visual { order: -1; }
+@media (max-width: 820px) { .feat { grid-template-columns: 1fr; } .feat:nth-child(even) .feat-visual { order: 0; } }
+.feat .eyebrow { display: block; margin-bottom: 1rem; }
+.feat h3 { font-size: var(--t-h3); }
+.feat p { color: var(--muted); margin-top: 0.9rem; max-width: 44ch; }
+.feat .learn { display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 1.3rem; color: var(--gold); font-size: 0.9rem; font-weight: 500; }
+.feat .learn svg { transition: transform var(--dur) var(--ease); }
+.feat .learn:hover svg { transform: translateX(4px); }
+.feat-visual { border: 1px solid var(--hair); border-radius: var(--r-lg); background: linear-gradient(180deg, var(--raise), var(--ink-2)); box-shadow: var(--shadow); padding: 1.4rem; min-height: 230px; display: flex; flex-direction: column; justify-content: center; gap: 0.7rem; }
+.fv-line { display: flex; align-items: center; gap: 0.7rem; font-size: 0.84rem; }
+.fv-line .ic { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--gold-dim); color: var(--gold); flex: none; font-family: var(--mono); font-size: 0.8rem; }
+.fv-bubble { font-size: 0.82rem; color: var(--text); padding: 0.65rem 0.8rem; border-radius: 10px; background: rgba(255,255,255,0.025); border: 1px solid var(--hair); }
+.fv-bubble.caller { border-left: 2px solid var(--hair); color: var(--muted); }
+.fv-bubble.ai { border-left: 2px solid var(--gold-line); }
+.fv-stat { display: flex; align-items: baseline; gap: 0.6rem; }
+.fv-stat .n { font-family: var(--display); font-size: 2.2rem; font-variant-numeric: tabular-nums; color: var(--gold); }
+.fv-stat .l { color: var(--muted); font-size: 0.84rem; }
+
+/* ───────── how it works ───────── */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+@media (max-width: 820px) { .steps { grid-template-columns: 1fr; } }
+.step { padding: 1.7rem 1.5rem; }
+.step .n { font-family: var(--display); font-size: 1.1rem; color: var(--gold); display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--gold-line); }
+.step h3 { font-size: 1.2rem; margin: 1rem 0 0.5rem; }
+.step p { color: var(--muted); font-size: 0.92rem; }
+
+/* ───────── band (control room invite) ───────── */
+.band { text-align: center; }
+.band-inner { padding: clamp(2.5rem, 5vw, 4.5rem); position: relative; overflow: hidden; }
+.band-inner::before { content: ""; position: absolute; inset: 0; background: radial-gradient(70% 120% at 50% 0%, var(--gold-dim), transparent 60%); pointer-events: none; }
+.band h2 { font-size: var(--t-h2); position: relative; }
+.band p { color: var(--muted); max-width: 52ch; margin: 1.1rem auto 2rem; position: relative; }
+.band .hero-cta { justify-content: center; }
+
+/* ───────── pricing teaser ───────── */
+.price-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.2rem; align-items: stretch; }
+@media (max-width: 820px) { .price-grid { grid-template-columns: 1fr; } }
+.price-card { padding: clamp(1.8rem, 3vw, 2.6rem); display: flex; flex-direction: column; }
+.price-card .eyebrow { margin-bottom: 1rem; }
+.price-card h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem); }
+.price-card p { color: var(--muted); margin-top: 0.9rem; }
+.price-card ul { list-style: none; margin-top: 1.4rem; display: grid; gap: 0.7rem; }
+.price-card li { display: flex; gap: 0.6rem; font-size: 0.92rem; color: var(--text); }
+.price-card li svg { color: var(--gold); flex: none; margin-top: 3px; }
+.price-card .spacer { flex: 1; min-height: 1.4rem; }
+.price-aside { background: linear-gradient(180deg, var(--raise-2), var(--ink-2)); justify-content: center; align-items: flex-start; }
+.price-aside .from { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.price-aside .amt { font-family: var(--display); font-size: clamp(2.4rem, 1.5rem + 3vw, 3.6rem); color: var(--gold); font-variant-numeric: tabular-nums; margin: 0.4rem 0; }
+.price-aside .sub { color: var(--muted); font-size: 0.9rem; }
+
+/* ───────── final CTA ───────── */
+.final { text-align: center; }
+.final h2 { font-size: clamp(2.4rem, 1.4rem + 4vw, 5rem); }
+.final h2 .em { font-style: italic; color: var(--gold); }
+.final p { color: var(--muted); margin: 1.2rem auto 2.2rem; max-width: 46ch; }
+.final .hero-cta { justify-content: center; }
+
+/* ───────── sticky mobile CTA ───────── */
+.mbar { position: fixed; inset: auto 0 0 0; z-index: 60; display: none; gap: 0.6rem; padding: 0.7rem 0.9rem calc(0.7rem + env(safe-area-inset-bottom));
+  background: rgba(8,9,13,0.9); backdrop-filter: blur(14px); border-top: 1px solid var(--hair); }
+.mbar .btn { flex: 1; justify-content: center; }
+@media (max-width: 860px) { .mbar { display: flex; } body { padding-bottom: 4.5rem; } }
+</style>
+</head>
+<body>
+
+<header class="site-head">
+  <a class="wordmark" href="#top">PAIS<span class="tick">_</span></a>
+  <nav aria-label="Main">
+    <a href="#how">How it works</a>
+    <a href="#what">What it does</a>
+    <a href="/pricing.html">Pricing</a>
+  </nav>
+  <div class="head-cta">
+    <a class="btn btn-ghost btn-sm" href="control-room.html">Control Room</a>
+    <a class="btn btn-primary btn-sm" href="https://cal.com/taranveer/workflows">Book a call</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ══════════ HERO ══════════ -->
+  <section class="hero wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="eyebrow">Personal Artificial Intelligence System</span>
+        <h1>Never miss<br>another <span class="gold">customer</span>.<br><span class="em">Even while you sleep.</span></h1>
+        <p class="lede">PAIS is a quiet assistant for your business. It <b>answers your phone</b> when
+          you can't, <b>wins back regulars</b> who stopped coming in, and <b>reminds people</b> about
+          appointments — so the money you already earned stops slipping away.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="control-room.html">See the Control Room
+            <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+          <a class="btn btn-ghost btn-lg" href="/pricing.html">See pricing</a>
+        </div>
+        <div class="trust-row">
+          <span><span class="tk">✓</span> Automates your calendar end-to-end</span>
+          <span><span class="tk">✓</span> Connects to what you already use</span>
+          <span><span class="tk">✓</span> Built local in King of Prussia, PA</span>
+        </div>
+      </div>
+
+      <!-- the magnet: a live peek that links to the Control Room -->
+      <a class="peek" href="control-room.html" aria-label="Open the Control Room">
+        <div class="peek-bar">
+          <i></i><i></i><i></i>
+          <span class="peek-t">PAIS Control · The Copper Lantern</span>
+          <span class="pill"><span class="dot"></span>online</span>
+        </div>
+        <div class="peek-body">
+          <div class="peek-roi">
+            <span class="lab">Recovered this month</span>
+            <span class="big">$546</span>
+          </div>
+          <div class="peek-card">
+            <div class="who">Win back 4 quiet regulars</div>
+            <div class="ctx">No visit in 42+ days · pulled from your list</div>
+            <div class="draft">"Hey Marcus — the kitchen missed you! Your wings are on us this week if you swing by. — The Copper Lantern"</div>
+            <div class="row"><span class="peek-chip ok">✓ Approve &amp; send</span><span class="peek-chip no">Skip</span></div>
+          </div>
+          <div class="peek-card">
+            <div class="who">☎ Text back (484) 555-0210</div>
+            <div class="ctx">Missed at 8:47pm · the floor was slammed</div>
+          </div>
+        </div>
+        <span class="peek-hint">↳ open your Control Room</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ══════════ LEAK STRIP ══════════ -->
+  <section class="leakstrip sec wrap" aria-labelledby="leak-h">
+    <div class="leak-head rv">
+      <span class="eyebrow muted">The problem</span>
+      <h2 id="leak-h" style="margin-top:1rem">You're not short on customers.<br>You're losing the ones you already earned.</h2>
+      <p>Every local business leaks the same revenue each week — and none of it shows up on a P&amp;L. Here's what each leak is quietly worth.</p>
+    </div>
+    <div class="leak-grid rv">
+      <div class="leak-cell"><div class="amt">$200–500</div><div class="lab">every booking call that rings out after the rush</div></div>
+      <div class="leak-cell"><div class="amt">$60–120</div><div class="lab">every no-show you couldn't sell back</div></div>
+      <div class="leak-cell"><div class="amt">$300+</div><div class="lab">every regular who quietly stopped coming in</div></div>
+      <div class="leak-cell"><div class="amt">hundreds</div><div class="lab">every review you earned but never asked for</div></div>
+    </div>
+  </section>
+
+  <!-- ══════════ WHAT IT DOES ══════════ -->
+  <section class="sec wrap" id="what" aria-labelledby="what-h">
+    <div class="leak-head rv" style="margin-bottom:4rem">
+      <span class="eyebrow">What it does</span>
+      <h2 id="what-h" style="margin-top:1rem">Four quiet jobs, done before you ask.</h2>
+    </div>
+
+    <div class="feat rv">
+      <div>
+        <span class="eyebrow">The phone</span>
+        <h3>It answers the call you'd have missed.</h3>
+        <p>Mid-rush, after hours — the AI picks up live, books the table, answers the question, and hands you a clean summary. The caller never hits voicemail and calls the next place.</p>
+        <a class="learn" href="control-room.html">See it in the Control Room
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      </div>
+      <div class="feat-visual">
+        <div class="fv-bubble caller">"Do you have room for six this Friday around seven?"</div>
+        <div class="fv-bubble ai">"Six on Friday — love it. 7 is full, but I've got 6:30 or 8. Either work?"</div>
+        <div class="fv-bubble caller">"Let's do eight."</div>
+        <div class="fv-bubble ai">"You're all set — six at 8. See you then!"</div>
+      </div>
+    </div>
+
+    <div class="feat rv">
+      <div>
+        <span class="eyebrow">The regulars</span>
+        <h3>It brings back customers who drifted away.</h3>
+        <p>PAIS reads your own customer list, spots the regulars who've gone quiet and the first-timers who never came back, and drafts a warm, personal note to each — in your voice. The count is real, pulled from your list.</p>
+        <a class="learn" href="control-room.html">See tonight's win-back queue
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      </div>
+      <div class="feat-visual">
+        <div class="fv-stat"><span class="n">7</span><span class="l">customers to win back<br>found in your list this week</span></div>
+        <div class="fv-line"><span class="ic">4</span> quiet regulars · no visit in 42+ days</div>
+        <div class="fv-line"><span class="ic">3</span> first-timers who never returned</div>
+        <div class="fv-line" style="color:var(--gold)"><span class="ic" style="background:var(--gold-dim)">$</span> ~$546 in repeat business, reachable</div>
+      </div>
+    </div>
+
+    <div class="feat rv">
+      <div>
+        <span class="eyebrow">The schedule</span>
+        <h3>It stops tomorrow's no-shows tonight.</h3>
+        <p>An agent works tomorrow's book: sends every reminder, confirms the replies, and drafts a personal nudge for anyone who stays quiet. Every message waits for your OK — the agent just does the chasing.</p>
+        <a class="learn" href="control-room.html">See tomorrow's book
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      </div>
+      <div class="feat-visual">
+        <div class="fv-line"><span class="ic">✓</span> Marcus Bell · party of 6 · 7:00pm · birthday</div>
+        <div class="fv-line"><span class="ic">✓</span> Dana Whitfield · party of 2 · 6:30pm</div>
+        <div class="fv-line"><span class="ic">✓</span> Tom Reyes · party of 4 · 8:00pm · anniversary</div>
+        <div class="fv-bubble ai" style="margin-top:0.4rem">3 reminders drafted · awaiting your OK</div>
+      </div>
+    </div>
+
+    <div class="feat rv">
+      <div>
+        <span class="eyebrow">The numbers</span>
+        <h3>Your week, without the spreadsheet night.</h3>
+        <p>Busiest hours, average ticket, who's due back — a short, plain-English digest lands on your phone. Read-only, no dashboard to learn.</p>
+        <a class="learn" href="control-room.html">Read a morning brief
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      </div>
+      <div class="feat-visual">
+        <div class="fv-stat"><span class="n">$41</span><span class="l">average tab last night</span></div>
+        <div class="fv-line"><span class="ic">▲</span> Busiest 7–9pm · 62% of covers</div>
+        <div class="fv-line"><span class="ic">↩</span> 4 regulars due back this week</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ HOW IT WORKS ══════════ -->
+  <section class="sec wrap" id="how" aria-labelledby="how-h">
+    <div class="leak-head rv" style="margin-bottom:3rem">
+      <span class="eyebrow">How it works</span>
+      <h2 id="how-h" style="margin-top:1rem">No tech skills needed. Three steps.</h2>
+    </div>
+    <div class="steps">
+      <div class="card step rv"><span class="n">1</span><h3>We connect it</h3><p>On a quick call we plug PAIS into the tools you already use — your phone line and your customer or booking list. Nothing for you to build.</p></div>
+      <div class="card step rv"><span class="n">2</span><h3>It does the work</h3><p>It answers calls you'd miss, spots regulars who've gone quiet, and writes the texts and replies for you — in your business's own voice.</p></div>
+      <div class="card step rv"><span class="n">3</span><h3>You tap approve</h3><p>Every message waits for your OK on your phone. One tap and it goes out. Nothing is ever sent behind your back.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════ CONTROL ROOM BAND ══════════ -->
+  <section class="band sec wrap">
+    <div class="card band-inner rv">
+      <span class="eyebrow">See it for yourself</span>
+      <h2 style="margin-top:1rem">This is your Control Room.</h2>
+      <p>One calm screen on your phone: tonight's drafts, what's been recovered, every call your agents caught. Walk through a real one — no sign-up, nothing sends.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="control-room.html">Open the live Control Room
+          <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PRICING TEASER ══════════ -->
+  <section class="sec wrap" aria-labelledby="price-h">
+    <div class="price-grid">
+      <div class="card price-card rv">
+        <span class="eyebrow">Pricing</span>
+        <h2 id="price-h">Scoped to your shop. No lock-in.</h2>
+        <p>You only pay for what you want it to handle. We set it up around your business on a call — and you'll have a clear number before we hang up.</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Connects to Square, Toast, your booking system, or a simple list</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> No new software for your staff to learn</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg> Cancel anytime — it's your accounts, your data</li>
+        </ul>
+        <div class="spacer"></div>
+        <div class="hero-cta">
+          <a class="btn btn-ghost" href="/pricing.html">See full pricing
+            <svg class="arr" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+        </div>
+      </div>
+      <div class="card price-card price-aside rv">
+        <span class="from">Starts at</span>
+        <span class="amt">$400<span style="font-size:1.2rem;color:var(--muted)">/mo</span></span>
+        <span class="sub">for the first workflow, set up around your business. Add more as you see it work.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ FINAL CTA ══════════ -->
+  <section class="final sec wrap rv">
+    <h2>Stop the leak. <span class="em">Keep what you earned.</span></h2>
+    <p>A 20-minute call, no pressure. We'll map where your business is losing customers and show you exactly what PAIS would catch.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="https://cal.com/taranveer/workflows">Book a call
+        <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+      <a class="btn btn-ghost btn-lg" href="control-room.html">Or explore the Control Room</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <span class="wordmark">PAIS<span class="tick">_</span></span>
+  <span>Your AI team clocks in while you sleep.</span>
+  <span class="sep">📍 King of Prussia, PA — happy to demo in person</span>
+</footer>
+
+<!-- sticky mobile conversion bar -->
+<div class="mbar">
+  <a class="btn btn-ghost" href="control-room.html">Control Room</a>
+  <a class="btn btn-primary" href="https://cal.com/taranveer/workflows">Book a call</a>
+</div>
+
+<script>
+const io = new IntersectionObserver((es) => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+}, { threshold: 0.16 });
+document.querySelectorAll(".rv").forEach((el, i) => { el.style.transitionDelay = (Math.min(i % 4, 3) * 60) + "ms"; io.observe(el); });
+</script>
+</body>
+</html>
