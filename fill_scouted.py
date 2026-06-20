@@ -23,7 +23,6 @@ which made real failures indistinguishable from "4/5 filled, one needs a look".)
 import json
 import os
 import sys
-import time
 import uuid
 from pathlib import Path
 
@@ -102,73 +101,86 @@ def main() -> int:
         f"{len(queue)} waiting total.\nEach opens in its own window with the brief "
         f"sent to Gemini — click \"Start task\" on each.")
 
-    from tools.browser_fill import browser_fill
-    results, retry, dropped = [], [], []
-    for i, job in enumerate(batch, 1):
+    # Playwright DOM fill (2026-06-19): replaces the blind OCR/coordinate-click
+    # browser_fill.py, which kept missing the form and firing pyautogui clicks
+    # into the Dock (opening random apps) instead of filling Gemini. This drives
+    # the real page DOM in ONE persistent browser — N tabs, all left open for
+    # Taran to review + submit. keep_open=0 here: the batch returns immediately
+    # after filling so this runner can post its summary; Taran reviews the tabs
+    # while the window stays up (the context closes when the process exits, so
+    # the bridge runs this detached — see pais_bridge.run_fill_scouted).
+    from tools.pais_browser import browser_fill_pw_batch
+    for job in batch:
         job.setdefault("id", f"scouted_{uuid.uuid4().hex[:8]}")
-        print(f"\n===== [{i}/{len(batch)}] {job['company']} — {job['role']} =====")
-        try:
-            # start_task=True so Gemini actually CLICKS "Start task" and fills the
-            # form (the old start_task=False only pasted the brief — nothing ever
-            # filled). The merged 'jobs' agent is the live path; this is the
-            # standalone/fallback runner.
-            res = browser_fill(job, notify=True, start_task=True)
-            ok = bool(res.get("ok"))
-            status = res.get("status", "?")
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            ok, status, res = False, "exception", {"error": str(e)}
-
-        if ok:
-            # completion Telegram fired → record applied; it leaves the queue.
-            try:
-                save_application(job, status="applied", platform="gemini")
-            except Exception as te:
-                print("! tracker save failed:", te)
-            try:                                # advance the vault Job Pipeline row
-                from tools import job_sheet
-                job_sheet.mark_applied(job.get("url", ""))
-            except Exception as se:
-                print("! job_sheet mark_applied failed:", se)
-        else:
-            job["attempts"] = job.get("attempts", 0) + 1
-            (dropped if job["attempts"] >= MAX_ATTEMPTS else retry).append(job)
-        results.append({"company": job["company"], "role": job["role"],
-                        "ok": ok, "status": status, "error": res.get("error", "")})
-        print(f"  -> ok={ok} status={status} {res.get('error','')}")
-        if i < len(batch):
-            time.sleep(5)
-
-    # Rebuild the queue under lock so a concurrent scout run's appends survive:
-    # reload the current file, drop everything in THIS batch, then put the
-    # failed-but-retryable jobs back at the FRONT (FIFO). Successful + exhausted
-    # jobs drop off; untouched tail + any new scout additions are preserved.
+    keep = int(os.environ.get("FILL_KEEP_OPEN", "1800"))
     batch_urls = {_norm(j.get("url")) for j in batch}
 
-    def _rebuild(current):
-        if not isinstance(current, list):
-            current = []
-        survivors = [j for j in current if _norm(j.get("url")) not in batch_urls]
-        return retry + survivors
+    def _finish(fills):
+        """Record applied, rebuild the queue, and Telegram the summary. Runs once
+        every tab is filled but while the browser is still OPEN, so the summary
+        lands immediately and Taran reviews the live tabs."""
+        results, retry, dropped = [], [], []
+        for i, (job, res) in enumerate(zip(batch, fills), 1):
+            print(f"\n===== [{i}/{len(batch)}] {job['company']} — {job['role']} =====")
+            ok = bool(res.get("ok"))
+            status = res.get("status", "?")
+            if ok:
+                # Form filled in the browser (Taran reviews + submits). Record
+                # applied so it leaves the queue and the vault pipeline advances.
+                try:
+                    save_application(job, status="applied", platform="playwright")
+                except Exception as te:
+                    print("! tracker save failed:", te)
+                try:                            # advance the vault Job Pipeline row
+                    from tools import job_sheet
+                    job_sheet.mark_applied(job.get("url", ""))
+                except Exception as se:
+                    print("! job_sheet mark_applied failed:", se)
+            else:
+                job["attempts"] = job.get("attempts", 0) + 1
+                (dropped if job["attempts"] >= MAX_ATTEMPTS else retry).append(job)
+            n_filled = len(res.get("filled", []))
+            results.append({"company": job["company"], "role": job["role"],
+                            "ok": ok, "status": status, "n_filled": n_filled,
+                            "error": res.get("error", "")})
+            print(f"  -> ok={ok} status={status} filled={n_filled} {res.get('error','')}")
 
-    new_queue = locked_update(QUEUE, _rebuild, default=[])
+        # Rebuild the queue under lock so a concurrent scout run's appends survive:
+        # reload the current file, drop everything in THIS batch, then put the
+        # failed-but-retryable jobs back at the FRONT (FIFO). Successful + exhausted
+        # jobs drop off; untouched tail + any new scout additions are preserved.
+        def _rebuild(current):
+            if not isinstance(current, list):
+                current = []
+            survivors = [j for j in current if _norm(j.get("url")) not in batch_urls]
+            return retry + survivors
 
-    done = sum(1 for r in results if r["ok"])
-    summary = [f"<b>📩 Briefs sent — {done}/{len(batch)} ready to start</b>",
-               f"<i>queue: {len(new_queue)} still waiting</i>", ""]
-    for r in results:
-        mark = "📩" if r["ok"] else "⚠️"
-        tail = "" if r["ok"] else f" — {r['error'][:45]}"
-        summary.append(f"{mark} <b>{r['company']}</b>: {r['role'][:38]}{tail}")
-    if dropped:
-        summary.append(f"\n🛑 Dropped after {MAX_ATTEMPTS} tries: "
-                       + ", ".join(d["company"] for d in dropped))
-    summary.append("\n<i>Each is open in Chrome with the brief sent. Review, click "
-                   "\"Start task\", submit.</i>")
-    _tg("\n".join(summary))
+        new_queue = locked_update(QUEUE, _rebuild, default=[])
 
-    print(json.dumps(results, indent=2))
+        done = sum(1 for r in results if r["ok"])
+        summary = [f"<b>📝 Forms filled — {done}/{len(batch)} ready to submit</b>",
+                   f"<i>queue: {len(new_queue)} still waiting</i>", ""]
+        for r in results:
+            mark = "✅" if r["ok"] else "⚠️"
+            tail = (f" — {r['n_filled']} fields" if r["ok"]
+                    else f" — {r['error'][:45]}")
+            summary.append(f"{mark} <b>{r['company']}</b>: {r['role'][:38]}{tail}")
+        if dropped:
+            summary.append(f"\n🛑 Dropped after {MAX_ATTEMPTS} tries: "
+                           + ", ".join(d["company"] for d in dropped))
+        summary.append("\n<i>Each is open in a browser tab with fields pre-filled. "
+                       "Review, fix anything custom, and submit yourself.</i>")
+        _tg("\n".join(summary))
+        print(json.dumps(results, indent=2))
+
+    try:
+        browser_fill_pw_batch(batch, keep_open_seconds=keep, after_fill=_finish)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # Browser never launched — still do the bookkeeping so the queue advances
+        # and Taran hears about it.
+        _finish([{"ok": False, "status": "exception", "error": str(e)} for _ in batch])
     return 0
 
 

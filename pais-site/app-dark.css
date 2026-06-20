@@ -1,0 +1,47 @@
+/* /app dark-brass re-skin — layered last over product.css + app.css.
+   The brand green is already converted to brass in those files; this warms the
+   surfaces, swaps display type to Fraunces, and aligns the primary button with
+   the marketing site's new look. Purely cosmetic — no layout/logic changes. */
+
+:root {
+  /* warmer near-black + warm-white ink (matches theme.css) */
+  --ink:        #08090d;
+  --ink-2:      #0c0e14;
+  --text:       rgba(245,242,235,0.93);
+  --muted:      rgba(245,242,235,0.56);
+  --dim:        rgba(245,242,235,0.34);
+  --border:     rgba(238,232,220,0.085);
+  --border-l:   rgba(238,232,220,0.05);
+  --surface:    rgba(255,255,255,0.03);
+  --surface-2:  rgba(255,255,255,0.06);
+  /* brass accent (belt-and-suspenders with the sed conversion) */
+  --green:      #c9a35e;
+  --green-dim:  rgba(201,163,94,0.14);
+}
+
+/* editorial serif for display type */
+h1, h2, h3,
+.hero-title, .wordmark, .gate-card h1, .brand-text strong {
+  font-family: "Fraunces", "Times New Roman", serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.012em;
+}
+
+/* primary action → brass gradient */
+.btn-primary {
+  background: linear-gradient(180deg, #e6cb93, #c9a35e 55%, #a8823f) !important;
+  color: #1c1407 !important;
+  border-color: transparent !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 12px 30px -14px rgba(201,163,94,0.5) !important;
+}
+.btn-primary:hover {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.45) inset, 0 16px 40px -14px rgba(201,163,94,0.6) !important;
+}
+
+/* a faint warm aurora behind the workspace, matching the site (non-interactive) */
+body.app::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(55% 45% at 10% -6%, rgba(201,163,94,0.08), transparent 60%);
+}
+body.app > * { position: relative; z-index: 1; }

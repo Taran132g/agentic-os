@@ -44,23 +44,14 @@ AGENTIC_DIR = Path(__file__).resolve().parent
 load_dotenv(AGENTIC_DIR / ".env")
 LEADS_FILE = AGENTIC_DIR / "piontrix_leads.json"
 
-SENDER_NAME = "Taranveer Singh"
-SIGNATURE = (
-    f"{SENDER_NAME}\n"
-    "Founder, PAIS — an AI agency\n"
-    "https://getpais.company"
-)
+# Pitch template + signature live in outreach_pitch.py (same dir) — the single
+# source of truth shared with pais-runtime/agents.py so they can never drift.
+# Edit the pitch THERE, not here.
+if str(AGENTIC_DIR) not in sys.path:
+    sys.path.insert(0, str(AGENTIC_DIR))
+from outreach_pitch import PITCH_TEMPLATE, with_signature
 
-# Fixed local-business pitch. Reproduced near-verbatim per business — only the
-# business name and the one "money leaks — for example …" clause are tailored.
-# Kept in sync with pais-runtime/agents.py OUTREACH_TEMPLATE.
-LOCAL_PITCH_TEMPLATE = (
-    "Hi, is this the owner? I'll be quick — my name's Taran, I'm local here in "
-    "Collegeville. I help [Business] plug money leaks — for example the calls you "
-    "miss when it's slammed, and the regulars who quietly stop coming in. I'm "
-    "setting the first few places up free for 30 days. Can I swing by and show you "
-    "what it'd look like with [ShortName]'s name on it — ten minutes?"
-)
+SENDER_NAME = "Taranveer Singh"  # Gmail "From" display name
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -130,54 +121,22 @@ except Exception:                       # standalone/odd-cwd runs: no-op
         return ""
 
 
-_NAME_SUFFIXES = (
-    " automotive specialties", " auto repair", " automotive", " drive-in", " drive in",
-    " spin and fitness", " spin & fitness", " brewing co.", " brewing company", " brewing",
-    " restaurant & bar", " restaurant and bar", " bar and grille", " bar & grille",
-    " pizza & pasta", " salon & spa", " salon and spa", " salon & day spa", " day spa",
-    " family dental", " dental", " fitness", " distilling", " inc.", " inc", " llc", " co.",
-)
-
-
-def _short_name(business: str) -> str:
-    """A short, possessive-base form of a business name so the template's
-    "[ShortName]'s name on it" reads naturally — drops trailing descriptors AND a
-    trailing possessive (e.g. 'Jim's Automotive Specialties' -> 'Jim', so the
-    template yields 'Jim's name'; 'Stride Spin and Fitness' -> 'Stride')."""
-    name = business.strip()
-    low = name.lower()
-    for suf in _NAME_SUFFIXES:
-        if low.endswith(suf):
-            name = (name[: len(name) - len(suf)].strip() or name)
-            break
-    for poss in ("'s", "’s"):          # avoid "Jim's's name on it"
-        if name.endswith(poss):
-            name = name[: -len(poss)]
-            break
-    return name
-
-
 def _draft_email(business: str, website: str, site_text: str,
                  context: str = "") -> tuple[str, str]:
     """(subject, body) drafted by claude using Taran's fixed local-business pitch,
-    tailored per business. Body reproduces LOCAL_PITCH_TEMPLATE near-verbatim."""
-    fallback_body = (LOCAL_PITCH_TEMPLATE
-                     .replace("[Business]", business)
-                     .replace("[ShortName]", _short_name(business)))
+    tailored per business. Body reproduces PITCH_TEMPLATE near-verbatim."""
+    fallback_body = PITCH_TEMPLATE
     fallback_subject = f"quick idea for {business}"
     if not which("claude"):
         return fallback_subject, fallback_body
 
     prompt = f"""You are writing one short cold outreach email for Taran (PAIS) to a
 local business. Use the FIXED TEMPLATE below as the email body — reproduce it word for
-word, changing ONLY these things:
-  1) replace [Business] with the real business name;
-  2) tailor ONLY the "for example ..." clause so the money-leak examples fit THIS
-     business type (keep it to one short clause, same sentence shape);
-  3) replace [ShortName] with a SHORT, natural form of the name (drop trailing
-     descriptors like "Automotive Specialties", "Drive-In", "Spin and Fitness") so the
-     possessive reads naturally — e.g. Jim's, Speck's, Stride.
-Do not add, drop, or reorder any other sentence. Keep the casual, no-pressure tone.
+word, changing ONLY this:
+  - tailor ONLY the "money leaks like ..." clause so the two examples fit THIS
+    business type (keep it to one short clause, same sentence shape, two examples).
+Do NOT name the business as someone Taran already helps, and do not add, drop, or
+reorder any other sentence. Keep the casual, no-pressure tone.
 
 Target business: {business}
 Their website: {website}
@@ -186,7 +145,7 @@ What their site looks like (scraped):
 Why they likely could use this (local research): {context or "n/a"}
 
 FIXED TEMPLATE:
-{LOCAL_PITCH_TEMPLATE}
+{PITCH_TEMPLATE}
 
 {persona_block()}
 Output EXACTLY this format and nothing else:
@@ -205,8 +164,7 @@ SUBJECT: <a short, casual, lowercase subject line, e.g. "quick idea for {busines
     subject = subj_line.replace("SUBJECT:", "").strip() or fallback_subject
     body = rest.strip()
     # ensure our signature is appended once
-    if SENDER_NAME not in body:
-        body = body.rstrip() + "\n" + SIGNATURE
+    body = with_signature(body)
     return subject, body
 
 
