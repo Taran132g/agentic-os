@@ -41,6 +41,8 @@ screenshots/
 pais.log
 pais.log.*
 server.log
+server.log.*
+*.log.*.gz
 *.pid
 
 # One-off scratch scripts / sample text inputs
