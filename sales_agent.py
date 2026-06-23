@@ -24,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from shutil import which
 
@@ -65,6 +66,30 @@ def _norm_phone(s: str) -> str:
     return digits[-10:] if len(digits) >= 10 else ""
 
 
+def _read_sheet() -> str:
+    """Read the call sheet, tolerating an iCloud-evicted (dataless) file.
+
+    The vault lives in iCloud; the note can be a placeholder mid-sync, and the
+    on-demand download can momentarily fail (OSError) instead of blocking. That
+    is exactly what crashed the 06-23 scheduled run. Nudge a download and retry
+    a few times; if it never materializes, raise a clear, identifiable error so
+    the caller can fail soft rather than dump a traceback into the feed."""
+    last: OSError | None = None
+    for attempt in range(4):
+        try:
+            return SHEET.read_text(encoding="utf-8")
+        except OSError as e:
+            last = e
+            # Touch the path to ask iCloud to materialize it, then back off.
+            try:
+                SHEET.stat()
+                subprocess.run(["brctl", "download", str(SHEET)], capture_output=True, timeout=20)
+            except Exception:
+                pass
+            time.sleep(1.5 * (attempt + 1))
+    raise RuntimeError(f"call sheet unreadable (iCloud not materialized): {last}")
+
+
 def _existing_index() -> tuple[set[str], set[str]]:
     """Every business already on the sheet, as (names, phone-keys) — for dedupe.
     This is the agent's persistent memory: anything on the sheet (ANY status,
@@ -74,7 +99,7 @@ def _existing_index() -> tuple[set[str], set[str]]:
     if not SHEET.exists():
         return names, phones
     in_pipeline = False
-    for line in SHEET.read_text(encoding="utf-8").splitlines():
+    for line in _read_sheet().splitlines():
         s = line.strip()
         if APPEND_START in s:
             in_pipeline = True
@@ -191,9 +216,8 @@ def main() -> int:
     n = int(os.environ.get("SALES_AGENT_N", "6"))
     dry = os.environ.get("SALES_AGENT_DRY") == "1"
 
-    seen_names, seen_phones = _existing_index()
-
     try:
+        seen_names, seen_phones = _existing_index()
         found = _research(n, exclude_names=list(seen_names))
     except Exception as e:
         msg = f"⚠️ Sales agent scout failed: {e}"
