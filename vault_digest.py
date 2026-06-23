@@ -22,6 +22,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -65,6 +66,37 @@ def _send_telegram(text: str) -> None:
               resp2.status_code, resp2.text[:200])
 
 
+def _safe_read(path: Path, attempts: int = 4) -> str:
+    """Read an iCloud-synced vault note, tolerating the transient file locks
+    (OSError errno 11 'Resource deadlock avoided') that iCloud throws when it holds
+    a note open at the moment we read. That lock crashed the whole digest mid-run
+    (vault_digest.py:138, the 06-22 FAILED briefing). Retry with a short backoff,
+    then degrade to empty — run the digest without that note rather than die."""
+    for i in range(attempts):
+        try:
+            return path.read_text(errors="ignore")
+        except FileNotFoundError:
+            return ""
+        except OSError:
+            if i + 1 >= attempts:
+                return ""
+            time.sleep(0.5 * (i + 1))
+    return ""
+
+
+def _safe_write(path: Path, text: str, attempts: int = 4) -> bool:
+    """Write a vault note through the same transient iCloud locks. Returns success."""
+    for i in range(attempts):
+        try:
+            path.write_text(text)
+            return True
+        except OSError:
+            if i + 1 >= attempts:
+                return False
+            time.sleep(0.5 * (i + 1))
+    return False
+
+
 def _open_followups(window_days: int = 7) -> list[str]:
     """Grab lines under a 'Follow-up' heading across recent chat notes."""
     items: list[str] = []
@@ -81,7 +113,7 @@ def _open_followups(window_days: int = 7) -> list[str]:
             continue
         if d < cutoff:
             continue
-        text = f.read_text(errors="ignore")
+        text = _safe_read(f)
         # capture bullet lines in any "Follow-up" / "Next steps" section
         for sec in re.split(r"\n#{1,6}\s", text):
             head = sec.splitlines()[0].lower() if sec.strip() else ""
@@ -135,7 +167,7 @@ def main() -> int:
     today_str = datetime.now().strftime("%Y-%m-%d")
 
     note = CHATS / f"{day_str}.md"
-    raw = note.read_text(errors="ignore") if note.exists() else ""
+    raw = _safe_read(note)
 
     # Substance check: count non-heading, non-empty content chars. The Stop hook
     # seeds an empty template, so only summarize via claude when there's real text.
@@ -189,7 +221,9 @@ def main() -> int:
         return 0
 
     DIGESTS.mkdir(parents=True, exist_ok=True)
-    (DIGESTS / f"{today_str}.md").write_text(content)
+    if not _safe_write(DIGESTS / f"{today_str}.md", content):
+        print("WARN: could not write digest note (iCloud lock) — posting feed anyway",
+              file=sys.stderr)
     _send_telegram(tg_msg)
     print(f"Vault digest written for {today_str} (recap of {day_str}); "
           f"{len(followups)} follow-ups.")
