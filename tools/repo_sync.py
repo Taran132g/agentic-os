@@ -39,9 +39,10 @@ OWNER_OK = ("Taran132g", "taranalt8", "taran.impact")  # acceptable remote owner
 # excluded on purpose; add here once a canonical clone is chosen.)
 ALLOWLIST = [
     HOME / "agentic_os",
-    HOME / "FindingFounders",
     HOME / "Automated-Trading-Bot",
 ]
+# Note: ~/FindingFounders (brainscan.git) retired 2026-06-22 — app shut down,
+# no longer auto-synced. Repo still lives on GitHub.
 
 # Secret guard — genuine secret/key/PII FILE TYPES that must never be pushed.
 # (Deliberately NOT matching source files like credentials.py / secrets_capture.py

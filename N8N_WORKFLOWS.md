@@ -54,12 +54,12 @@ executes sequentially, each guarded so one failure never aborts the chain:
 | **apply-jobs** | `POST /webhook/apply` (schedule node **removed** 2026-06-13) | `fill_scouted.py` (manual fill) | active (webhook only) |
 | **piontrix-outreach** | `POST /webhook/outreach` (schedule node **removed** 2026-06-13) | `piontrix_outreach.py` (single) | active (webhook only) |
 | **email-triage** | `POST /webhook/triage` (schedule node **removed** 2026-06-13) | `email_triage.py` | active (webhook only) |
-| **brainscan-outreach** | `POST /webhook/brainscan-outreach` (workflow inactive) | `brainscan_outreach.py` | inactive (webhook def only) |
+| ~~brainscan-outreach~~ | — | `brainscan_outreach.py` (script removed) | **deleted** 2026-06-22 (BrainScan retired) |
 | ~~vault-daily-digest~~ | — | *(repurposed into `morning-stack`)* | renamed |
 | ~~repo-sync~~ | — | now runs inside the stack | **deleted** 2026-06-09 |
 | ~~power-sleep~~ | — | replaced by stack + `power_cycle.py` | **deleted** 2026-06-09 |
 | **content-rotation** | daily 11:00am (`0 11 * * *`) | `content_cron.py` | inactive |
-| **ff-daily-digest** | daily 8:30am (`30 8 * * *`) | FindingFounders `scripts/daily_digest.py` | inactive |
+| ~~ff-daily-digest~~ | — | FindingFounders `scripts/daily_digest.py` (script already gone) | **deleted** 2026-06-22 (FindingFounders retired) |
 | **jobfill** | `POST /webhook/jobfill` | `jobfill_cli.py` (single URL) | inactive |
 
 ## 2026-06-13 — schedules truly consolidated (n8n disabled-trigger gotcha)

@@ -25,7 +25,7 @@ DAILY_CONTEXT = """You are PAIS creating Taran's daily review.
 ## Who you are briefing
 - Taranveer Singh, Penn State AI Engineering student (2024-2028)
 - Summer 2026, home in Royersford PA
-- Active projects: PAIS (Agentic OS), FindingFounders, Content Pipeline, Trading
+- Active projects: PAIS (Agentic OS), Content Pipeline, Trading
 
 ## Step 1 — Gather inputs FIRST (Bash; do not write anything yet)
 
@@ -49,25 +49,19 @@ cat "$VAULT/Chats/$(date +%F).md" 2>/dev/null || true
 cat "$VAULT/Projects & Building/Agentic OS.md" 2>/dev/null | head -60
 find "$PAIS" -maxdepth 2 -name "*.py" -mtime -2 2>/dev/null | head -20
 
-# 2. FindingFounders
-ls -lt "$VAULT/Projects & Building/" 2>/dev/null | grep -i finding
-for f in "$VAULT/Projects & Building/"FindingFounders*.md; do
-  [ -f "$f" ] && echo "── $f" && head -40 "$f"
-done
-
-# 3. Content Pipeline
+# 2. Content Pipeline
 cat "$VAULT/Projects & Building/Content Pipeline.md" 2>/dev/null | head -60
 cat "$VAULT/Projects & Building/Podcast Strategy.md" 2>/dev/null | head -40
 ls -lt "$HOME/Desktop"/*.mp4 2>/dev/null | head -5
 stat -f "%Sm %N" "$PAIS/content_pipeline.py" 2>/dev/null
 
-# 4. Trading (extra context)
+# 3. Trading (extra context)
 cat "$VAULT/Money & Markets/Dr-Profit-Trades-2026.md" 2>/dev/null | tail -80
 ```
 
 Read every file from the recently-modified list. Match each file to ONE bucket
-below (PAIS / FindingFounders / Content / Trading / Other). Anything that
-doesn't fit the first four goes to Other.
+below (PAIS / Content / Trading / Other). Anything that
+doesn't fit the first three goes to Other.
 
 ## Step 2 — Verify markets BEFORE writing
 
@@ -102,16 +96,12 @@ date: YYYY-MM-DD
 
 **Next:** [ONE concrete next step, named file/feature/decision]
 
-## 2. FindingFounders
-**Yesterday:** [bullets from FindingFounders *.md edits + log entries tagged findingfounders]
-**Next:** [next phase deliverable — name the doc or feature]
-
-## 3. Content Pipeline
+## 2. Content Pipeline
 **Yesterday:** [content_pipeline.py edits, new MP4s on Desktop, podcast strategy notes, scripts written]
 **Next:** [next reel topic or podcast episode]
 **📜 AITA daily reminder:** Run the AITA workflow today — `/aita` in Telegram, or tap **🎬 Run AITA Workflow** on the Content agent page. Pick a hook, review the spell-checked script, render and post.
 
-## 4. Trading & Markets
+## 3. Trading & Markets
 **Live (verified, 2 sources):**
 - BTC: $X (source A: $X, source B: $X)
 - ETH: $X
@@ -124,25 +114,24 @@ date: YYYY-MM-DD
 
 **Dr. Profit signals (last 24h):** [any new from Dr-Profit-Trades-2026.md, or "none"]
 
-## 5. Other
-[Catch-all — anything modified in last 36h not in buckets 1-4: chats, vault
+## 4. Other
+[Catch-all — anything modified in last 36h not in buckets 1-3: chats, vault
 maintenance, study, money, personal. If nothing, say "Nothing else of note."]
 
-## 6. Today's Top 3
-The 3 highest-leverage moves across all five buckets above. Be specific:
+## 5. Today's Top 3
+The 3 highest-leverage moves across all four buckets above. Be specific:
 1. [Project] — [concrete action with file/feature/contact named]
 2. [Project] — [concrete action]
 3. [Project] — [concrete action]
 
 Rank by impact, not chronology. Name the specific file, feature, contact, or
-decision — "Wire Supabase project URL into FindingFounders frontend/.env.local"
-beats "set up keys".
+decision — "Render today's AITA reel and post it" beats "do content".
 ```
 
 ## Telegram return
 Send the **full brief** to Telegram so Taran can read it like a morning
 newspaper on his phone. Send the same markdown body you wrote to the vault
-file — sections 1 through 6 plus the Related block — preserving headings and
+file — sections 1 through 5 plus the Related block — preserving headings and
 bullets. Do NOT summarize, do NOT just send "brief is ready", do NOT only send
 Top 3. The vault file and the Telegram message must contain the same content.
 
@@ -162,7 +151,7 @@ WEEKLY_CONTEXT = """You are PAIS creating Taran's weekly review.
 ## Who you are briefing
 - Taranveer Singh, Penn State AI Engineering student (2024-2028)
 - DeFi Club Trading & Technology Lead at Penn State
-- Building FindingFounders and TNFund trading bot
+- Building PAIS (Agentic OS) and TNFund trading bot
 - Follows AI/ML closely, trades crypto, watches Penn State news
 
 ## Step 1 — Read the vault (do this FIRST with Bash before writing anything)
@@ -197,7 +186,7 @@ Read EVERY file from step 1. These are the notes that were actually touched this
 
 ### 1. Last Week's Progress
 Based on vault files modified this week + vault log + activity log:
-- List major milestones by project (PAIS, FindingFounders, Content Pipeline, TNFund)
+- List major milestones by project (PAIS, Content Pipeline, TNFund)
 - Reference specific note names, features built, or decisions made
 - Include things Taran worked on directly in Obsidian, not just PAIS agent output
 - Be concrete — "built X", "wrote Y note", "decided Z"
@@ -229,7 +218,7 @@ Use WebSearch:
 - "AI news this week [date]"
 - "OpenAI Anthropic Google AI announcements this week"
 - "crypto DeFi news this week"
-- "AI startup landscape" or queries relevant to FindingFounders / current builds
+- "AI startup landscape" or queries relevant to PAIS / current builds
 Summarise the 3–5 most relevant developments for Taran.
 
 ## Output

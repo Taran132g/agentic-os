@@ -1,34 +1,13 @@
 window.N8N_DATA = {
- "generated": "2026-06-09 22:15",
+ "generated": "2026-06-22 23:10",
  "statsDays": 14,
  "workflows": [
   {
    "id": "sc7uLAejfaokWoy4",
    "name": "apply-jobs",
    "active": true,
-   "updatedAt": "2026-06-02 19:03:23",
+   "updatedAt": "2026-06-13 20:41:49",
    "nodes": [
-    {
-     "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "0 9 * * 1-5"
-        }
-       ]
-      }
-     },
-     "id": "32443dcd-dd92-4d0e-941f-89a5d4c70222",
-     "name": "Schedule (weekdays 9am)",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "position": [
-      260,
-      200
-     ],
-     "disabled": true
-    },
     {
      "parameters": {
       "command": "python3 /Users/taranveersingh/agentic_os/job_scout.py"
@@ -74,17 +53,6 @@ window.N8N_DATA = {
     }
    ],
    "connections": {
-    "Schedule (weekdays 9am)": {
-     "main": [
-      [
-       {
-        "node": "Scout (Summer 2027 research)",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    },
     "Webhook": {
      "main": [
       [
@@ -99,106 +67,10 @@ window.N8N_DATA = {
    }
   },
   {
-   "id": "j8UeWSB0VXfeLYbA",
-   "name": "brainscan-outreach",
-   "active": true,
-   "updatedAt": "2026-06-05 18:41:08",
-   "nodes": [
-    {
-     "parameters": {
-      "httpMethod": "POST",
-      "path": "brainscan-outreach",
-      "responseMode": "onReceived",
-      "options": {}
-     },
-     "id": "77c8a2d5-38cb-41af-9c55-b1571cc6b645",
-     "name": "Webhook",
-     "type": "n8n-nodes-base.webhook",
-     "typeVersion": 2,
-     "position": [
-      240,
-      200
-     ],
-     "webhookId": "ea62b4f0-87a6-438c-853b-04d3cb99677f"
-    },
-    {
-     "parameters": {
-      "command": "OUTREACH_GMAIL_DRAFT=1 python3 /Users/taranveersingh/agentic_os/brainscan_outreach.py"
-     },
-     "id": "ad32040c-740e-475d-8fc7-e7ceafd3b809",
-     "name": "BrainScan outreach (manual)",
-     "type": "n8n-nodes-base.executeCommand",
-     "typeVersion": 1,
-     "position": [
-      540,
-      200
-     ]
-    },
-    {
-     "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "50 9 * * *"
-        }
-       ]
-      }
-     },
-     "id": "ee75ee98-0456-4fe8-882f-9cd295a69c3d",
-     "name": "Schedule (daily 9:50am)",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "position": [
-      240,
-      420
-     ],
-     "disabled": true
-    },
-    {
-     "parameters": {
-      "command": "OUTREACH_GMAIL_DRAFT=1 python3 /Users/taranveersingh/agentic_os/brainscan_outreach.py"
-     },
-     "id": "2a12fedb-d012-4745-acf5-1121f7f93b71",
-     "name": "BrainScan outreach (batch)",
-     "type": "n8n-nodes-base.executeCommand",
-     "typeVersion": 1,
-     "position": [
-      540,
-      420
-     ]
-    }
-   ],
-   "connections": {
-    "Webhook": {
-     "main": [
-      [
-       {
-        "node": "BrainScan outreach (manual)",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    },
-    "Schedule (daily 9:50am)": {
-     "main": [
-      [
-       {
-        "node": "BrainScan outreach (batch)",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    }
-   }
-  },
-  {
    "id": "VnJ9ugt07YaFaRbe",
    "name": "email-triage",
    "active": true,
-   "updatedAt": "2026-06-01 19:35:27",
+   "updatedAt": "2026-06-13 20:39:58",
    "nodes": [
     {
      "parameters": {
@@ -232,31 +104,6 @@ window.N8N_DATA = {
     },
     {
      "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "30 7 * * *"
-        },
-        {
-         "field": "cronExpression",
-         "expression": "30 18 * * *"
-        }
-       ]
-      }
-     },
-     "id": "7fd559a6-79f4-457d-a760-a80df622cb8e",
-     "name": "Schedule (7:30am & 6:30pm)",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "position": [
-      260,
-      520
-     ],
-     "disabled": true
-    },
-    {
-     "parameters": {
       "command": "python3 /Users/taranveersingh/agentic_os/email_triage.py"
      },
      "id": "3d0d0d4f-4e7e-4950-b3b0-8f4b6674c59d",
@@ -280,71 +127,6 @@ window.N8N_DATA = {
        }
       ]
      ]
-    },
-    "Schedule (7:30am & 6:30pm)": {
-     "main": [
-      [
-       {
-        "node": "Triage (read-only)",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    }
-   }
-  },
-  {
-   "id": "ubt10GEfPE8so8SB",
-   "name": "morning-stack",
-   "active": true,
-   "updatedAt": "2026-05-31 16:28:37",
-   "nodes": [
-    {
-     "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "30 7 * * *"
-        }
-       ]
-      }
-     },
-     "name": "Schedule",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "id": "75d146d9-08a2-4612-8f78-75faf4b90829",
-     "position": [
-      300,
-      300
-     ]
-    },
-    {
-     "parameters": {
-      "command": "bash /Users/taranveersingh/agentic_os/morning_stack.sh"
-     },
-     "id": "0a629f3b-0d34-45ec-8b30-26d285dea5e0",
-     "name": "Execute Command",
-     "type": "n8n-nodes-base.executeCommand",
-     "typeVersion": 1,
-     "position": [
-      600,
-      300
-     ]
-    }
-   ],
-   "connections": {
-    "Schedule": {
-     "main": [
-      [
-       {
-        "node": "Execute Command",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
     }
    }
   },
@@ -352,7 +134,7 @@ window.N8N_DATA = {
    "id": "OB88g6GqbXRyxCSO",
    "name": "piontrix-outreach",
    "active": true,
-   "updatedAt": "2026-06-10 02:14:26",
+   "updatedAt": "2026-06-13 20:39:58",
    "nodes": [
     {
      "parameters": {
@@ -383,27 +165,6 @@ window.N8N_DATA = {
       540,
       200
      ]
-    },
-    {
-     "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "45 9 * * *"
-        }
-       ]
-      }
-     },
-     "id": "e340a030-a18f-4c79-8182-24a975f8dbe9",
-     "name": "Schedule (daily 9:45am)",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "position": [
-      240,
-      440
-     ],
-     "disabled": true
     },
     {
      "parameters": {
@@ -438,17 +199,6 @@ window.N8N_DATA = {
       [
        {
         "node": "Outreach (single)",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    },
-    "Schedule (daily 9:45am)": {
-     "main": [
-      [
-       {
-        "node": "Scout local leads",
         "type": "main",
         "index": 0
        }
@@ -523,60 +273,6 @@ window.N8N_DATA = {
    }
   },
   {
-   "id": "2cdhFWoZulg7rtu3",
-   "name": "ff-daily-digest",
-   "active": false,
-   "updatedAt": "2026-05-31 16:15:55.866",
-   "nodes": [
-    {
-     "parameters": {
-      "rule": {
-       "interval": [
-        {
-         "field": "cronExpression",
-         "expression": "30 8 * * *"
-        }
-       ]
-      }
-     },
-     "name": "Schedule",
-     "type": "n8n-nodes-base.scheduleTrigger",
-     "typeVersion": 1.2,
-     "id": "8973a875-b512-4173-aa21-38bda6616f96",
-     "position": [
-      300,
-      300
-     ]
-    },
-    {
-     "parameters": {
-      "command": "/Users/taranveersingh/FindingFounders/backend/venv/bin/python3 /Users/taranveersingh/FindingFounders/backend/scripts/daily_digest.py"
-     },
-     "id": "a6fa7143-a6d4-4304-ad81-6a4e5a5b95bd",
-     "name": "Execute Command",
-     "type": "n8n-nodes-base.executeCommand",
-     "typeVersion": 1,
-     "position": [
-      600,
-      300
-     ]
-    }
-   ],
-   "connections": {
-    "Schedule": {
-     "main": [
-      [
-       {
-        "node": "Execute Command",
-        "type": "main",
-        "index": 0
-       }
-      ]
-     ]
-    }
-   }
-  },
-  {
    "id": "d6ef36407e404c29",
    "name": "jobfill",
    "active": false,
@@ -626,103 +322,148 @@ window.N8N_DATA = {
      ]
     }
    }
+  },
+  {
+   "id": "ubt10GEfPE8so8SB",
+   "name": "morning-stack",
+   "active": false,
+   "updatedAt": "2026-06-13 21:57:47",
+   "nodes": [
+    {
+     "parameters": {
+      "rule": {
+       "interval": [
+        {
+         "field": "cronExpression",
+         "expression": "30 7 * * *"
+        }
+       ]
+      }
+     },
+     "name": "Schedule",
+     "type": "n8n-nodes-base.scheduleTrigger",
+     "typeVersion": 1.2,
+     "id": "75d146d9-08a2-4612-8f78-75faf4b90829",
+     "position": [
+      300,
+      300
+     ]
+    },
+    {
+     "parameters": {
+      "command": "bash /Users/taranveersingh/agentic_os/morning_stack.sh"
+     },
+     "id": "0a629f3b-0d34-45ec-8b30-26d285dea5e0",
+     "name": "Execute Command",
+     "type": "n8n-nodes-base.executeCommand",
+     "typeVersion": 1,
+     "position": [
+      600,
+      300
+     ]
+    }
+   ],
+   "connections": {
+    "Schedule": {
+     "main": [
+      [
+       {
+        "node": "Execute Command",
+        "type": "main",
+        "index": 0
+       }
+      ]
+     ]
+    }
+   }
   }
  ],
  "stats": {
   "apply-jobs": {
-   "error": 5,
-   "success": 5
-  },
-  "brainscan-outreach": {
-   "success": 4
+   "success": 6
   },
   "email-triage": {
-   "crashed": 3,
-   "error": 2,
-   "success": 12
-  },
-  "jobfill": {
-   "success": 2
+   "success": 9
   },
   "morning-stack": {
-   "success": 9
+   "success": 5
   },
   "piontrix-outreach": {
-   "success": 9
+   "success": 5
   }
  },
  "recent": [
   {
-   "workflow": "email-triage",
-   "status": "success",
-   "startedAt": "2026-06-09 22:41:34.729",
-   "stoppedAt": "2026-06-10 00:11:49.385"
-  },
-  {
-   "workflow": "brainscan-outreach",
-   "status": "success",
-   "startedAt": "2026-06-09 14:06:06.049",
-   "stoppedAt": "2026-06-09 14:06:07.301"
-  },
-  {
    "workflow": "piontrix-outreach",
    "status": "success",
-   "startedAt": "2026-06-09 13:49:34.795",
-   "stoppedAt": "2026-06-09 19:15:49.311"
-  },
-  {
-   "workflow": "apply-jobs",
-   "status": "success",
-   "startedAt": "2026-06-09 13:05:17.687",
-   "stoppedAt": "2026-06-09 15:09:19.461"
+   "startedAt": "2026-06-13 13:45:01.074",
+   "stoppedAt": "2026-06-13 13:51:04.249"
   },
   {
    "workflow": "morning-stack",
    "status": "success",
-   "startedAt": "2026-06-09 12:03:44.745",
-   "stoppedAt": "2026-06-09 12:03:45.828"
+   "startedAt": "2026-06-13 12:00:10.043",
+   "stoppedAt": "2026-06-13 12:00:28.721"
   },
   {
    "workflow": "email-triage",
    "status": "success",
-   "startedAt": "2026-06-09 11:39:59.027",
-   "stoppedAt": "2026-06-09 12:03:45.828"
+   "startedAt": "2026-06-13 11:44:07.897",
+   "stoppedAt": "2026-06-13 11:44:33.910"
   },
   {
    "workflow": "email-triage",
    "status": "success",
-   "startedAt": "2026-06-08 22:37:54.627",
-   "stoppedAt": "2026-06-08 23:03:50.603"
-  },
-  {
-   "workflow": "brainscan-outreach",
-   "status": "success",
-   "startedAt": "2026-06-08 14:05:40.855",
-   "stoppedAt": "2026-06-08 14:05:41.808"
+   "startedAt": "2026-06-12 22:30:00.574",
+   "stoppedAt": "2026-06-12 22:30:50.602"
   },
   {
    "workflow": "piontrix-outreach",
    "status": "success",
-   "startedAt": "2026-06-08 13:46:45.820",
-   "stoppedAt": "2026-06-08 14:30:53.027"
+   "startedAt": "2026-06-12 13:45:00.072",
+   "stoppedAt": "2026-06-12 13:47:37.415"
   },
   {
    "workflow": "apply-jobs",
    "status": "success",
-   "startedAt": "2026-06-08 13:11:38.748",
-   "stoppedAt": "2026-06-08 14:05:43.002"
+   "startedAt": "2026-06-12 13:00:00.074",
+   "stoppedAt": "2026-06-12 13:08:57.045"
   },
   {
    "workflow": "morning-stack",
    "status": "success",
-   "startedAt": "2026-06-08 12:05:43.727",
-   "stoppedAt": "2026-06-08 12:05:45.151"
+   "startedAt": "2026-06-12 12:06:31.806",
+   "stoppedAt": "2026-06-12 12:06:32.821"
   },
   {
    "workflow": "email-triage",
    "status": "success",
-   "startedAt": "2026-06-08 11:30:41.996",
-   "stoppedAt": "2026-06-08 13:49:15.803"
+   "startedAt": "2026-06-12 11:40:27.783",
+   "stoppedAt": "2026-06-12 12:40:51.255"
+  },
+  {
+   "workflow": "email-triage",
+   "status": "success",
+   "startedAt": "2026-06-11 22:30:01.105",
+   "stoppedAt": "2026-06-11 22:30:46.024"
+  },
+  {
+   "workflow": "apply-jobs",
+   "status": "success",
+   "startedAt": "2026-06-11 21:19:03.282",
+   "stoppedAt": "2026-06-11 21:19:50.179"
+  },
+  {
+   "workflow": "piontrix-outreach",
+   "status": "success",
+   "startedAt": "2026-06-11 13:47:03.787",
+   "stoppedAt": "2026-06-11 13:54:19.984"
+  },
+  {
+   "workflow": "apply-jobs",
+   "status": "success",
+   "startedAt": "2026-06-11 13:16:40.804",
+   "stoppedAt": "2026-06-11 13:59:02.206"
   }
  ]
 };
