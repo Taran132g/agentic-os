@@ -23,6 +23,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from tools import icloud_read
+
 VAULT = (Path.home() / "Library" / "Mobile Documents" / "iCloud~md~obsidian" /
          "Documents" / "Digital Brain")
 SHEET = VAULT / "Projects & Building" / "Job Pipeline.md"
@@ -103,7 +105,7 @@ def rows() -> list[dict]:
     if not SHEET.exists():
         return []
     out, in_p = [], False
-    for line in SHEET.read_text(encoding="utf-8").splitlines():
+    for line in icloud_read.read_text(SHEET).splitlines():
         s = line.strip()
         if BELOW in s:
             in_p = True
@@ -153,7 +155,7 @@ def append_jobs(jobs: list[dict]) -> int:
         )
     if not new_rows:
         return 0
-    lines = SHEET.read_text(encoding="utf-8").splitlines(keepends=True)
+    lines = icloud_read.read_text(SHEET).splitlines(keepends=True)
     out, inserted = [], False
     for line in lines:
         if not inserted and ABOVE in line:
@@ -178,7 +180,7 @@ def set_status(url: str, status: str, when: str | None = None) -> bool:
     key = _norm_url(url)
     stamp = when or datetime.now().strftime("%Y-%m-%d")
     out, in_p, changed = [], False, False
-    for line in SHEET.read_text(encoding="utf-8").splitlines(keepends=True):
+    for line in icloud_read.read_text(SHEET).splitlines(keepends=True):
         s = line.strip()
         if BELOW in s:
             in_p = True

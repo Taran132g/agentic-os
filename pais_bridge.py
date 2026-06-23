@@ -78,6 +78,7 @@ try:
     from tools import linkedin_sheet  # type: ignore
 except Exception:
     linkedin_sheet = None
+from tools import icloud_read  # iCloud-resilient vault read (shared with the sheets)
 # Load pais-runtime/agents.py under a UNIQUE name — agentic_os already has an
 # `agents/` package, so `import agents` would resolve to the wrong module.
 _PAIS_RUNTIME = os.path.expanduser("~/pais-runtime")
@@ -285,7 +286,7 @@ def _sales_rows() -> list:
         return []
     rows = []
     in_p = False
-    for line in SALES_SHEET.read_text(encoding="utf-8").splitlines():
+    for line in icloud_read.read_text(SALES_SHEET).splitlines():
         s = line.strip()
         if SALES_BELOW in s:
             in_p = True
@@ -315,7 +316,7 @@ def _sales_set_status(business: str, status: str) -> bool:
     if status not in SALES_STATUSES or not SALES_SHEET.exists():
         return False
     out, in_p, changed = [], False, False
-    for line in SALES_SHEET.read_text(encoding="utf-8").splitlines(keepends=True):
+    for line in icloud_read.read_text(SALES_SHEET).splitlines(keepends=True):
         s = line.strip()
         if SALES_BELOW in s:
             in_p = True
