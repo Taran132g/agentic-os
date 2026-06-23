@@ -40,16 +40,18 @@ import re
 import sys
 import json
 import time
+import tempfile
 import logging
 import subprocess
 from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-PAIS_DIR     = Path(__file__).resolve().parent.parent
-PROFILE_DIR  = str(PAIS_DIR / ".browser_profile")
-RESUME_PATH  = PAIS_DIR / "resume.pdf"
-PROFILE_MD   = PAIS_DIR / "application_profile.md"
+PAIS_DIR        = Path(__file__).resolve().parent.parent
+PROFILE_DIR     = str(PAIS_DIR / ".browser_profile")
+RESUME_PATH     = PAIS_DIR / "resume.pdf"
+COVER_LETTER_TXT = PAIS_DIR / "cover_letter.txt"   # source text (with [placeholders])
+PROFILE_MD      = PAIS_DIR / "application_profile.md"
 SHOT_DIR     = PAIS_DIR / "screenshots"
 SHOT_DIR.mkdir(exist_ok=True)
 
@@ -389,6 +391,64 @@ def _upload_resume(page, results: dict) -> None:
             results["errors"].append(f"file: {str(e)[:40]}")
 
 
+def _cover_letter_text(job: dict) -> str:
+    """The staged cover letter with [Company Name] / [Position Title] placeholders
+    filled in from this job, so it reads tailored rather than templated. Empty
+    string when no cover letter is staged (PAIS_DIR/cover_letter.txt)."""
+    try:
+        txt = COVER_LETTER_TXT.read_text(errors="ignore")
+    except Exception:
+        return ""
+    company, role = (job.get("company") or "").strip(), (job.get("role") or "").strip()
+    if company:
+        txt = txt.replace("[Company Name]", company).replace("[Company Address]", "").replace("[Company]", company)
+    if role:
+        txt = txt.replace("[Position Title]", role).replace("[Position]", role).replace("[Role]", role)
+    return txt.strip()
+
+
+def _cover_letter_file(job: dict) -> Path | None:
+    """A per-job cover-letter PDF (placeholders filled) for file-upload fields,
+    generated from the personalized text via cupsfilter. Falls back to the staged
+    .docx/.pdf, then None."""
+    text = _cover_letter_text(job)
+    if text:
+        try:
+            base = Path(tempfile.gettempdir()) / f"cover_{os.getpid()}_{abs(hash(job.get('url','')))%10000}"
+            base.with_suffix(".txt").write_text(text)
+            r = subprocess.run(["/usr/sbin/cupsfilter", str(base.with_suffix(".txt"))],
+                               capture_output=True, timeout=30)
+            if r.returncode == 0 and r.stdout:
+                pdf = base.with_suffix(".pdf")
+                pdf.write_bytes(r.stdout)
+                return pdf
+        except Exception:
+            pass
+    for ext in (".pdf", ".docx", ".doc"):
+        p = PAIS_DIR / f"cover_letter{ext}"
+        if p.exists():
+            return p
+    return None
+
+
+def _upload_cover_letter(page, job: dict, results: dict) -> None:
+    """Upload the cover letter into any file field that asks for one — the cover slots
+    _upload_resume deliberately skips. No-op when the form has no cover-letter upload
+    or nothing is staged."""
+    clf = _cover_letter_file(job)
+    if not clf:
+        return
+    for el in page.query_selector_all("input[type='file']"):
+        try:
+            fid = (el.get_attribute("id") or el.get_attribute("name") or "").lower()
+            if "cover" not in fid:              # only the cover-letter file slots
+                continue
+            el.set_input_files(str(clf.resolve()))
+            results["filled"].append("[file] cover letter uploaded")
+        except Exception as e:
+            results["errors"].append(f"cover-file: {str(e)[:40]}")
+
+
 # ── the full-form fill ────────────────────────────────────────────────────────
 def _apply(page, c: dict, want: str, results: dict) -> None:
     el, kind, label = c["el"], c["kind"], c["label"]
@@ -424,6 +484,13 @@ def _fill_form(page, job: dict, results: dict) -> None:
                 pass
             if not label:
                 continue
+            # Cover-letter textarea (paste the real letter, personalized) rather than
+            # leaving it blank or letting the generic claude pass invent one.
+            if kind in ("text", "textarea") and "cover letter" in label.lower():
+                cl = _cover_letter_text(job)
+                if cl:
+                    _set_text(el, cl, results, label)
+                    continue
             want = _rule(label)
             if want is None:
                 # No rule — read options now so the LLM can pick an exact one.
@@ -437,6 +504,7 @@ def _fill_form(page, job: dict, results: dict) -> None:
 
         if pass_no == 0:
             _upload_resume(page, results)
+            _upload_cover_letter(page, job, results)
 
         # Arbitrary remaining questions via claude (no-ops when unknowns is empty,
         # which is the usual case on re-scan passes).
