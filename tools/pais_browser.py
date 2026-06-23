@@ -391,20 +391,73 @@ def _upload_resume(page, results: dict) -> None:
             results["errors"].append(f"file: {str(e)[:40]}")
 
 
-def _cover_letter_text(job: dict) -> str:
-    """The staged cover letter with [Company Name] / [Position Title] placeholders
-    filled in from this job, so it reads tailored rather than templated. Empty
-    string when no cover letter is staged (PAIS_DIR/cover_letter.txt)."""
+def _claude_fill_cover(txt: str, company: str, role: str) -> str:
+    """Have claude fill ONLY the [bracketed] placeholders in the cover letter, using
+    the job + application profile, leaving every other word exactly as written. This
+    keeps Taran's letter (his voice, his template) and just personalizes the brackets
+    — catching ALL of them, not only the few hard-coded tokens. '' on any failure."""
+    if os.environ.get("FILL_NO_LLM") == "1":
+        return ""
     try:
-        txt = COVER_LETTER_TXT.read_text(errors="ignore")
+        profile_txt = PROFILE_MD.read_text(errors="ignore")[:5000]
     except Exception:
+        profile_txt = ""
+    prompt = (
+        "Below is Taranveer Singh's cover letter template with [bracketed] placeholders. "
+        "Fill in EVERY bracketed placeholder so the letter reads naturally and specifically "
+        "for this job. STRICT rules:\n"
+        "- Do NOT change, add, or remove any other words — keep every non-placeholder "
+        "sentence exactly as written, in his voice.\n"
+        "- Remove the square brackets in your output.\n"
+        "- Use the job + profile below; never invent credentials, addresses, or contact "
+        "info. If a placeholder has no honest value (e.g. a company address you don't "
+        "know), drop it cleanly rather than guessing.\n\n"
+        f"JOB: {role or '(unspecified role)'} at {company or '(unspecified company)'}\n\n"
+        f"=== APPLICANT PROFILE ===\n{profile_txt}\n\n"
+        f"=== COVER LETTER TEMPLATE ===\n{txt}\n\n"
+        "Output ONLY the finished cover letter text — no preamble, no commentary."
+    )
+    try:
+        proc = subprocess.run(["claude", "-p", prompt],
+                              capture_output=True, text=True, timeout=180)
+        out = (proc.stdout or "").strip()
+        return out if proc.returncode == 0 and out else ""
+    except Exception as e:
+        log.warning("[pais_browser] claude cover-letter fill failed: %s", e)
+        return ""
+
+
+_COVER_CACHE: dict = {}
+
+
+def _cover_letter_text(job: dict) -> str:
+    """The staged cover letter with its placeholders filled in for THIS job. Claude
+    personalizes the [brackets] (kept verbatim otherwise); falls back to a literal
+    substitution of the known tokens, then the raw template. Cached per job so the
+    file-upload and textarea paths share one claude call. '' when none is staged."""
+    key = (job.get("url", ""), job.get("company", ""), job.get("role", ""))
+    if key in _COVER_CACHE:
+        return _COVER_CACHE[key]
+    try:
+        txt = COVER_LETTER_TXT.read_text(errors="ignore").strip()
+    except Exception:
+        txt = ""
+    if not txt:
+        _COVER_CACHE[key] = ""
         return ""
     company, role = (job.get("company") or "").strip(), (job.get("role") or "").strip()
-    if company:
-        txt = txt.replace("[Company Name]", company).replace("[Company Address]", "").replace("[Company]", company)
-    if role:
-        txt = txt.replace("[Position Title]", role).replace("[Position]", role).replace("[Role]", role)
-    return txt.strip()
+    result = ""
+    if "[" in txt:                              # has placeholders → let claude fill them
+        result = _claude_fill_cover(txt, company, role)
+    if not result:                             # claude off/failed, or nothing to fill
+        result = txt
+        if company:
+            result = result.replace("[Company Name]", company).replace("[Company Address]", "").replace("[Company]", company)
+        if role:
+            result = result.replace("[Position Title]", role).replace("[Position]", role).replace("[Role]", role)
+    result = result.strip()
+    _COVER_CACHE[key] = result
+    return result
 
 
 def _cover_letter_file(job: dict) -> Path | None:
