@@ -119,6 +119,26 @@ def _existing_index() -> tuple[set[str], set[str]]:
     return names, phones
 
 
+class SessionLimit(RuntimeError):
+    """The claude CLI returned a usage/session-limit notice instead of output.
+
+    This is NOT a code fault — the morning stack runs several claude agents back
+    to back and sales, near the end of the order, can exhaust the subscription's
+    rolling session budget. The run should fail SOFT (deferred, not broken) so it
+    isn't mistaken for a crash. Carries the reset hint when the CLI provides one."""
+
+    def __init__(self, reset: str = ""):
+        self.reset = reset
+        super().__init__(f"claude session limit{f' · resets {reset}' if reset else ''}")
+
+
+# The CLI prints a one-line notice like "You've hit your session limit · resets
+# 9:40am (America/New_York)" — prose, exit 0, no JSON. Match it before we go
+# hunting for a '[' so the failure is identified, not opaque ("no JSON array").
+_LIMIT_RE = re.compile(r"\b(session|usage|rate)\s+limit\b|\blimit\s+reached\b", re.I)
+_RESET_RE = re.compile(r"resets?\s+(.+?)\s*$", re.I)
+
+
 def _research(n: int, exclude_names: list[str] | None = None) -> list[dict]:
     if not which("claude"):
         raise RuntimeError("claude CLI not on PATH")
@@ -173,6 +193,11 @@ Output ONLY a JSON array of {n} objects, no prose, no code fences:
     raw = re.sub(r"```(?:json)?|```", "", (res.stdout or "").strip())
     start = raw.find("[")
     if start == -1:
+        # Distinguish a transient session/usage limit (fail soft) from a real
+        # malformed response (fail hard) — they were conflated as "no JSON array".
+        if _LIMIT_RE.search(raw):
+            m = _RESET_RE.search(raw)
+            raise SessionLimit(m.group(1).strip() if m else "")
         raise RuntimeError(f"no JSON array from claude: {raw[:200]}")
     # raw_decode parses just the first valid array and ignores any trailing
     # prose or a duplicate array claude sometimes appends after it.
@@ -219,6 +244,16 @@ def main() -> int:
     try:
         seen_names, seen_phones = _existing_index()
         found = _research(n, exclude_names=list(seen_names))
+    except SessionLimit as e:
+        # Healthy agent, exhausted budget — defer, don't cry failure. Keeping this
+        # distinct stops the reviewer from grading a working agent as "broken".
+        reset = f" (resets {e.reset})" if e.reset else ""
+        msg = f"⏳ Sales agent deferred — claude session limit{reset}; no new prospects this run."
+        print(msg)
+        if not dry:
+            _tg(f"⏳ <b>Sales agent</b> deferred — claude session limit{reset}. "
+                f"No code fault; it'll refill the call sheet on the next run.")
+        return 0
     except Exception as e:
         msg = f"⚠️ Sales agent scout failed: {e}"
         print(msg)
