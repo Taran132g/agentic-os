@@ -15,6 +15,8 @@ Usage:
 import hashlib
 import json
 import logging
+import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -104,14 +106,70 @@ def _save_meta(meta: dict):
     META_FILE.write_text(json.dumps(meta, indent=2))
 
 
+def _read_with_timeout(path: Path, timeout: float) -> bytes:
+    """Run read_bytes() in a THROWAWAY daemon thread and wait `timeout` for it.
+
+    A per-call daemon thread (not a shared pool) is deliberate: reading an evicted
+    iCloud file hangs that thread forever, and a fixed-size pool would have every
+    worker permanently consumed after a couple of evicted files — which is exactly
+    how the first version of this guard re-froze the scan at 0% CPU. A throwaway
+    daemon thread just leaks harmlessly and dies with the process; the next read
+    gets a fresh thread."""
+    result: dict = {}
+    def _read():
+        try:
+            result["bytes"] = path.read_bytes()
+        except Exception as e:                 # OSError etc. — surface, don't hang
+            result["err"] = e
+    t = threading.Thread(target=_read, daemon=True)
+    t.start()
+    t.join(timeout)
+    if "bytes" in result:
+        return result["bytes"]
+    if "err" in result:
+        raise result["err"]
+    raise TimeoutError("read timed out")
+
+
+def _read_bytes_safe(path: Path, timeout: float = 12.0) -> bytes:
+    """read_bytes() that cannot hang the caller on an iCloud-evicted file.
+
+    Reading an iCloud-EVICTED (dataless) file via read_bytes() blocks indefinitely
+    — not an OSError, an outright hang — which is what froze the brain reindex for
+    6 days: one evicted vault note parked the whole needs_reindex scan (0% CPU,
+    forever) so the meta file never got touched. Read with a timeout; if it stalls,
+    nudge iCloud to materialize the file (brctl download, bounded) and retry once.
+    If it STILL won't read, raise TimeoutError so the caller skips this file and the
+    overall pass keeps moving."""
+    try:
+        return _read_with_timeout(path, timeout)
+    except TimeoutError:
+        try:                                   # ask iCloud to pull it down, bounded
+            subprocess.run(["brctl", "download", str(path)],
+                           capture_output=True, timeout=30)
+        except Exception:
+            pass
+        try:
+            return _read_with_timeout(path, timeout)
+        except TimeoutError:
+            raise TimeoutError(f"vault file unreadable (iCloud not materialized): {path}")
+
+
 def _file_hash(path: Path) -> str:
-    return hashlib.md5(path.read_bytes()).hexdigest()
+    return hashlib.md5(_read_bytes_safe(path)).hexdigest()
 
 
 def needs_reindex(path: Path) -> bool:
     meta = _load_meta()
     key  = str(path.relative_to(VAULT))
-    return meta.get(key) != _file_hash(path)
+    try:
+        return meta.get(key) != _file_hash(path)
+    except TimeoutError as e:
+        # Evicted/unreadable right now — defer it (don't reindex this pass) so a
+        # single stuck file can't abort the whole scan. It'll be picked up once
+        # iCloud materializes it on a later run.
+        log.warning("needs_reindex skip: %s", e)
+        return False
 
 
 # ── Chunking ──────────────────────────────────────────────────────────────────
@@ -217,7 +275,7 @@ def index_file(path: Path, force: bool = False) -> int:
         return 0
 
     try:
-        text   = path.read_text(encoding="utf-8", errors="ignore")
+        text   = _read_bytes_safe(path).decode("utf-8", errors="ignore")
         source = str(path.relative_to(VAULT))
         chunks = _chunk_text(text, source)
         if not chunks:
