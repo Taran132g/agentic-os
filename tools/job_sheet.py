@@ -86,6 +86,21 @@ def _cell(v: str) -> str:
     return str(v or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
+def _split_cells(line: str) -> list[str]:
+    """Split a markdown table row into cells on UNESCAPED pipes, then unescape.
+
+    _cell() writes a literal pipe inside a value as '\\|', so a naive split('|')
+    mis-columns any row whose title contains a pipe (e.g. 'New Grad | SWE') — it
+    splits the title into two cells, shifting the URL out of column 6 so the row
+    can't be matched or status-edited from the Control Room ('Couldn't save')."""
+    parts = re.split(r"(?<!\\)\|", line.strip())
+    if parts and parts[0].strip() == "":      # drop the leading table delimiter
+        parts = parts[1:]
+    if parts and parts[-1].strip() == "":      # drop the trailing table delimiter
+        parts = parts[:-1]
+    return [p.strip().replace("\\|", "|") for p in parts]
+
+
 def ensure_sheet() -> None:
     """Create the note with header + markers if it doesn't exist yet."""
     if SHEET.exists():
@@ -114,7 +129,7 @@ def rows() -> list[dict]:
             break
         if not (in_p and s.startswith("|")):
             continue
-        cols = [c.strip() for c in s.strip("|").split("|")]
+        cols = _split_cells(s)
         # skip header + separator rows
         if len(cols) < 2 or cols[1].lower() == "company" or re.fullmatch(r"-+", cols[1] or ""):
             continue
@@ -187,12 +202,16 @@ def set_status(url: str, status: str, when: str | None = None) -> bool:
         elif ABOVE in s:
             in_p = False
         if in_p and not changed and s.startswith("|"):
-            cols = [c.strip() for c in s.strip("|").split("|")]
+            cols = _split_cells(s)
             if len(cols) >= 7 and _norm_url(_link_url(cols[6])) == key and key:
                 cols[0] = status
                 if status == APPLIED_STATUS and len(cols) > 5 and not cols[5]:
                     cols[5] = stamp
-                line = "| " + " | ".join(cols) + " |" + ("\n" if line.endswith("\n") else "")
+                # Re-escape pipes on rejoin: _split_cells unescaped '\|' → '|', so a
+                # title containing a pipe must be re-escaped or the rewritten row
+                # would break the table again.
+                line = ("| " + " | ".join(c.replace("|", "\\|") for c in cols)
+                        + " |" + ("\n" if line.endswith("\n") else ""))
                 changed = True
         out.append(line)
     if changed:

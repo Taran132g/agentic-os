@@ -73,6 +73,20 @@ def _cell(v: str) -> str:
     return str(v or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
+def _split_cells(line: str) -> list[str]:
+    """Split a markdown table row into cells on UNESCAPED pipes, then unescape.
+
+    _cell() writes a literal pipe as '\\|', so a naive split('|') mis-columns any
+    row whose name/company/note contains a pipe — shifting key columns so the row
+    can't be matched or status-edited from the Control Room ('Couldn't save')."""
+    parts = re.split(r"(?<!\\)\|", line.strip())
+    if parts and parts[0].strip() == "":
+        parts = parts[1:]
+    if parts and parts[-1].strip() == "":
+        parts = parts[:-1]
+    return [p.strip().replace("\\|", "|") for p in parts]
+
+
 def ensure_sheet() -> None:
     if SHEET.exists():
         return
@@ -100,7 +114,7 @@ def rows() -> list[dict]:
             break
         if not (in_p and s.startswith("|")):
             continue
-        cols = [c.strip() for c in s.strip("|").split("|")]
+        cols = _split_cells(s)
         if len(cols) < 2 or cols[1].lower() == "name" or re.fullmatch(r"-+", cols[1] or ""):
             continue
         out.append({
@@ -167,12 +181,14 @@ def set_status(name: str, company: str, status: str, when: str | None = None) ->
         elif ABOVE in s:
             in_p = False
         if in_p and not changed and s.startswith("|"):
-            cols = [c.strip() for c in s.strip("|").split("|")]
+            cols = _split_cells(s)
             if len(cols) >= 4 and _norm(cols[1]) == kn and _norm(cols[3]) == kc and kn:
                 cols[0] = status
                 if status == SENT_STATUS and len(cols) > 5 and not cols[5]:
                     cols[5] = stamp
-                line = "| " + " | ".join(cols) + " |" + ("\n" if line.endswith("\n") else "")
+                # Re-escape pipes on rejoin (a field may legitimately contain one).
+                line = ("| " + " | ".join(c.replace("|", "\\|") for c in cols)
+                        + " |" + ("\n" if line.endswith("\n") else ""))
                 changed = True
         out.append(line)
     if changed:
