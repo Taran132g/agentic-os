@@ -225,8 +225,13 @@ def _row(lead: dict) -> str:
 
 def _append_rows(rows: list[str]) -> None:
     """Insert new table rows directly above the append marker, atomically.
-    Existing rows (and Taran's edits to them) are left untouched."""
-    text = SHEET.read_text(encoding="utf-8")
+    Existing rows (and Taran's edits to them) are left untouched.
+
+    Reads through _read_sheet() (brctl-download retry), NOT a raw read_text:
+    by the time we get here the multi-minute claude research call has given
+    iCloud time to re-evict the sheet to a dataless placeholder — a raw read
+    is exactly what crashed the scheduled run (line 296) the reviewer flagged."""
+    text = _read_sheet()
     if APPEND_MARKER not in text:
         # Marker missing — append at end rather than lose the data.
         text = text.rstrip() + "\n\n" + APPEND_MARKER + "\n"
