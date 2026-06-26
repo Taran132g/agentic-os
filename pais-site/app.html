@@ -13,6 +13,29 @@
 <link rel="stylesheet" href="product.css">
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="app-dark.css">
+<style id="convoStyles">
+/* ── Control Room chat history (ChatGPT-style) ─────────────── */
+.chat-bar{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);flex:0 0 auto}
+.chat-bar-btn{font:inherit;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--green,#39d98a);background:rgba(57,217,138,.08);border:1px solid rgba(57,217,138,.25);border-radius:8px;padding:6px 12px;cursor:pointer;transition:background .15s,border-color .15s}
+.chat-bar-btn:hover{background:rgba(57,217,138,.16)}
+.chat-bar-btn.ghost{color:var(--muted,#8a93a6);background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
+.chat-bar-btn.ghost:hover{background:rgba(255,255,255,.07)}
+.convo-drawer{position:absolute;top:0;left:0;bottom:0;width:min(290px,82%);background:#0b0f17;border-right:1px solid rgba(255,255,255,.1);box-shadow:8px 0 28px rgba(0,0,0,.45);display:flex;flex-direction:column;z-index:20;animation:convoIn .18s ease}
+@keyframes convoIn{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
+.convo-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#8a93a6)}
+.convo-drawer-head button{background:none;border:none;color:var(--muted,#8a93a6);font-size:14px;cursor:pointer;padding:2px 7px;border-radius:6px;line-height:1}
+.convo-drawer-head button:hover{background:rgba(255,255,255,.08);color:#fff}
+.convo-list{flex:1;overflow-y:auto;padding:8px}
+.convo-empty{color:var(--muted,#8a93a6);font-size:13px;padding:18px 14px;text-align:center}
+.convo-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:9px 10px;cursor:pointer;color:inherit;transition:background .12s}
+.convo-item:hover{background:rgba(255,255,255,.05)}
+.convo-item.active{background:rgba(57,217,138,.1)}
+.convo-t{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.convo-time{font-size:10.5px;color:var(--muted,#8a93a6);flex:0 0 auto}
+.convo-del{flex:0 0 auto;color:var(--muted,#8a93a6);font-size:11px;opacity:0;padding:2px 5px;border-radius:5px;transition:opacity .12s,background .12s,color .12s}
+.convo-item:hover .convo-del{opacity:.6}
+.convo-del:hover{opacity:1;background:rgba(255,90,90,.18);color:#ff8f8f}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body class="app">
@@ -94,7 +117,11 @@
           <div class="wf-grid" id="kGrid"></div>
           <div class="wf-detail" id="kDetail" hidden></div>
         </div>
-        <div id="kitchenChat" hidden style="flex:1;display:flex;flex-direction:column;min-height:0">
+        <div id="kitchenChat" hidden style="flex:1;display:flex;flex-direction:column;min-height:0;position:relative">
+          <div class="chat-bar">
+            <button type="button" class="chat-bar-btn" id="newChatBtn">＋ New chat</button>
+            <button type="button" class="chat-bar-btn ghost" id="histBtn">🕘 History</button>
+          </div>
           <div class="thread" id="thread"></div>
           <div class="suggest" id="suggest"></div>
           <form class="composer" id="composer" autocomplete="off">
@@ -103,6 +130,11 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
             </button>
           </form>
+          <aside class="convo-drawer" id="convoDrawer" hidden aria-label="Previous conversations">
+            <div class="convo-drawer-head"><span>Previous chats</span>
+              <button type="button" id="convoClose" aria-label="Close history">✕</button></div>
+            <div class="convo-list" id="convoList"></div>
+          </aside>
         </div>
       </div>
 
@@ -516,7 +548,7 @@ function renderSuggest(){ const empty=!history.length;
 $("composer").addEventListener("submit",e=>{ e.preventDefault(); sendChat(); });
 async function sendChat(){
   const msg=$("composerText").value.trim(); if(!msg||!token) return;
-  $("composerText").value=""; addMsg("user",esc(msg)); history.push({role:"user",content:msg}); renderSuggest();
+  $("composerText").value=""; addMsg("user",esc(msg)); history.push({role:"user",content:msg}); renderSuggest(); persistActive();
   const t=addMsg("bot",'<span class="chat-typing"><i></i><i></i><i></i></span>');
   try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
       body:JSON.stringify({message:msg,agent:"assistant",model:modelSel.value,history:history.slice(-12)})});
@@ -525,9 +557,84 @@ async function sendChat(){
     if(!r.ok) throw 0; const d=await r.json(); let html=esc(d.reply||"").replace(/\n/g,"<br>");
     if(d.sources&&d.sources.length) html+=`<div class="chat-src">${d.sources.slice(0,4).map(s=>"▸ "+esc(s.title)).join("<br>")}</div>`;
     if(!d.grounded) html+='<div class="chat-src">no notes matched yet — build your brain (left)</div>'; else setBrain(true);
-    t.innerHTML=html; history.push({role:"assistant",content:d.reply||""});
+    t.innerHTML=html; history.push({role:"assistant",content:d.reply||""}); persistActive();
   }catch(e){ t.innerHTML='<span class="chat-err">Couldn\'t reach your Chief of Staff. Try again.</span>'; }
 }
+
+/* ── conversation history (ChatGPT-style, localStorage per user) ─────────
+   The chat backend is stateless — it replays whatever `history` we send. So we
+   persist each conversation client-side and, on reopen, repopulate `history` so
+   the next message continues that thread. Per-browser (not cross-device) by
+   design: zero backend change, nothing leaves the user's machine. */
+let activeConvoId = null;
+const CONVO_CAP = 50;                                  // keep the 50 most-recent
+const convoKey = () => "pais_convos_" + (userId || "anon");
+function loadConvos(){ try{ return JSON.parse(localStorage.getItem(convoKey()) || "[]"); }catch{ return []; } }
+function saveConvos(list){ try{ localStorage.setItem(convoKey(), JSON.stringify(list.slice(0, CONVO_CAP))); }catch{} }
+function newConvoId(){ return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function convoTitle(c){ const u=(c.messages||[]).find(m=>m.role==="user"); return c.title || (u? u.content : "New chat").slice(0,48); }
+function relTime(ts){ const s=(Date.now()-ts)/1000;
+  if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+"m ago";
+  if(s<86400) return Math.floor(s/3600)+"h ago"; const d=Math.floor(s/86400);
+  return d<7 ? d+"d ago" : new Date(ts).toLocaleDateString(); }
+
+/* Upsert the active conversation after every turn. Empty chats are never saved,
+   so a freshly-opened "New chat" doesn't clutter the list until it's used. */
+function persistActive(){
+  if(!history.length) return;
+  if(!activeConvoId) activeConvoId = newConvoId();
+  const list = loadConvos();
+  const prev = list.find(c=>c.id===activeConvoId);
+  const firstUser = history.find(m=>m.role==="user");
+  const rec = { id:activeConvoId,
+    title:(firstUser? firstUser.content : "New chat").slice(0,80),
+    ts: prev? prev.ts : Date.now(), updated: Date.now(),
+    messages: history.map(m=>({role:m.role, content:m.content})) };
+  saveConvos([rec, ...list.filter(c=>c.id!==activeConvoId)]);   // bubble to top
+  renderConvoList();
+}
+function newConvo(focus){
+  activeConvoId = newConvoId();
+  history.length = 0; $("thread").innerHTML = "";
+  greet(); renderConvoList(); closeDrawer();
+  if(focus) $("composerText").focus();
+}
+function openConvo(id){
+  const c = loadConvos().find(x=>x.id===id); if(!c) return;
+  activeConvoId = id;
+  history.length = 0; $("thread").innerHTML = "";
+  for(const m of (c.messages||[])){
+    history.push({role:m.role, content:m.content});
+    addMsg(m.role==="user" ? "user" : "bot",
+           m.role==="user" ? esc(m.content) : esc(m.content).replace(/\n/g,"<br>"));
+  }
+  (c.messages && c.messages.length) ? renderSuggest() : greet();
+  renderConvoList(); closeDrawer();
+}
+function deleteConvo(id, ev){
+  if(ev) ev.stopPropagation();
+  saveConvos(loadConvos().filter(c=>c.id!==id));
+  (id===activeConvoId) ? newConvo() : renderConvoList();
+}
+function renderConvoList(){
+  const wrap = $("convoList"); if(!wrap) return;
+  const list = loadConvos();
+  if(!list.length){ wrap.innerHTML = '<p class="convo-empty">No past chats yet — they\'ll appear here as you chat.</p>'; return; }
+  wrap.innerHTML = list.map(c=>`<button type="button" class="convo-item${c.id===activeConvoId?" active":""}" data-cid="${c.id}">
+      <span class="convo-t">${esc(convoTitle(c))}</span>
+      <span class="convo-time">${relTime(c.updated||c.ts)}</span>
+      <span class="convo-del" data-del="${c.id}" title="Delete">✕</span></button>`).join("");
+  wrap.querySelectorAll(".convo-item").forEach(b=>b.addEventListener("click",e=>{
+    const del = e.target.getAttribute("data-del");
+    if(del){ deleteConvo(del, e); return; }
+    openConvo(b.dataset.cid);
+  }));
+}
+function toggleDrawer(){ const d=$("convoDrawer"); d.hidden=!d.hidden; if(!d.hidden) renderConvoList(); }
+function closeDrawer(){ const d=$("convoDrawer"); if(d) d.hidden=true; }
+$("newChatBtn").addEventListener("click",()=>newConvo(true));
+$("histBtn").addEventListener("click",toggleDrawer);
+$("convoClose").addEventListener("click",closeDrawer);
 
 /* ── teammate view: messages + settings ───────────────── */
 let tab = "pipeline";
