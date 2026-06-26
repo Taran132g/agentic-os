@@ -21,6 +21,7 @@
 .chat-bar-btn.ghost{color:var(--muted,#8a93a6);background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
 .chat-bar-btn.ghost:hover{background:rgba(255,255,255,.07)}
 .convo-drawer{position:absolute;top:0;left:0;bottom:0;width:min(290px,82%);background:#0b0f17;border-right:1px solid rgba(255,255,255,.1);box-shadow:8px 0 28px rgba(0,0,0,.45);display:flex;flex-direction:column;z-index:20;animation:convoIn .18s ease}
+.convo-drawer[hidden]{display:none}   /* explicit display:flex above was overriding the hidden attr — drawer wouldn't close */
 @keyframes convoIn{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
 .convo-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#8a93a6)}
 .convo-drawer-head button{background:none;border:none;color:var(--muted,#8a93a6);font-size:14px;cursor:pointer;padding:2px 7px;border-radius:6px;line-height:1}
@@ -74,30 +75,12 @@
     <div class="acct">
       <img id="acctAvatar" alt="" hidden>
       <span class="email" id="acctEmail"></span>
+      <button class="signout" type="button" id="acctUsageBtn" title="Claude account & usage" style="margin-right:6px" onclick="openAcctModal()">⚙ Usage</button>
       <button class="signout" type="button" id="signoutBtn">sign out</button>
     </div>
   </header>
 
   <div class="cols">
-    <aside class="rail" aria-label="Your team">
-      <span class="rail-label">Your team</span>
-      <div id="teamList"></div>
-      <div class="brain-card">
-        <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3a4 4 0 00-4 4 4 4 0 00-1 7.9V17a3 3 0 006 0M12 3a4 4 0 014 4 4 4 0 011 7.9V17a3 3 0 01-6 0"/></svg> Your brain</h4>
-        <p id="brainCardText">Upload your vault so your team can work — and answer — from your own notes.</p>
-        <button type="button" class="brain-upload" id="brainUploadBtn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M5 18v1a2 2 0 002 2h10a2 2 0 002-2v-1"/></svg>
-          Build your brain (.zip)
-        </button>
-        <input type="file" id="vaultFile" accept=".zip,application/zip" hidden>
-      </div>
-      <button class="rail-connect" id="connectDesktopBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        Connect desktop
-      </button>
-      <a class="back" href="/#demo">↤ see the demo</a>
-    </aside>
-
     <main class="chat-main">
       <!-- The Kitchen = run center + chat -->
       <div class="member-view kitchen" id="chiefView">
@@ -113,6 +96,12 @@
           <div class="kitchen-bar">
             <button class="btn btn-primary" type="button" id="runAllBtn">▶ Run whole routine</button>
             <span class="setup-msg" id="runAllMsg"></span>
+            <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+              <button type="button" class="chat-bar-btn ghost" id="brainUploadBtn">⬆ Build brain</button>
+              <button type="button" class="chat-bar-btn ghost" id="connectDesktopBtn">🖥 Connect desktop</button>
+            </span>
+            <input type="file" id="vaultFile" accept=".zip,application/zip" hidden>
+            <span id="brainCardText" hidden></span>
           </div>
           <div class="wf-grid" id="kGrid"></div>
           <div class="wf-detail" id="kDetail" hidden></div>
@@ -165,6 +154,16 @@
   </div>
 </div>
 
+<!-- ── Claude account & usage (owner-only page) ─────────── -->
+<div class="modal-scrim" id="acctModal" hidden onclick="if(event.target===this)closeAcctModal()">
+  <div class="modal" role="dialog" aria-labelledby="acct-h" aria-modal="true">
+    <button class="modal-x" id="acctClose" aria-label="Close" onclick="closeAcctModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h3 id="acct-h">Claude account &amp; usage</h3>
+    <p class="cd-lead">Switch which Claude login this Mac — and every PAIS agent — runs on. The quota below is for the active account.</p>
+    <div id="acctBody"><div style="color:var(--muted)">Loading…</div></div>
+  </div>
+</div>
+
 
 <script>
 const PAIS_API = "https://api.129.159.182.210.nip.io";
@@ -193,6 +192,11 @@ const TEAM = [
 ];
 const ICONX = { reviewer:'<path d="M9 11l3 3 8-8M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>' };
 Object.assign(ICON, ICONX);
+/* fill the gaps: sales (lead scout → magnifier) + assistant (control room → core) */
+Object.assign(ICON, {
+  sales:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  assistant:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+});
 /* Workflow stages → nodes on the race track. These are the REAL jobs — each
    run executes the same script as the scheduled morning routine on your Mac. */
 const STEPS = {
@@ -213,6 +217,15 @@ const LI_STATUSES = ["🔍 To send","📨 Invite sent","🤝 Connected","💬 Re
 const TM = id => TEAM.find(t => t.id === id);
 /* Generated android portraits (Higgsfield) for the 8 working agents. */
 const AVA = new Set(["assistant","briefing","email","jobs","outreach","sales","linkedin","code","reviewer"]);
+/* Sidebar icon: use the cool line-art ICON[id] (same as the Run cards), accent-tinted.
+   Falls back to the photo avatar for any agent without a line icon. */
+function teamIcon(t){
+  const svg = ICON[t.id];
+  if(!svg) return avatarHtml(t.id, "", (t.name||"?")[0]);
+  return `<span class="avatar" style="--ac:${t.ac||'var(--green)'};color:${t.ac||'var(--green)'}">`
+       + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" `
+       + `style="width:18px;height:18px">${svg}</svg></span>`;
+}
 function avatarHtml(id, cls="", fallback=""){
   const t=TM(id)||{};
   const inner = AVA.has(id) ? `<img src="/av-${id}.webp" alt="" loading="lazy">` : (fallback || (t.chief?"◉":(t.name||"?")[0]));
@@ -280,6 +293,61 @@ function showDemoLock(title){
   $("kBack").addEventListener("click",renderKitchen);
 }
 function openUpgrade(){ window.open("https://cal.com/taranveer/workflows","_blank"); }   /* any locked/upsell path → book a call */
+
+/* ── Claude account & usage ───────────────────────────── */
+function openAcctModal(){ const m=$("acctModal");
+  /* portal to <body> + force positioning inline — a stylesheet rule (body.app > *)
+     overrides .modal-scrim's position to `relative`, dropping it off-screen. */
+  if(m.parentElement!==document.body) document.body.appendChild(m);
+  m.style.position="fixed"; m.style.inset="0"; m.style.zIndex="99999";
+  m.style.display="grid"; m.style.placeItems="center";
+  m.hidden=false; loadClaudeAccount(); }
+/* close must clear the inline display — it beats .modal-scrim[hidden]{display:none} */
+function closeAcctModal(){ const m=$("acctModal"); m.hidden=true; m.style.display="none"; }
+
+/* ── retractable team rail (drawer) — closed by default, slides over content ── */
+function toggleRail(force){
+  const open = (typeof force==='boolean') ? force : !document.body.classList.contains('rail-open');
+  document.body.classList.toggle('rail-open', open);
+  const b=$("railToggle"); if(b) b.textContent = open ? '✕' : '☰';
+}
+function _qbar(label, w){
+  if(!w || w.utilization==null){ return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${label}</span><span>—</span></div></div>`; }
+  const u=Math.round(w.utilization);
+  const c = u>=90?"var(--rose)":u>=70?"var(--amber)":"var(--green)";
+  const reset = w.resets_at ? "resets "+new Date(w.resets_at).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
+  return `<div style="margin:10px 0">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">${label}</span><span style="color:${c};font-weight:600">${u}%</span></div>
+    <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:3px"></div></div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">${reset}</div></div>`;
+}
+async function loadClaudeAccount(){
+  const body=$("acctBody"); if(!body) return;
+  body.innerHTML='<div style="color:var(--muted)">Loading…</div>';
+  let d;
+  try{ d=await api("/api/agents/claude-account"); }
+  catch(e){ body.innerHTML=`<div style="color:var(--rose);font-size:13px">${e.status===503?"Your Mac is asleep/offline — wake it and try again.":("Couldn't load account ("+(e.detail||e.status||"error")+").")}</div>`; return; }
+  const accts=d.accounts||[];
+  const chips = accts.length ? accts.map(a=>`
+    <button onclick="switchClaudeAccount('${a.name}',this)" ${a.active?"disabled":""}
+      style="display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 14px;border-radius:10px;cursor:${a.active?"default":"pointer"};min-width:150px;
+      border:1px solid ${a.active?"var(--green)":"rgba(255,255,255,.14)"};background:${a.active?"rgba(57,217,138,.10)":"rgba(255,255,255,.03)"};color:inherit;font:inherit">
+      <span style="font-size:13px;font-weight:600">${a.name}${a.active?' <span style="color:var(--green);font-size:10px;text-transform:uppercase">active</span>':""}</span>
+      <span style="font-size:11px;color:var(--muted)">${a.email||""}</span></button>`).join("")
+    : '<div style="color:var(--muted);font-size:13px">No saved accounts on the Mac.</div>';
+  const q=d.quota||{};
+  body.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px">${chips}</div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px">Subscription quota</div>
+    ${_qbar("5-hour window", q.five_hour)}
+    ${_qbar("Weekly limit", q.seven_day)}`;
+}
+async function switchClaudeAccount(name, btn){
+  if(btn){ btn.disabled=true; const n=btn.firstElementChild; if(n) n.textContent="Switching…"; }
+  try{ await api("/api/agents/claude-account/switch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); }
+  catch(e){ alert("Switch failed: "+(e.detail||e.status||"error")); }
+  loadClaudeAccount();
+}
 function api(path, opts={}){ return fetch(PAIS_API+path, { ...opts, headers:{ "Authorization":"Bearer "+token, ...(opts.headers||{}) } })
   .then(async r=>{ if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; try{ e.detail=(await r.json()).detail; }catch{} throw e; } return r.json(); }); }
 async function loadConfig(){ try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} renderTeam(); if(selected!=="assistant") renderAgent(selected); }
@@ -302,16 +370,17 @@ setInterval(refreshUnread, 60000);
 function agentMeta(id){ const ac=(cfg&&cfg.agents&&cfg.agents[id])||{}; const t=TM(id);
   return { name: ac.display_name || t.name, role: ac.role || t.role, enabled: !!ac.enabled }; }
 function renderTeam(){
-  $("teamList").innerHTML = TEAM.map(t=>{
+  const tl=$("teamList"); if(!tl) return;   // team rail retired — the cards are the nav now
+  tl.innerHTML = TEAM.map(t=>{
     const m=agentMeta(t.id); const on=t.id===selected; const locked = !t.chief && !isAllowed(t.id);
     const attn = t.attn && !locked ? '<span class="tm-attn" title="needs your attention to finish">⚠</span>' : "";
     const tail = locked ? '<span class="tm-lock">🔒</span>' : (t.chief ? "" : `${attn}<span class="tm-dot ${m.enabled?"on":""}${hasUnread(t.id)?" unread":""}" title="${hasUnread(t.id)?"new message":""}"></span>`);
     return `<button class="member ${on?"active":""} ${locked?"locked":""}" data-id="${t.id}">
-      ${avatarHtml(t.id,"",m.name[0])}
+      ${teamIcon(t)}
       <span class="m-at"><b>${esc(m.name)}</b><span>${esc(m.role)}</span></span>${tail}
     </button>`;
   }).join("");
-  $("teamList").querySelectorAll(".member").forEach(b=>b.addEventListener("click",()=>selectMember(b.dataset.id)));
+  tl.querySelectorAll(".member").forEach(b=>b.addEventListener("click",()=>selectMember(b.dataset.id)));
 }
 function selectMember(id){
   selected=id; renderTeam();
@@ -342,12 +411,19 @@ function renderKitchen(){
   if(gpActive && gpSeq){ openGrandPrix(gpSeq); return; }   // routine racing → stay on the GP
   $("kGrid").style.display=""; $("kDetail").hidden=true;
   $("kGrid").innerHTML = RUNNABLE.map(id=>{ const m=agentMeta(id); const locked=!isAllowed(id);
-    return `<button class="wf-card ${locked?"locked":""}" data-id="${id}">
+    return `<button class="wf-card ${locked?"locked":""}" data-id="${id}" style="position:relative">
+      <img class="wf-pfp" src="/av-${id}.webp" alt="" loading="lazy" onerror="this.style.display='none'">
       <span class="wf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[id]||""}</svg></span>
       <span class="wf-name">${esc(m.name)}${TM(id).attn?' <span class="attn-tag">⚠ needs you</span>':""}</span>
       <span class="wf-blurb">${esc((STEPS[id]||[]).join(" → "))}</span>
       <span class="wf-go">${locked?"🔒 PRO":"open ↗"}</span></button>`; }).join("");
-  $("kGrid").querySelectorAll(".wf-card").forEach(c=>c.addEventListener("click",()=>openKitchenWf(c.dataset.id)));
+  $("kGrid").querySelectorAll(".wf-card").forEach(c=>c.addEventListener("click",()=>selectMember(c.dataset.id)));
+}
+/* Run an agent from its Pipeline view → jump to the kitchen race and start it. */
+function runAgent(id){
+  selectMember("assistant");                 // back to the Control Room (kitchen)
+  openKitchenWf(id);                          // show this agent's race track
+  setTimeout(()=>{ const b=$("kRun"); if(b && !b.disabled) b.click(); }, 90);   // start → race
 }
 function openKitchenWf(id){ const m=agentMeta(id), steps=STEPS[id]||["Run"];
   if(!isAllowed(id)){ $("kGrid").style.display="none"; $("kDetail").hidden=false;
@@ -374,7 +450,7 @@ async function runKitchenWf(id){
   const msg=$("kMsg"), btn=$("kRun"), out=$("kOut"); btn.disabled=true;
   const stopB=$("kStop"); if(stopB){ stopB.hidden=false; stopB.textContent="⏹ Stop"; }
   msg.textContent="Racing — real run on your Mac…"; msg.className="setup-msg";
-  const race=startRace($("kDetail").querySelector(".racetrack"));
+  const race=startProgressRace($("kDetail").querySelector(".racetrack"), id, Date.now());
   let r;
   try{ const q=await bgRun(id); r = q.queued ? await waitRun(id) : q; }
   catch(e){ r={_err:e}; }
@@ -433,6 +509,55 @@ function startRace(svg){
     }
   };
 }
+/* ── ETA: learn each agent's typical run time (rolling avg in localStorage) ──── */
+function _avgKey(){ return "pais_run_avg_"+(userId||"x"); }
+function avgRunMs(id){
+  try{ const m=JSON.parse(localStorage.getItem(_avgKey())||"{}"); if(m[id]>0) return m[id]; }catch{}
+  const steps=(STEPS[id]||["Run"]).length;
+  return Math.min(300000, Math.max(30000, steps*22000));  // first run: ~22s/step, clamp 30s–5m
+}
+function recordRunMs(id, ms){
+  if(!(ms>2000 && ms<1800000)) return;                    // ignore absurd durations
+  try{ const m=JSON.parse(localStorage.getItem(_avgKey())||"{}");
+    m[id] = m[id]>0 ? Math.round(m[id]*0.6 + ms*0.4) : ms;  // exponential moving avg
+    localStorage.setItem(_avgKey(), JSON.stringify(m)); }catch{}
+}
+function fmtLeft(ms){ const s=Math.max(0,Math.round(ms/1000));
+  if(s<=2) return "wrapping up…";
+  return s>=60 ? `~${Math.floor(s/60)}m ${s%60}s left` : `~${s}s left`; }
+
+/* Progress-driven race: fills the track by elapsed/avg (not a cosmetic lap), lights
+   steps proportionally, and shows the ETA — so the user sees how far + how long. */
+function startProgressRace(svg, id, started){
+  if(!svg) return { finish(){}, eta(){return 0;}, pct(){return 0;} };
+  const car=svg.querySelector(".tcar"), prog=svg.querySelector(".tprog"), lapEl=svg.querySelector(".tlaps");
+  const nodes=[...svg.querySelectorAll(".tnode")], xs=nodes.map(c=>+c.getAttribute("cx"));
+  const x0=xs[0], x1=xs[xs.length-1], avg=avgRunMs(id);
+  let raf=null, stopped=false;
+  const pctNow=()=>Math.min(0.97, (Date.now()-started)/avg);   // cap <100% until truly done
+  const etaNow=()=>Math.max(0, avg-(Date.now()-started));
+  car.style.opacity="1"; svg.classList.add("racing");
+  function frame(){
+    if(stopped) return;
+    const p=pctNow(), x=x0+(x1-x0)*p;
+    car.setAttribute("x",x); prog.setAttribute("x2",x);
+    nodes.forEach((nd,i)=>nd.classList.toggle("done", xs[i]<=x+1));
+    if(lapEl) lapEl.textContent=fmtLeft(etaNow());
+    raf=requestAnimationFrame(frame);
+  }
+  raf=requestAnimationFrame(frame);
+  return {
+    eta:etaNow, pct:pctNow,
+    finish(ok){ if(stopped) return; stopped=true; cancelAnimationFrame(raf);
+      if(ok) recordRunMs(id, Date.now()-started);
+      svg.classList.remove("racing"); svg.classList.add(ok?"race-won":"race-fail");
+      car.setAttribute("x",x1); prog.setAttribute("x2",x1); car.style.opacity=ok?"1":"0";
+      nodes.forEach(nd=>{ nd.classList.toggle("done",!!ok); nd.classList.toggle("fail",!ok); });
+      if(lapEl) lapEl.textContent= ok ? "FINISH 🏁" : "DNF";
+    }
+  };
+}
+
 /* Background run + poll until done — survives any proxy timeout. */
 function bgRun(id){ return api("/api/agents/run/"+id+"?bg=1",{method:"POST"}); }
 async function waitRun(id, maxMs=1500000){
@@ -502,12 +627,12 @@ function openGrandPrix(seq){
       const row=d.querySelector(`.gp-row[data-id="${id}"]`); if(!row){ clearInterval(gpTimer); gpTimer=null; return; }
       const r=runs[id]||{}; const st=row.querySelector(`[data-st="${id}"]`);
       if(r.state==="running"){
-        if(!races[id]){ races[id]=startRace(row.querySelector(".racetrack")); row.classList.add("racing"); row.scrollIntoView({behavior:"smooth",block:"nearest"}); }
-        st.innerHTML=`racing… ${fmtElapsed(Date.now()-(r.started||Date.now()))} <button onclick="api('/api/agents/run-ctl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'${id}'})});this.textContent='stopping…'" style="margin-left:8px;background:none;border:1px solid rgba(251,113,133,.4);color:var(--rose);border-radius:8px;padding:2px 8px;font-size:10px;cursor:pointer">⏹ stop</button>`; st.className="gp-status run";
+        if(!races[id]){ races[id]=startProgressRace(row.querySelector(".racetrack"), id, r.started||Date.now()); row.classList.add("racing"); row.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+        st.innerHTML=`racing… ${fmtLeft(races[id].eta())} · ${fmtElapsed(Date.now()-(r.started||Date.now()))} in <button onclick="api('/api/agents/run-ctl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'${id}'})});this.textContent='stopping…'" style="margin-left:8px;background:none;border:1px solid rgba(251,113,133,.4);color:var(--rose);border-radius:8px;padding:2px 8px;font-size:10px;cursor:pointer">⏹ stop</button>`; st.className="gp-status run";
       } else if(r.state==="done" && !row.dataset.final){
         row.dataset.final="1";
         const res=r.result||{}; const good=!!res.ran;
-        if(!races[id]) races[id]=startRace(row.querySelector(".racetrack"));
+        if(!races[id]) races[id]=startProgressRace(row.querySelector(".racetrack"), id, r.started||Date.now());
         races[id].finish(good); row.classList.remove("racing");
         st.textContent = good ? `✓ posted to feed in ${fmtElapsed((r.finished||0)-(r.started||0))}`
                               : "✗ " + ((res.message||"failed")).slice(0,70);
@@ -643,11 +768,15 @@ function renderAgent(id){
   const m=agentMeta(id);
   $("agentView").innerHTML=`
     <div class="member-head">
+      <button class="wf-back" type="button" onclick="selectMember('assistant')" style="margin-right:6px">← Control Room</button>
       ${avatarHtml(id,"",esc(m.name[0]))}
       <div><h2>${esc(m.name)}</h2><p>${esc(m.role)} · ${m.enabled?'<span class="on-tag">active</span>':'<span class="off-tag">not set up</span>'}${t.attn?' · <span class="attn-tag">⚠ runs on your computer — needs you to finish</span>':""}</p></div>
-      <div class="view-tabs" style="margin-left:auto">
-        <button type="button" data-tab="pipeline" class="${tab!=="settings"?"active":""}">Pipeline</button>
-        <button type="button" data-tab="settings" class="${tab==="settings"?"active":""}">Settings</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <button class="btn btn-primary" type="button" onclick="runAgent('${id}')" style="padding:7px 14px;font-size:12px">▶ Run</button>
+        <div class="view-tabs">
+          <button type="button" data-tab="pipeline" class="${tab!=="settings"?"active":""}">Pipeline</button>
+          <button type="button" data-tab="settings" class="${tab==="settings"?"active":""}">Settings</button>
+        </div>
       </div>
     </div>
     <div id="agentBody"></div>`;

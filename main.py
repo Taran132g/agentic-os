@@ -791,6 +791,70 @@ async def api_usage():
     }
 
 
+_SWITCHER = str(Path.home() / ".claude-accounts" / "claude-account.sh")
+
+
+@api.get("/api/account")
+async def api_account():
+    """Active Claude login + saved profiles, for the Control Room account switcher.
+
+    The same keychain login backs /api/usage, so usage already reflects whichever
+    account is active here. Localhost-only feature — touches the local keychain.
+    """
+    import subprocess
+    try:
+        res = await asyncio.get_running_loop().run_in_executor(
+            None,
+            lambda: subprocess.run(
+                [_SWITCHER, "json"], capture_output=True, text=True, timeout=8
+            ),
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return JSONResponse(json.loads(res.stdout))
+        return JSONResponse(
+            {"error": (res.stderr or "switcher unavailable").strip(), "accounts": []}
+        )
+    except Exception as e:  # noqa: BLE001 — surface any failure to the UI, don't 500
+        return JSONResponse({"error": str(e), "accounts": []})
+
+
+@api.post("/api/account/switch")
+async def api_account_switch(body: dict):
+    """Switch the Mac's Claude login to a saved profile.
+
+    NOTE: there is one login slot on the machine, so this re-points PAIS's own
+    `claude -p` billing too. Switches even if an agent is mid-task (by choice).
+    """
+    import subprocess
+    name = (body.get("name") or "").strip()
+    if not name:
+        return JSONResponse({"ok": False, "error": "name required"}, status_code=400)
+    try:
+        res = await asyncio.get_running_loop().run_in_executor(
+            None,
+            lambda: subprocess.run(
+                [_SWITCHER, "use", name], capture_output=True, text=True, timeout=15
+            ),
+        )
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+    if res.returncode != 0:
+        return JSONResponse(
+            {"ok": False, "error": (res.stderr or res.stdout).strip()},
+            status_code=409,
+        )
+    # Refresh the cached quota so the Usage panel shows the new account at once.
+    try:
+        from tools.usage_quota import fetch_quota
+        await asyncio.get_running_loop().run_in_executor(
+            None, lambda: fetch_quota(force=True)
+        )
+    except Exception:  # noqa: BLE001 — best-effort refresh
+        pass
+    log.info("[account] switched Claude login → %s", name)
+    return JSONResponse({"ok": True, "message": res.stdout.strip()})
+
+
 @api.get("/api/history")
 async def api_history(filter: str = "all"):
     if not TASKS_DIR.exists():
@@ -1476,6 +1540,68 @@ async def _safe_tg(fn, text: str):
 
 # ── Entry ─────────────────────────────────────────────────────────────────────
 
+# ── Claude usage watch: Telegram alert when 5h or weekly quota crosses 80% ────
+_USAGE_ALERT_THRESHOLD = 80.0
+_usage_alert_armed = {"five_hour": True, "seven_day": True}  # True = ready to fire
+
+
+def _active_claude_email() -> str:
+    try:
+        d = json.loads((Path.home() / ".claude.json").read_text(encoding="utf-8"))
+        return d.get("oauthAccount", {}).get("emailAddress", "?")
+    except Exception:
+        return "?"
+
+
+async def _send_usage_alert(label: str, util: float, resets_at) -> None:
+    reset_txt = ""
+    if resets_at:
+        try:
+            dt = datetime.datetime.fromisoformat(str(resets_at).replace("Z", "+00:00"))
+            reset_txt = "\nResets " + dt.astimezone().strftime("%b %d, %I:%M %p")
+        except Exception:
+            pass
+    try:
+        from telegram_bot import _app, TELEGRAM_CHAT_ID
+        await _app.bot.send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=(f"⚠️ *Claude usage {util:.0f}%* — {label} is over 80%.\n"
+                  f"Account: `{_active_claude_email()}`{reset_txt}\n"
+                  f"Switch accounts in the Control Room (⚙ Usage) if you need headroom."),
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        log.warning("usage alert send: %s", e)
+
+
+async def _usage_quota_watch():
+    """Telegram alert when the 5-hour or weekly Claude quota crosses 80%.
+
+    One alert per crossing per window — re-arms only after utilization drops back
+    under 80% (e.g. when the window resets), so it never spams on every poll.
+    """
+    await asyncio.sleep(60)  # let startup settle
+    while True:
+        try:
+            from tools.usage_quota import fetch_quota
+            q = await asyncio.get_running_loop().run_in_executor(None, fetch_quota)
+            if q:
+                for key, label in (("five_hour", "5-hour window"),
+                                   ("seven_day", "weekly limit")):
+                    w = q.get(key) or {}
+                    u = w.get("utilization")
+                    if u is None:
+                        continue
+                    if u >= _USAGE_ALERT_THRESHOLD and _usage_alert_armed[key]:
+                        _usage_alert_armed[key] = False
+                        await _send_usage_alert(label, u, w.get("resets_at"))
+                    elif u < _USAGE_ALERT_THRESHOLD:
+                        _usage_alert_armed[key] = True  # re-arm for the next crossing
+        except Exception as e:
+            log.warning("usage watch: %s", e)
+        await asyncio.sleep(300)  # check every 5 minutes
+
+
 async def _evict_stale_verifications():
     """Drop pending verifications/requeues older than 24 h so the dicts can't grow forever."""
     while True:
@@ -1614,6 +1740,7 @@ async def main():
         asyncio.create_task(_retry_worker(),                            name="retry_worker"),
         asyncio.create_task(run_scheduler(_schedule_dispatch),          name="scheduler"),
         asyncio.create_task(_evict_stale_verifications(),               name="evict_cleanup"),
+        asyncio.create_task(_usage_quota_watch(),                       name="usage_quota_watch"),
     ]
 
     try:

@@ -182,6 +182,19 @@ body {
 .usage-table td { padding: 9px 10px; color: var(--text); border-bottom: 1px solid var(--g-border-l); font-variant-numeric: tabular-nums; }
 .usage-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 .usage-empty { color: var(--dim); text-align: center; padding: 20px; }
+.account-switcher { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.acct-chip { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--g-border-l); background: var(--g-card); cursor: pointer; min-width: 150px;
+  transition: border-color .2s ease, background .2s ease, transform .1s ease; text-align: left; }
+.acct-chip:hover { border-color: var(--accent-l); transform: translateY(-1px); }
+.acct-chip:active { transform: translateY(0); }
+.acct-chip[disabled] { cursor: progress; opacity: .6; }
+.acct-chip.active { border-color: var(--green); background: rgba(34,197,94,0.10); cursor: default; }
+.acct-chip.active:hover { transform: none; }
+.acct-chip .acct-name { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.acct-chip .acct-email { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.acct-chip .acct-flag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--green); }
+.account-note { font-size: 11px; color: var(--dim); margin-top: 10px; line-height: 1.5; }
 
 /* ── MAIN ── */
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -190,7 +203,7 @@ body {
 .page.active { display: flex; }
 
 .page-header {
-  flex-shrink: 0; height: 52px; padding: 0 20px;
+  flex-shrink: 0; height: 52px; padding: 0 62px 0 20px;
   border-bottom: 1px solid var(--g-border-l);
   display: flex; align-items: center; gap: 12px;
   background: var(--g-header);
@@ -891,6 +904,28 @@ body {
 }
 .sidebar-toggle:active { transform: scale(0.94); }
 
+.settings-toggle {
+  display: flex;
+  position: fixed;
+  top: 10px; right: 12px;
+  width: 40px; height: 40px;
+  border-radius: 9px;
+  border: 1px solid var(--g-border);
+  background: rgba(8,4,28,0.85);
+  backdrop-filter: var(--blur-lg);
+  -webkit-backdrop-filter: var(--blur-lg);
+  color: var(--text);
+  font-size: 17px;
+  cursor: pointer;
+  z-index: 1002;
+  align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  transition: transform 0.12s ease, border-color 0.2s ease;
+}
+.settings-toggle:hover { border-color: var(--accent-l); transform: rotate(40deg); }
+.settings-toggle:active { transform: scale(0.94); }
+.settings-toggle.active { border-color: var(--accent-l); color: var(--accent-l); }
+
 .sidebar-overlay {
   display: none;
   position: fixed; inset: 0;
@@ -926,7 +961,7 @@ body {
   }
 
   /* tighter page headers + cards on small screens */
-  .page-header { padding: 10px 12px; }
+  .page-header { padding: 10px 58px 10px 12px; }
   .glass-card  { padding: 12px; }
 }
 </style>
@@ -935,6 +970,8 @@ body {
 
 <!-- MOBILE SIDEBAR TOGGLE -->
 <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle menu">☰</button>
+<!-- SETTINGS / USAGE — always visible, opens the Usage & Account page -->
+<button class="settings-toggle" id="settings-toggle" onclick="openSettings()" aria-label="Usage and account settings" title="Usage &amp; account">⚙️</button>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
 
 <!-- SIDEBAR -->
@@ -1785,6 +1822,14 @@ body {
   <div class="usage-wrap">
 
     <div class="usage-section">
+      <div class="usage-section-title">Claude Account</div>
+      <div id="account-switcher" class="account-switcher">
+        <div class="usage-empty">Loading account…</div>
+      </div>
+      <div class="account-note">One login slot on this Mac — switching also re-points PAIS's own agents (and their billing) to the selected account. The quota below reflects the active account.</div>
+    </div>
+
+    <div class="usage-section">
       <div class="usage-section-title">Subscription Quota</div>
       <div class="usage-cards">
         <div class="usage-card">
@@ -1874,6 +1919,12 @@ function toggleSidebar(force) {
   if (btn) btn.textContent = open ? '✕' : '☰';
 }
 
+// Settings gear → open the Usage & Account page from anywhere.
+function openSettings() {
+  toggleSidebar(false);
+  switchPage('usage', null);
+}
+
 function switchPage(name, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -1881,6 +1932,9 @@ function switchPage(name, btn) {
   if (page) page.classList.add('active');
   if (btn) btn.classList.add('active');
   S.currentPage = name;
+  // Light up the settings gear only while the Usage page is open.
+  const gear = document.getElementById('settings-toggle');
+  if (gear) gear.classList.toggle('active', name === 'usage');
   // On mobile, auto-close the sidebar after picking a page
   if (window.matchMedia('(max-width: 768px)').matches) {
     toggleSidebar(false);
@@ -2838,7 +2892,50 @@ function _usageBar(id, w) {
   fillEl.style.background = c;
   pctEl.style.color       = c;
 }
+// ── ACCOUNT SWITCHER ──────────────────────────────────────────────────────────
+async function loadAccount() {
+  const wrap = document.getElementById('account-switcher');
+  if (!wrap) return;
+  try {
+    const d = await (await fetch('/api/account')).json();
+    const accts = d.accounts || [];
+    if (d.error && !accts.length) {
+      wrap.innerHTML = `<div class="usage-empty">Account switcher unavailable: ${esc(d.error)}</div>`;
+      return;
+    }
+    if (!accts.length) {
+      wrap.innerHTML = '<div class="usage-empty">No saved accounts. Run <code>claude-account save &lt;name&gt;</code> on the Mac.</div>';
+      return;
+    }
+    wrap.innerHTML = accts.map(a => `
+      <button class="acct-chip ${a.active?'active':''}" ${a.active?'disabled':''}
+              onclick="switchAccount('${esc(a.name)}', this)">
+        <span class="acct-name">${esc(a.name)}${a.active?' <span class="acct-flag">active</span>':''}</span>
+        <span class="acct-email">${esc(a.email)}</span>
+      </button>`).join('');
+  } catch(e) {
+    wrap.innerHTML = '<div class="usage-empty">Account switcher offline — is PAIS running locally?</div>';
+  }
+}
+async function switchAccount(name, btn) {
+  if (btn) { btn.disabled = true; btn.querySelector('.acct-name').textContent = 'Switching…'; }
+  try {
+    const res = await fetch('/api/account/switch', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name})
+    });
+    const d = await res.json();
+    if (!d.ok) { addMsg('system', 'Account switch failed: ' + (d.error||'unknown')); }
+    else       { addMsg('system', '✓ ' + (d.message || ('Switched to ' + name))); }
+  } catch(e) {
+    addMsg('system', 'Account switch error — is PAIS running locally?');
+  }
+  await loadAccount();
+  await loadUsage();
+}
+
 async function loadUsage() {
+  loadAccount();
   try {
     const d = await (await fetch('/api/usage')).json();
     const q = d.quota || {};

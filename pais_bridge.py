@@ -336,6 +336,12 @@ def _sales_set_status(business: str, status: str) -> bool:
     return changed
 
 
+# ── Claude account switcher (owner-only, via the Control Room). Wraps the local
+# `claude-account.sh`, which swaps the macOS-keychain Claude login. Switching here
+# re-points this Mac's whole Claude subscription (interactive + every PAIS agent).
+_SWITCHER = str(Path.home() / ".claude-accounts" / "claude-account.sh")
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, obj: dict):
         body = json.dumps(obj).encode()
@@ -352,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/job-status", "/linkedin-status"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/job-status", "/linkedin-status", "/account", "/account-switch"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -580,6 +586,42 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(502, {"error": str(e)[:200]})
             return
+
+        if self.path == "/account":
+            # Active Claude login + saved profiles + live quota, in one call.
+            try:
+                res = subprocess.run([_SWITCHER, "json"], capture_output=True,
+                                     text=True, timeout=8)
+                info = (json.loads(res.stdout)
+                        if res.returncode == 0 and res.stdout.strip()
+                        else {"accounts": [], "error": (res.stderr or "switcher unavailable").strip()})
+            except Exception as e:
+                info = {"accounts": [], "error": str(e)[:200]}
+            try:
+                from tools.usage_quota import fetch_quota
+                info["quota"] = fetch_quota()
+            except Exception:
+                info["quota"] = None
+            return self._send(200, info)
+
+        if self.path == "/account-switch":
+            name = (data.get("name") or "").strip()
+            if not name:
+                return self._send(400, {"error": "name required"})
+            try:
+                res = subprocess.run([_SWITCHER, "use", name], capture_output=True,
+                                     text=True, timeout=15)
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+            if res.returncode != 0:
+                return self._send(409, {"ok": False,
+                                        "error": (res.stderr or res.stdout).strip()})
+            try:
+                from tools.usage_quota import fetch_quota
+                fetch_quota(force=True)   # refresh cache so the next /account is fresh
+            except Exception:
+                pass
+            return self._send(200, {"ok": True, "message": res.stdout.strip()})
 
         prompt = (data.get("prompt") or "").strip()
         if not prompt:
