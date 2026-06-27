@@ -3,1223 +3,667 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAIS — Your team</title>
-<meta name="description" content="Your PAIS team — AI specialists that do the work and message you on the site.">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<meta name="theme-color" content="#07090f">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="product.css">
-<link rel="stylesheet" href="app.css">
-<link rel="stylesheet" href="app-dark.css">
-<style id="convoStyles">
-/* ── Control Room chat history (ChatGPT-style) ─────────────── */
-.chat-bar{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);flex:0 0 auto}
-.chat-bar-btn{font:inherit;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--green,#39d98a);background:rgba(57,217,138,.08);border:1px solid rgba(57,217,138,.25);border-radius:8px;padding:6px 12px;cursor:pointer;transition:background .15s,border-color .15s}
-.chat-bar-btn:hover{background:rgba(57,217,138,.16)}
-.chat-bar-btn.ghost{color:var(--muted,#8a93a6);background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
-.chat-bar-btn.ghost:hover{background:rgba(255,255,255,.07)}
-.convo-drawer{position:absolute;top:0;left:0;bottom:0;width:min(290px,82%);background:#0b0f17;border-right:1px solid rgba(255,255,255,.1);box-shadow:8px 0 28px rgba(0,0,0,.45);display:flex;flex-direction:column;z-index:20;animation:convoIn .18s ease}
-.convo-drawer[hidden]{display:none}   /* explicit display:flex above was overriding the hidden attr — drawer wouldn't close */
-@keyframes convoIn{from{transform:translateX(-14px);opacity:0}to{transform:none;opacity:1}}
-.convo-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#8a93a6)}
-.convo-drawer-head button{background:none;border:none;color:var(--muted,#8a93a6);font-size:14px;cursor:pointer;padding:2px 7px;border-radius:6px;line-height:1}
-.convo-drawer-head button:hover{background:rgba(255,255,255,.08);color:#fff}
-.convo-list{flex:1;overflow-y:auto;padding:8px}
-.convo-empty{color:var(--muted,#8a93a6);font-size:13px;padding:18px 14px;text-align:center}
-.convo-item{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;border-radius:9px;padding:9px 10px;cursor:pointer;color:inherit;transition:background .12s}
-.convo-item:hover{background:rgba(255,255,255,.05)}
-.convo-item.active{background:rgba(57,217,138,.1)}
-.convo-t{flex:1;min-width:0;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.convo-time{font-size:10.5px;color:var(--muted,#8a93a6);flex:0 0 auto}
-.convo-del{flex:0 0 auto;color:var(--muted,#8a93a6);font-size:11px;opacity:0;padding:2px 5px;border-radius:5px;transition:opacity .12s,background .12s,color .12s}
-.convo-item:hover .convo-del{opacity:.6}
-.convo-del:hover{opacity:1;background:rgba(255,90,90,.18);color:#ff8f8f}
-</style>
+<title>PAIS — Control Room (gamified prototype)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=EB+Garamond:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--gold:#d9a441;--gold2:#f0c463;--parch:#e9dcc0;--muted:#9a93a6;--dim:#6b6675;--magic:#8b94ff;--green:#56d98a;--ink:#0a0b12;--panel:#14141d;
+  --display:'Cinzel',serif;--serif:'EB Garamond',Georgia,serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%);color:var(--parch);font-family:var(--serif);overflow:hidden;user-select:none}
+button{font-family:inherit;cursor:pointer}
+
+/* ── HUD ── */
+.hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;padding:14px 26px;
+  background:linear-gradient(180deg,rgba(8,9,14,.92),transparent)}
+.hud .me{display:flex;align-items:center;gap:12px}
+.hud .av{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 35%,#2a2535,#13121a);box-shadow:0 0 20px -4px var(--gold);position:relative}
+.hud .av .lvl{position:absolute;bottom:-6px;right:-6px;background:var(--gold);color:#1a140a;font-family:var(--mono);font-weight:700;font-size:10px;border-radius:8px;padding:1px 5px}
+.hud h1{font-family:var(--display);font-size:15px;letter-spacing:.14em;margin:0}
+.xpwrap{flex:1;max-width:300px}
+.xpbar{height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.xpfill{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#b9842f,var(--gold2));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.xptxt{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.1em;margin-top:4px}
+.hud .spacer{flex:1}
+.chip{font-family:var(--mono);display:flex;align-items:center;gap:7px;font-size:12px;color:var(--parch);
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 13px}
+.chip b{color:var(--gold)}.chip .ring{--p:0;width:26px;height:26px;border-radius:50%;
+  background:conic-gradient(var(--green) calc(var(--p)*1%),rgba(255,255,255,.08) 0);display:grid;place-items:center}
+.chip .ring i{width:18px;height:18px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-style:normal;font-size:9px;color:var(--green)}
+.streak b{color:#ff9d4d}
+
+/* ── HUB (card grid) ── */
+.hub{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 30px;
+  transition:opacity .4s,transform .4s}
+.hub.hide{opacity:0;transform:scale(.97);pointer-events:none}
+.hub .lead{font-family:var(--display);font-size:26px;letter-spacing:.04em;color:var(--gold);margin-bottom:4px}
+.hub .sub{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;width:min(1000px,94vw)}
+.card{position:relative;background:linear-gradient(180deg,rgba(26,24,36,.85),rgba(15,14,22,.9));border:1px solid rgba(217,164,65,.18);
+  border-radius:16px;padding:18px;text-align:left;color:inherit;overflow:hidden;transition:transform .14s,border-color .25s,box-shadow .25s}
+.card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 14px 40px -14px rgba(217,164,65,.5)}
+.card:active{transform:translateY(-1px)}
+.card .ic{width:46px;height:46px;border-radius:12px;overflow:hidden;border:1px solid rgba(217,164,65,.3);margin-bottom:12px;background:#17131f}
+.card .ic img{width:100%;height:100%;object-fit:cover}
+.card .nm{font-family:var(--display);font-size:15px;letter-spacing:.06em}
+.card .rl{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--muted)}
+.card .st{margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
+.card .dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.card.done{border-color:rgba(86,217,138,.4)}.card.done .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+.card.done .st{color:var(--green)}
+.card .badge{position:absolute;top:12px;right:12px;font-size:14px;opacity:0;transition:opacity .3s}
+.card.done .badge{opacity:1}
+.card.settings{border-style:dashed;border-color:rgba(139,148,255,.3)}
+.card.settings .ic{display:grid;place-items:center;color:var(--magic)}
+
+/* ── OFFICE (3D) ── */
+#c{position:fixed;inset:0;z-index:5;display:block;opacity:0;transition:opacity .5s}
+#c.show{opacity:1}
+.office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
+.office-ui.show{opacity:1}
+.backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  color:var(--gold);background:rgba(10,12,20,.7);border:1px solid rgba(217,164,65,.3);border-radius:9px;padding:8px 14px}
+.backbtn:hover{border-color:var(--gold)}
+.dialogue{position:fixed;left:50%;bottom:30px;transform:translate(-50%,140%);z-index:26;width:min(700px,94vw);pointer-events:auto;
+  transition:transform .5s cubic-bezier(.16,1,.3,1);background:linear-gradient(180deg,#15131c,#0d0c12);border:1px solid var(--gold);
+  border-radius:16px;box-shadow:0 -10px 50px rgba(0,0,0,.7),0 0 40px -12px rgba(217,164,65,.35);padding:18px 22px}
+.dialogue.on{transform:translate(-50%,0)}
+.dialogue .row{display:flex;gap:16px;align-items:flex-start}
+.dialogue .por{width:62px;height:62px;border-radius:12px;overflow:hidden;border:1px solid var(--gold);flex:none;box-shadow:0 0 18px -6px var(--gold)}
+.dialogue .por img{width:100%;height:100%;object-fit:cover}
+.dialogue .who{font-family:var(--display);font-size:19px;color:var(--gold);letter-spacing:.04em}
+.dialogue .role{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px}
+.dialogue .say{font-size:16px;line-height:1.5;color:var(--parch);min-height:44px}
+.dialogue .acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn{font-family:var(--display);letter-spacing:.1em;text-transform:uppercase;font-size:11px;border-radius:9px;padding:11px 18px;
+  border:1px solid var(--gold);color:#1a140a;background:linear-gradient(180deg,var(--gold2),#b9842f);box-shadow:0 6px 18px -6px var(--gold);transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}.btn[disabled]{opacity:.5;cursor:default;transform:none}
+.btn.ghost{background:none;color:var(--gold)}
+.btn.run{border-color:var(--green);background:linear-gradient(180deg,#6ee29b,#2f9d5e);color:#06160d;box-shadow:0 6px 18px -6px var(--green)}
+.acts .spacer{flex:1}
+/* pipeline panel */
+.pipe{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:27;width:min(520px,92vw);pointer-events:auto;
+  opacity:0;transition:opacity .3s,transform .3s;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;
+  box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.pipe.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pipe h3{font-family:var(--display);font-size:20px;color:var(--gold);margin:0 0 2px}
+.pipe .pr{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+.pipe .step{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
+.pipe .step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
+.pipe .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+
+/* settings */
+.settings-panel{position:fixed;inset:0;z-index:35;display:none;place-items:center;background:rgba(5,6,10,.7);backdrop-filter:blur(4px)}
+.settings-panel.on{display:grid}
+.spanel{width:min(620px,94vw);max-height:84vh;overflow:auto;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--magic);border-radius:18px;padding:24px 26px}
+.spanel h2{font-family:var(--display);color:var(--magic);margin:0 0 4px;font-size:22px}
+.spanel .si{margin:14px 0;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
+.spanel label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px}
+.spanel input{width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:8px}
+.spanel .srow{display:flex;align-items:center;gap:8px}
+.spanel .srow img{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(217,164,65,.3)}
+.spanel .srow b{font-family:var(--display);color:var(--gold)}
+
+/* banner + confetti */
+.banner{position:fixed;top:38%;left:50%;z-index:40;transform:translate(-50%,-50%) scale(.85);opacity:0;text-align:center;pointer-events:none;transition:.45s}
+.banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.banner .big{font-family:var(--display);font-size:42px;font-weight:800;color:var(--gold2);text-shadow:0 0 40px rgba(217,164,65,.7)}
+.banner .small{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--parch);text-transform:uppercase;margin-top:6px}
+#fx{position:fixed;inset:0;z-index:39;pointer-events:none}
+.loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-family:var(--mono);color:var(--gold);letter-spacing:.2em;font-size:12px}
+.cfg-overlay{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.96);z-index:27;width:min(440px,90vw);pointer-events:auto;opacity:0;transition:opacity .3s,transform .3s;
+  background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--magic);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.cfg-overlay.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.cfg-overlay label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:8px 0 4px}
+.cfg-overlay input{width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:8px 10px;font-family:var(--serif);font-size:14px}
+/* feature modals (chief / connect / usage / brain) */
+.modal-scrim{position:fixed;inset:0;z-index:40;display:none;place-items:center;background:rgba(5,6,10,.72);backdrop-filter:blur(4px)}
+.modal-scrim.on{display:grid}
+.modal-box{position:relative;width:min(560px,94vw);max-height:85vh;overflow:auto;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.modal-box h3{font-family:var(--display);color:var(--gold);margin:0 0 12px;font-size:20px}
+.modal-box .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+.modal-box label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:10px 0 4px}
+.chat-thread{height:min(46vh,320px);overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.cm{padding:9px 13px;border-radius:11px;font-size:14px;line-height:1.5;max-width:86%}
+.cm.user{align-self:flex-end;background:var(--gold);color:#1a140a}
+.cm.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+#chiefForm{display:flex;gap:8px}#chiefInput{flex:1;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:9px;padding:11px;font-family:var(--serif);font-size:14px}
+.cd-code{font-family:var(--mono);font-size:11px;background:#0c0b12;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 11px;margin:4px 0;color:var(--gold);word-break:break-all}
+.acct-chip{display:inline-flex;flex-direction:column;text-align:left;padding:9px 13px;border-radius:10px;border:1px solid var(--line,#3a3a44);background:rgba(255,255,255,.03);color:var(--parch);font-size:13px}
+.acct-chip.active{border-color:var(--green);background:rgba(86,217,138,.1)}
+.acct-chip small{color:var(--muted);font-size:11px}
+/* rich pipeline view (steps + persona + latest report) */
+.pp-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.pp-head img{width:46px;height:46px;border-radius:11px;object-fit:cover;border:1px solid var(--gold)}
+.pp-steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
+.step-pill{font-family:var(--mono);font-size:11px;color:var(--gold);border:1px solid rgba(217,164,65,.4);border-radius:999px;padding:5px 12px}
+.pp-steps .arrow{color:var(--dim)}
+.pp-persona{font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:16px;white-space:pre-wrap}
+.report-head{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--green);margin-bottom:8px}
+.report-body{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.6;color:var(--parch);white-space:pre-wrap;max-height:38vh;overflow:auto}
+.modal-box.wide{width:min(820px,95vw)}
+/* chief of staff full page (ChatGPT-style) */
+.chief-page{position:fixed;inset:0;z-index:42;display:none;background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%)}
+.chief-page.on{display:flex}
+.chief-close{position:fixed;top:16px;right:20px;z-index:43;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);width:34px;height:34px;border-radius:9px;font-size:15px;cursor:pointer}
+.chief-sidebar{width:264px;flex:none;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;padding:18px 12px;gap:12px;background:rgba(0,0,0,.25)}
+.chief-brand{font-family:var(--display);color:var(--gold);font-size:14px;letter-spacing:.08em;padding:2px 8px}
+.chief-sidebar .newchat{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--gold);background:none;border:1px solid var(--gold);border-radius:10px;padding:11px;cursor:pointer}
+.chief-convos{flex:1;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.chief-convos .cv{text-align:left;background:none;border:none;color:var(--muted);font-family:var(--serif);font-size:14px;padding:9px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chief-convos .cv:hover{background:rgba(255,255,255,.05);color:var(--parch)}
+.chief-convos .cv.active{background:rgba(217,164,65,.12);color:var(--gold)}
+.chief-main{flex:1;display:flex;flex-direction:column;min-width:0;padding:0 24px}
+.chief-thread{flex:1;overflow:auto;padding:40px 0 16px;display:flex;flex-direction:column;gap:16px;width:100%;max-width:760px;margin:0 auto}
+.chief-thread .cm{max-width:100%}
+.chief-composer{display:flex;gap:10px;padding:12px 0 28px;width:100%;max-width:760px;margin:0 auto}
+.chief-composer #chiefInput{flex:1;background:#0f0e16;border:1px solid rgba(255,255,255,.14);color:var(--parch);border-radius:12px;padding:13px 15px;font-family:var(--serif);font-size:15px}
+/* HUD identity (google avatar + name + occupation) */
+.hud .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.hud .occ{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+</style>
 </head>
-<body class="app">
+<body>
+<div class="loading" id="loading">LOADING CONTROL ROOM…</div>
 
-<!-- ── sign-in gate ─────────────────────────────────────── -->
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="gate-orb" aria-hidden="true"></div>
-    <span class="wordmark">PAIS<span class="tick" style="color:var(--green)">_</span></span>
-    <h1>Your personal AI team,<br>that actually knows you.</h1>
-    <p>Sign in to load your own Control Room — or skip it and explore the
-       live demo, no account needed.</p>
-    <button class="btn btn-primary" type="button" id="gateGoogle">
-      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#04130c" d="M21.35 11.1H12v2.83h5.35c-.23 1.5-1.6 4.4-5.35 4.4a5.94 5.94 0 010-11.88 5.3 5.3 0 013.76 1.47l2.04-1.96A8.7 8.7 0 0012 4.5a9 9 0 100 18c5.2 0 8.64-3.65 8.64-8.8 0-.59-.07-1.04-.16-1.5z"/></svg>
-      Continue with Google
-    </button>
-    <button class="btn btn-ghost" type="button" id="gateGuest" style="margin-top:12px">Continue without signing in →</button>
-    <p class="fine">your brain stays private to your account · <a href="/" style="color:var(--muted)">back to site</a></p>
-  </div>
+<header class="hud">
+  <div class="me"><div class="av" id="meAv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg></div>
+    <div><h1 id="meName">OPERATOR</h1><div class="occ" id="meOcc"></div></div></div>
+  <div class="spacer"></div>
+  <div class="chip streak">🔥 <b id="streak">4</b> day streak</div>
+  <div class="chip">Today <div class="ring" id="ring" style="--p:0"><i id="ringN">0</i></div></div>
+  <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
+  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE</div>
+  <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 Connect</button>
+  <button class="chip" onclick="openUsage()" style="cursor:pointer">📊 Usage</button>
+  <button class="chip" onclick="openBrain()" style="cursor:pointer">🧠 Brain</button>
+  <button class="chip" id="signoutChip" onclick="paisSignOut()" style="display:none;cursor:pointer">Sign out</button>
+</header>
+
+<!-- HUB -->
+<div class="hub" id="hub">
+  <div class="lead">Your Agent Team</div>
+  <div class="sub">click an agent to meet them</div>
+  <div class="grid" id="grid"></div>
 </div>
 
-<!-- ── workspace ────────────────────────────────────────── -->
-<div class="workspace" id="workspace" hidden>
-  <header class="topbar">
-    <a class="wordmark" href="/">PAIS<span class="tick" style="color:var(--green)">_</span></a>
-    <span class="brain-pill" id="brainPill"><span class="dot"></span><span id="brainPillText">brain: not connected</span></span>
-    <label class="model-pick" title="Model for chat">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2a2 2 0 012 2v1a2 2 0 01-2 2 2 2 0 01-2-2V4a2 2 0 012-2zM5 9h14v8a3 3 0 01-3 3H8a3 3 0 01-3-3zM9 13h6"/></svg>
-      <select id="modelSel">
-        <option value="claude-sonnet-4-6">Sonnet · balanced</option>
-        <option value="claude-opus-4-8">Opus · most capable</option>
-        <option value="claude-haiku-4-5-20251001">Haiku · fastest</option>
-      </select>
-    </label>
-    <button class="plan-chip" id="planChip" hidden></button>
-    <div class="acct">
-      <img id="acctAvatar" alt="" hidden>
-      <span class="email" id="acctEmail"></span>
-      <button class="signout" type="button" id="acctUsageBtn" title="Claude account & usage" style="margin-right:6px" onclick="openAcctModal()">⚙ Usage</button>
-      <button class="signout" type="button" id="signoutBtn">sign out</button>
-    </div>
-  </header>
+<!-- 3D office -->
+<canvas id="c"></canvas>
+<div class="office-ui" id="officeUI"></div>
+<button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
+<div class="dialogue" id="dialogue">
+  <div class="row"><div class="por"><img id="dImg" alt=""></div>
+    <div style="flex:1"><div class="who" id="dWho">—</div><div class="role" id="dRole">—</div>
+      <div class="say" id="dSay">—</div><div class="acts" id="dActs"></div></div></div>
+</div>
+<div class="pipe" id="pipe"><button class="x" onclick="closePipe()">✕</button>
+  <h3 id="pName">—</h3><div class="pr" id="pRole">—</div><div id="pSteps"></div></div>
 
-  <div class="cols">
-    <main class="chat-main">
-      <!-- The Kitchen = run center + chat -->
-      <div class="member-view kitchen" id="chiefView">
-        <div class="member-head">
-          <span class="core" aria-hidden="true"><i></i><i></i><i></i></span>
-          <div><h2>Control Room</h2><p class="ksub">// AGENT&nbsp;CONTROL&nbsp;CORE — select a unit to deploy</p></div>
-          <div class="view-tabs" style="margin-left:auto">
-            <button type="button" data-ktab="run" class="active">Run</button>
-            <button type="button" data-ktab="chat">Chat</button>
-          </div>
-        </div>
-        <div id="kitchenRun" style="flex:1;overflow-y:auto;min-height:0">
-          <div class="kitchen-bar">
-            <button class="btn btn-primary" type="button" id="runAllBtn">▶ Run whole routine</button>
-            <span class="setup-msg" id="runAllMsg"></span>
-            <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
-              <button type="button" class="chat-bar-btn ghost" id="brainUploadBtn">⬆ Build brain</button>
-              <button type="button" class="chat-bar-btn ghost" id="connectDesktopBtn">🖥 Connect desktop</button>
-            </span>
-            <input type="file" id="vaultFile" accept=".zip,application/zip" hidden>
-            <span id="brainCardText" hidden></span>
-          </div>
-          <div class="wf-grid" id="kGrid"></div>
-          <div class="wf-detail" id="kDetail" hidden></div>
-        </div>
-        <div id="kitchenChat" hidden style="flex:1;display:flex;flex-direction:column;min-height:0;position:relative">
-          <div class="chat-bar">
-            <button type="button" class="chat-bar-btn" id="newChatBtn">＋ New chat</button>
-            <button type="button" class="chat-bar-btn ghost" id="histBtn">🕘 History</button>
-          </div>
-          <div class="thread" id="thread"></div>
-          <div class="suggest" id="suggest"></div>
-          <form class="composer" id="composer" autocomplete="off">
-            <input id="composerText" type="text" placeholder="Ask your brain…" aria-label="Message" maxlength="4000">
-            <button class="btn btn-primary" type="submit" aria-label="Send">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg>
-            </button>
-          </form>
-          <aside class="convo-drawer" id="convoDrawer" hidden aria-label="Previous conversations">
-            <div class="convo-drawer-head"><span>Previous chats</span>
-              <button type="button" id="convoClose" aria-label="Close history">✕</button></div>
-            <div class="convo-list" id="convoList"></div>
-          </aside>
-        </div>
-      </div>
+<!-- settings -->
+<div class="settings-panel" id="settings"><div class="spanel">
+  <h2>⚙ Agent Settings</h2><div class="pr" style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;margin-bottom:10px">EDIT EVERY AGENT — name, role, pipeline steps (saved locally)</div>
+  <div id="sList"></div>
+  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="saveSettings()">Save</button><button class="btn ghost" onclick="closeSettings()">Close</button></div>
+</div></div>
 
-      <!-- An agent teammate: messages + settings -->
-      <div class="member-view" id="agentView" hidden></div>
-    </main>
-  </div>
+<div class="banner" id="banner"><div class="big" id="bBig">DONE</div><div class="small" id="bSmall"></div></div>
+<div class="cfg-overlay" id="cfgOverlay"></div>
+
+<!-- rich pipeline view (steps + persona + latest report) -->
+<div class="modal-scrim" id="pipePanel"><div class="modal-box wide"><button class="x" onclick="closeModal('pipePanel')">✕</button>
+  <div class="pp-head"><img id="ppImg" alt=""><div><h3 id="ppName" style="margin:0">—</h3><div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase" id="ppRole">—</div></div></div>
+  <div class="pp-steps" id="ppSteps"></div>
+  <div class="pp-persona" id="ppPersona"></div>
+  <div id="ppLeads" style="margin-bottom:16px"></div>
+  <div id="ppReport"></div>
+</div></div>
+
+<!-- chief of staff — full page (ChatGPT-style sidebar + chat) -->
+<div class="chief-page" id="chiefPage">
+  <button class="chief-close" onclick="closeChief()">✕</button>
+  <aside class="chief-sidebar">
+    <div class="chief-brand">🎖 Chief of Staff</div>
+    <button class="newchat" onclick="chiefNew()">＋ New chat</button>
+    <div class="chief-convos" id="chiefConvos"></div>
+  </aside>
+  <main class="chief-main">
+    <div class="chief-thread" id="chiefThread"></div>
+    <form class="chief-composer" id="chiefForm" onsubmit="event.preventDefault();chiefSend()">
+      <input id="chiefInput" placeholder="Ask your brain anything…" autocomplete="off" maxlength="4000"><button class="btn">Send</button>
+    </form>
+  </main>
 </div>
 
-<!-- ── connect desktop modal ────────────────────────────── -->
-<div class="modal-scrim" id="cdModal" hidden>
-  <div class="modal" role="dialog" aria-labelledby="cd-h" aria-modal="true">
-    <button class="modal-x" id="cdClose" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <h3 id="cd-h">Connect your desktop runtime</h3>
-    <p class="cd-lead">Your team runs on <b>your own Mac</b> — with your accounts, your subscription,
-       your brain — and messages you here. Link the runtime once.</p>
-    <ol class="cd-steps">
-      <li><span class="cd-n">1</span><div><b>Get the runtime</b>
-        <div class="cd-code"><code id="cdInstall">…</code><button class="cd-copy" data-copy="cdInstall">copy</button></div></div></li>
-      <li><span class="cd-n">2</span><div><b>Get your link code</b> <span class="cd-warn">— one-time, expires in 10 min</span>
-        <div class="cd-code"><code id="cdToken">sign in to generate…</code><button class="cd-copy" data-copy="cdToken">copy</button></div></div></li>
-      <li><span class="cd-n">3</span><div><b>Link it</b>
-        <div class="cd-code"><code id="cdLogin">./venv/bin/python runtime.py link &lt;code&gt;</code><button class="cd-copy" data-copy="cdLogin">copy</button></div></div></li>
-      <li><span class="cd-n">4</span><div><b>Schedule the team</b>
-        <div class="cd-code"><code>./venv/bin/python runtime.py schedule</code><button class="cd-copy" data-copy2="./venv/bin/python runtime.py schedule">copy</button></div></div></li>
-    </ol>
-    <p class="cd-foot">The code links this machine with a durable runtime token — unaffected by signing out of the web. Re-open this anytime for a fresh code.</p>
-  </div>
-</div>
+<!-- connect desktop -->
+<div class="modal-scrim" id="connectPanel"><div class="modal-box"><button class="x" onclick="closeModal('connectPanel')">✕</button>
+  <h3>🖥 Connect your desktop</h3>
+  <p style="color:var(--muted);font-size:14px;margin-top:0">Link your Mac so your agents run on your own machine.</p>
+  <label>1 · Get the runtime</label><div class="cd-code" id="cdInstall">…</div>
+  <label>2 · Your one-time link code</label><div class="cd-code" id="cdToken">…</div>
+  <label>3 · Link it</label><div class="cd-code" id="cdLogin">./venv/bin/python runtime.py link &lt;code&gt;</div>
+</div></div>
 
-<!-- ── Claude account & usage (owner-only page) ─────────── -->
-<div class="modal-scrim" id="acctModal" hidden onclick="if(event.target===this)closeAcctModal()">
-  <div class="modal" role="dialog" aria-labelledby="acct-h" aria-modal="true">
-    <button class="modal-x" id="acctClose" aria-label="Close" onclick="closeAcctModal()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <h3 id="acct-h">Claude account &amp; usage</h3>
-    <p class="cd-lead">Switch which Claude login this Mac — and every PAIS agent — runs on. The quota below is for the active account.</p>
-    <div id="acctBody"><div style="color:var(--muted)">Loading…</div></div>
-  </div>
-</div>
+<!-- usage (claude account) -->
+<div class="modal-scrim" id="usagePanel"><div class="modal-box"><button class="x" onclick="closeModal('usagePanel')">✕</button>
+  <h3>📊 Claude account &amp; usage</h3><div id="usageBody">Loading…</div></div></div>
 
+<!-- per-agent settings (secrets / connections / persona / schedule) -->
+<div class="modal-scrim" id="agentCfg"><div class="modal-box"><button class="x" onclick="closeModal('agentCfg')">✕</button>
+  <div id="agentCfgBody">Loading…</div></div></div>
 
+<!-- brain -->
+<div class="modal-scrim" id="brainPanel"><div class="modal-box"><button class="x" onclick="closeModal('brainPanel')">✕</button>
+  <h3>🧠 Your brain</h3><div id="brainBody" style="margin-bottom:14px;font-size:14px;color:var(--muted)">…</div>
+  <input type="file" id="vaultFile2" accept=".zip,application/zip" hidden>
+  <button class="btn" id="brainUp" onclick="document.getElementById('vaultFile2').click()">⬆ Build / update brain (.zip)</button></div></div>
+
+<canvas id="fx"></canvas>
+
+<script src="vendor/three.min.js"></script>
 <script>
-const PAIS_API = "https://api.129.159.182.210.nip.io";
-const SUPABASE_URL = "https://pyvpgqswhbgcdqrfxoyb.supabase.co";
-const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5dnBncXN3aGJnY2RxcmZ4b3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNjEyMTcsImV4cCI6MjA5NDYzNzIxN30.FxHx9OFUhCEhTOGYx6mI_M96vBEj664zWP9eRRyJ5FA";
-
-const ICON = {
-  briefing:'<path d="M4 4h16v4H4zM4 11h10M4 16h16M4 20h10"/>',
-  jobs:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 018 0v2"/><path d="M9.5 14l1.8 1.8L15 12"/>',
-  email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
-  linkedin:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 014 0v4"/>',
-  code:'<path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/>',
-};
-/* The team mirrors the n8n workflows. The Kitchen runs them; others work + message you. */
-const TEAM = [
-  { id:"assistant", name:"Control Room",  role:"Runs your workflows", ac:"var(--green)",  chief:true },
-  { id:"briefing",  name:"Briefing",     role:"Daily analyst", ac:"var(--blue)" },
-  { id:"email",     name:"Email",        role:"Inbox analyst", ac:"var(--violet)" },
-  { id:"jobs",      name:"Jobs",         role:"Scout + apply", ac:"var(--amber)", attn:true },
-  { id:"sales",     name:"Sales",        role:"Lead scout + outreach", ac:"#a3e635" },
-  { id:"linkedin",  name:"LinkedIn",     role:"Networker",     ac:"var(--sky)" },
-  { id:"code",      name:"Code",         role:"Engineer",      ac:"var(--teal)" },
-  { id:"reviewer",  name:"Reviewer",     role:"Routine auditor", ac:"var(--indigo)" },
+const DEFAULT_AGENTS=[
+  {id:"briefing",name:"Briefing",role:"Daily Seer",say:"I am your Daily Seer. Shall I read the vault and bring word of the day?",steps:["Read the vault","Divine the digest","Post the omen"]},
+  {id:"email",name:"Email",role:"Keeper of the Inbox",say:"The inbox never rests. Shall I sort the day's letters?",steps:["Gather letters","Sort by intent","Distill","Deliver"]},
+  {id:"jobs",name:"Jobs",role:"Questgiver",say:"New roles await across the realms. Shall I scout and forge your applications?",steps:["Scout the realms","Mark the map","Forge application","Seek your seal"]},
+  {id:"outreach",name:"Outreach",role:"Envoy",say:"The Envoy stands ready. Send me to find leads and pen the missives?",steps:["Find leads","Pen the missive","Draft scrolls","Send"]},
+  {id:"sales",name:"Sales",role:"Hunter of Patrons",say:"I hunt patrons worth your time. Shall I search the territory?",steps:["Search territory","Weigh the worthy","Purge duplicates","Inscribe ledger"]},
+  {id:"linkedin",name:"LinkedIn",role:"Networker",say:"I know the lords who hire. Say the word and I'll draft the pacts.",steps:["Find the lords","Draft the pact","Carry from ledger"]},
+  {id:"code",name:"Code",role:"The Smith",say:"Point me at the forge and I'll seal the work, then send it forth.",steps:["Scan the forge","Ward the gates","Seal the commit","Send forth"]},
+  {id:"reviewer",name:"Reviewer",role:"The Arbiter",say:"I read the day's deeds. Shall I judge the work and counsel you?",steps:["Read the day","Judge the work","Counsel changes"]},
 ];
-const ICONX = { reviewer:'<path d="M9 11l3 3 8-8M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>' };
-Object.assign(ICON, ICONX);
-/* fill the gaps: sales (lead scout → magnifier) + assistant (control room → core) */
-Object.assign(ICON, {
-  sales:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
-  assistant:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
-});
-/* Workflow stages → nodes on the race track. These are the REAL jobs — each
-   run executes the same script as the scheduled morning routine on your Mac. */
-const STEPS = {
-  briefing:["Read vault","Digest","Post"], email:["Fetch inbox","Classify","Digest","Post"],
-  jobs:["Scout roles","Add to pipeline","Auto-fill form","You review & submit"],
-  sales:["Search territory","Screen & qualify","Add to call sheet","✉ Draft per business"],
-  linkedin:["Find hiring managers","Draft connect + PAIS pitch","Copy-paste from Pipeline"], code:["Scan","Guard","Commit","Push"],
-  reviewer:["Read routine","Analyze","Suggest fixes"],
-};
-const RUNNABLE = ["briefing","email","jobs","sales","linkedin","code","reviewer"];
-/* Sales call-sheet statuses — editable in the Pipeline tab, saved to the vault note. */
-const SALES_STATUSES = ["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"];
-/* Job pipeline statuses — editable in the Jobs Pipeline tab, saved to the vault note. */
-const JOB_STATUSES = ["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"];
-/* LinkedIn pipeline statuses — editable in the LinkedIn Pipeline tab, saved to the vault note. */
-const LI_STATUSES = ["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"];
-const TM = id => TEAM.find(t => t.id === id);
-/* Generated android portraits (Higgsfield) for the 8 working agents. */
-const AVA = new Set(["assistant","briefing","email","jobs","sales","linkedin","code","reviewer"]);
-/* Sidebar icon: use the cool line-art ICON[id] (same as the Run cards), accent-tinted.
-   Falls back to the photo avatar for any agent without a line icon. */
-function teamIcon(t){
-  const svg = ICON[t.id];
-  if(!svg) return avatarHtml(t.id, "", (t.name||"?")[0]);
-  return `<span class="avatar" style="--ac:${t.ac||'var(--green)'};color:${t.ac||'var(--green)'}">`
-       + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" `
-       + `style="width:18px;height:18px">${svg}</svg></span>`;
-}
-function avatarHtml(id, cls="", fallback=""){
-  const t=TM(id)||{};
-  const inner = AVA.has(id) ? `<img src="/av-${id}.webp" alt="" loading="lazy">` : (fallback || (t.chief?"◉":(t.name||"?")[0]));
-  return `<span class="avatar ${cls}" style="--ac:${t.ac||"var(--green)"}">${inner}</span>`;
-}
-const CRON_PRESETS = [
-  { v:"30 7 * * *",     l:"Daily · 7:30am" },
-  { v:"0 9 * * *",      l:"Daily · 9:00am" },
-  { v:"0 9 * * 1-5",    l:"Weekdays · 9:00am" },
-  { v:"0 18 * * *",     l:"Daily · 6:00pm" },
-];
+const $=id=>document.getElementById(id);
+let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
+if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
+const state={ level:1, xp:40, streak:4, doneToday:0, done:{}, };
+try{ Object.assign(state,JSON.parse(localStorage.getItem("pais_state"))||{}); }catch{}
+function persist(){ localStorage.setItem("pais_agents",JSON.stringify(AGENTS)); localStorage.setItem("pais_state",JSON.stringify(state)); }
 
-const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON) : null;
-const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
-
-let token=null, userId=null, schema=null, cfg=null, selected="assistant";
-const history = [];
-
-const modelSel = $("modelSel");
-modelSel.value = localStorage.getItem("pais_model") || "claude-sonnet-4-6";
-modelSel.addEventListener("change", ()=> localStorage.setItem("pais_model", modelSel.value));
-
-/* ── auth ─────────────────────────────────────────────── */
-function gShow(){ $("gate").style.display="grid"; $("workspace").hidden=true; }
-function wShow(session){ $("gate").style.display="none"; $("workspace").hidden=false;
-  const u=session.user; $("acctEmail").textContent=u.email||"";
-  const av=u.user_metadata&&u.user_metadata.avatar_url; if(av){ $("acctAvatar").src=av; $("acctAvatar").hidden=false; } }
-function signIn(){ if(!sb){ alert("Auth SDK failed to load."); return; } sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo:location.href } }); }
-$("gateGoogle").addEventListener("click", signIn);
-$("gateGuest").addEventListener("click", ()=>{ location.href="/demo"; });   // explore without an account → live demo
-$("signoutBtn").addEventListener("click", async ()=>{ await sb.auth.signOut({ scope: 'local' }); token=null; gShow(); });   // scope local — global signOut revokes the desktop runtime's session
-if(sb){ sb.auth.getSession().then(({data})=>onSession(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSession(s)); } else gShow();
-/* The real Control Room is owner-only. Anyone else who signs in lands on the
-   live demo instead — keep this list in sync with the landing's OWNER_EMAILS. */
-const OWNER_EMAILS = ["taran.impact@gmail.com", "taranalt8@gmail.com"];
-const isOwnerEmail = e => !!e && OWNER_EMAILS.includes(String(e).toLowerCase());
-function onSession(session){
-  if(session){
-    if(!isOwnerEmail(session.user && session.user.email)){ location.replace("/demo"); return; }
-    token=session.access_token; userId=session.user.id; wShow(session); renderTeam(); greet(); loadConfig(); loadBrainStatus(); loadAccount(); setTimeout(resumeGp, 400); setTimeout(refreshUnread, 800);
-  }
-  else { token=null; gShow(); }
-}
-
-/* ── plan / entitlements ──────────────────────────────── */
-let acct = null;
-async function loadAccount(){ try{ acct = await api("/api/agents/account"); }catch{ acct=null; } renderPlan(); renderTeam(); loadBrainStatus(); if(selected==="assistant") renderKitchen(); }
-function isPro(){ return true; }   /* /app is owner-only — full access, no self-serve tiers */
-function isAllowed(id){ return true; }
-function renderPlan(){ const c=$("planChip"); if(c) c.hidden=true; }   /* B2B only — no plan/trial chip */
-const DEMO_BODY = "<b>This is a demo workspace</b> — the agents here don't execute. On a call we map your workflows, build your agent team around your business, and it runs on your own machine.";
-function upgradePanel(title, body){
-  return `<div class="upsell">
-    <div class="upsell-core" aria-hidden="true"><i></i><i></i></div>
-    <h3>${esc(title)}</h3><p>${body}</p>
-    <button class="btn btn-primary upsell-btn" onclick="openUpgrade()">Book a call →</button>
-    <p style="margin-top:14px;font-family:var(--font-mono);font-size:11px;color:var(--dim)">30 min · we map your workflows · in-person demos around King of Prussia, PA</p>
-  </div>`;
-}
-/* Demo accounts can look but not run — every run path lands here. */
-function showDemoLock(title){
-  $("kGrid").style.display="none"; const d=$("kDetail"); d.hidden=false;
-  d.innerHTML='<button class="wf-back" id="kBack">← all workflows</button><div class="lock-wrap">'+upgradePanel(title, DEMO_BODY)+'</div>';
-  $("kBack").addEventListener("click",renderKitchen);
-}
-function openUpgrade(){ window.open("https://cal.com/taranveer/workflows","_blank"); }   /* any locked/upsell path → book a call */
-
-/* ── Claude account & usage ───────────────────────────── */
-function openAcctModal(){ const m=$("acctModal");
-  /* portal to <body> + force positioning inline — a stylesheet rule (body.app > *)
-     overrides .modal-scrim's position to `relative`, dropping it off-screen. */
-  if(m.parentElement!==document.body) document.body.appendChild(m);
-  m.style.position="fixed"; m.style.inset="0"; m.style.zIndex="99999";
-  m.style.display="grid"; m.style.placeItems="center";
-  m.hidden=false; loadClaudeAccount(); }
-/* close must clear the inline display — it beats .modal-scrim[hidden]{display:none} */
-function closeAcctModal(){ const m=$("acctModal"); m.hidden=true; m.style.display="none"; }
-
-/* ── retractable team rail (drawer) — closed by default, slides over content ── */
-function toggleRail(force){
-  const open = (typeof force==='boolean') ? force : !document.body.classList.contains('rail-open');
-  document.body.classList.toggle('rail-open', open);
-  const b=$("railToggle"); if(b) b.textContent = open ? '✕' : '☰';
-}
-function _qbar(label, w){
-  if(!w || w.utilization==null){ return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${label}</span><span>—</span></div></div>`; }
-  const u=Math.round(w.utilization);
-  const c = u>=90?"var(--rose)":u>=70?"var(--amber)":"var(--green)";
-  const reset = w.resets_at ? "resets "+new Date(w.resets_at).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "";
-  return `<div style="margin:10px 0">
-    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--muted)">${label}</span><span style="color:${c};font-weight:600">${u}%</span></div>
-    <div style="height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:3px"></div></div>
-    <div style="font-size:10px;color:var(--muted);margin-top:3px">${reset}</div></div>`;
-}
-async function loadClaudeAccount(){
-  const body=$("acctBody"); if(!body) return;
-  body.innerHTML='<div style="color:var(--muted)">Loading…</div>';
-  let d;
-  try{ d=await api("/api/agents/claude-account"); }
-  catch(e){ body.innerHTML=`<div style="color:var(--rose);font-size:13px">${e.status===503?"Your Mac is asleep/offline — wake it and try again.":("Couldn't load account ("+(e.detail||e.status||"error")+").")}</div>`; return; }
-  const accts=d.accounts||[];
-  const chips = accts.length ? accts.map(a=>{
-    const stale = a.expired && !a.active;   // idle profile whose token has lapsed
-    const tag = a.active
-      ? ' <span style="color:var(--green);font-size:10px;text-transform:uppercase">active</span>'
-      : stale ? ' <span style="color:var(--rose);font-size:10px;text-transform:uppercase">re-login</span>' : "";
-    const border = a.active ? "var(--green)" : stale ? "var(--rose)" : "rgba(255,255,255,.14)";
-    const bg = a.active ? "rgba(57,217,138,.10)" : stale ? "rgba(224,138,138,.10)" : "rgba(255,255,255,.03)";
-    const sub = stale
-      ? '<span style="font-size:10px;color:var(--rose)">session expired — sign in once to re-enable</span>'
-      : `<span style="font-size:11px;color:var(--muted)">${a.email||""}</span>`;
-    return `
-    <button onclick="switchClaudeAccount('${a.name}',this)" ${a.active?"disabled":""}
-      style="display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 14px;border-radius:10px;cursor:${a.active?"default":"pointer"};min-width:150px;
-      border:1px solid ${border};background:${bg};color:inherit;font:inherit">
-      <span style="font-size:13px;font-weight:600">${a.name}${tag}</span>
-      ${sub}</button>`;
-  }).join("")
-    : '<div style="color:var(--muted);font-size:13px">No saved accounts on the Mac.</div>';
-  const q=d.quota||{};
-  body.innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 16px">${chips}</div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:2px">Subscription quota</div>
-    ${_qbar("5-hour window", q.five_hour)}
-    ${_qbar("Weekly limit", q.seven_day)}`;
-}
-async function switchClaudeAccount(name, btn){
-  if(btn){ btn.disabled=true; const n=btn.firstElementChild; if(n) n.textContent="Switching…"; }
-  try{ await api("/api/agents/claude-account/switch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); }
-  catch(e){ alert("Switch failed: "+(e.detail||e.status||"error")); }
-  loadClaudeAccount();
-}
-function api(path, opts={}){ return fetch(PAIS_API+path, { ...opts, headers:{ "Authorization":"Bearer "+token, ...(opts.headers||{}) } })
-  .then(async r=>{ if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; try{ e.detail=(await r.json()).detail; }catch{} throw e; } return r.json(); }); }
-async function loadConfig(){ try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} renderTeam(); if(selected!=="assistant") renderAgent(selected); }
-
-/* ── unread: blue rail dot when an agent posted something you haven't seen ── */
-let latestTs={};
-function seenMap(){ try{ return JSON.parse(localStorage.getItem("pais_seen_"+userId)||"{}"); }catch{ return {}; } }
-function hasUnread(id){ return (latestTs[id]||0) > (seenMap()[id]||0); }
-function markSeen(id){ const s=seenMap(); s[id]=Date.now(); try{ localStorage.setItem("pais_seen_"+userId, JSON.stringify(s)); }catch{} renderTeam(); }
-async function refreshUnread(){
-  if(!token) return;
-  try{ const r=await api("/api/agents/messages"); latestTs={};
-    for(const m of (r.messages||[])) if(m.agent) latestTs[m.agent]=Math.max(latestTs[m.agent]||0, m.ts||0);
-    renderTeam();
-  }catch{}
-}
-setInterval(refreshUnread, 60000);
-
-/* ── team rail ────────────────────────────────────────── */
-function agentMeta(id){ const ac=(cfg&&cfg.agents&&cfg.agents[id])||{}; const t=TM(id);
-  return { name: ac.display_name || t.name, role: ac.role || t.role, enabled: !!ac.enabled }; }
-function renderTeam(){
-  const tl=$("teamList"); if(!tl) return;   // team rail retired — the cards are the nav now
-  tl.innerHTML = TEAM.map(t=>{
-    const m=agentMeta(t.id); const on=t.id===selected; const locked = !t.chief && !isAllowed(t.id);
-    const attn = t.attn && !locked ? '<span class="tm-attn" title="needs your attention to finish">⚠</span>' : "";
-    const tail = locked ? '<span class="tm-lock">🔒</span>' : (t.chief ? "" : `${attn}<span class="tm-dot ${m.enabled?"on":""}${hasUnread(t.id)?" unread":""}" title="${hasUnread(t.id)?"new message":""}"></span>`);
-    return `<button class="member ${on?"active":""} ${locked?"locked":""}" data-id="${t.id}">
-      ${teamIcon(t)}
-      <span class="m-at"><b>${esc(m.name)}</b><span>${esc(m.role)}</span></span>${tail}
-    </button>`;
-  }).join("");
-  tl.querySelectorAll(".member").forEach(b=>b.addEventListener("click",()=>selectMember(b.dataset.id)));
-}
-function selectMember(id){
-  selected=id; renderTeam();
-  const chief = id==="assistant";
-  $("chiefView").hidden = !chief; $("agentView").hidden = chief;
-  if(chief) renderKitchen(); else if(!isAllowed(id)) renderLockedAgent(id); else renderAgent(id);
-}
-function renderLockedAgent(id){
-  const t=TM(id), m=agentMeta(id);
-  const canChoose = acct && !isPro() && !acct.trial_expired && !acct.chosen_agent;
-  $("agentView").innerHTML=`
-    <div class="member-head"><span style="filter:grayscale(.6);opacity:.7;display:contents">${avatarHtml(id,"",esc(m.name[0]))}</span>
-      <div><h2>${esc(m.name)}</h2><p>${esc(m.role)} · <span class="off-tag">🔒 locked</span></p></div></div>
-    <div id="agentBody"><div class="lock-wrap">
-      ${canChoose?`<div class="choose-free"><p>You still have <b>1 free agent</b> this trial. Make <b>${esc(m.name)}</b> your free pick?</p>
-        <button class="btn btn-ghost" type="button" onclick="chooseFree('${id}')">Use ${esc(m.name)} free →</button></div>`:""}
-      ${upgradePanel(m.name+" runs for clients only", DEMO_BODY)}
-    </div></div>`;
-}
-async function chooseFree(id){ try{ await api("/api/agents/choose/"+id,{method:"POST"}); await loadAccount(); selectMember(id); }catch{} }
-
-/* ── The Kitchen: run workflows ───────────────────────── */
-document.querySelectorAll("[data-ktab]").forEach(b=>b.addEventListener("click",()=>{
-  document.querySelectorAll("[data-ktab]").forEach(x=>x.classList.toggle("active",x===b));
-  const run=b.dataset.ktab==="run"; $("kitchenRun").hidden=!run; $("kitchenChat").hidden=run;
-}));
-function renderKitchen(){
-  if(gpActive && gpSeq){ openGrandPrix(gpSeq); return; }   // routine racing → stay on the GP
-  $("kGrid").style.display=""; $("kDetail").hidden=true;
-  $("kGrid").innerHTML = RUNNABLE.map(id=>{ const m=agentMeta(id); const locked=!isAllowed(id);
-    return `<button class="wf-card ${locked?"locked":""}" data-id="${id}" style="position:relative">
-      <img class="wf-pfp" src="/av-${id}.webp" alt="" loading="lazy" onerror="this.style.display='none'">
-      <span class="wf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[id]||""}</svg></span>
-      <span class="wf-name">${esc(m.name)}${TM(id).attn?' <span class="attn-tag">⚠ needs you</span>':""}</span>
-      <span class="wf-blurb">${esc((STEPS[id]||[]).join(" → "))}</span>
-      <span class="wf-go">${locked?"🔒 PRO":"open ↗"}</span></button>`; }).join("");
-  $("kGrid").querySelectorAll(".wf-card").forEach(c=>c.addEventListener("click",()=>selectMember(c.dataset.id)));
-}
-/* Run an agent from its Pipeline view → jump to the kitchen race and start it. */
-function runAgent(id){
-  selectMember("assistant");                 // back to the Control Room (kitchen)
-  openKitchenWf(id);                          // show this agent's race track
-  setTimeout(()=>{ const b=$("kRun"); if(b && !b.disabled) b.click(); }, 90);   // start → race
-}
-function openKitchenWf(id){ const m=agentMeta(id), steps=STEPS[id]||["Run"];
-  if(!isAllowed(id)){ $("kGrid").style.display="none"; $("kDetail").hidden=false;
-    $("kDetail").innerHTML='<button class="wf-back" id="kBack">← all units</button><div class="lock-wrap">'+upgradePanel(m.name+" runs for clients only", DEMO_BODY)+'</div>';
-    $("kBack").addEventListener("click",renderKitchen); return; }
-  const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||m.role;
-  $("kGrid").style.display="none"; $("kDetail").hidden=false;
-  $("kDetail").innerHTML=`<button class="wf-back" id="kBack">← all workflows</button>
-    <div class="track-wrap">
-      <div class="track-head"><span class="wf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[id]||""}</svg></span>
-        <div><h3>${esc(m.name)}</h3><p>${esc(persona)}</p></div></div>
-      ${raceTrackSvg(steps)}
-      <div class="track-actions"><button class="btn btn-primary" id="kRun">▶ Run now</button>
-        <button class="btn btn-ghost" id="kStop" hidden style="color:var(--rose);border-color:rgba(251,113,133,.4)">⏹ Stop</button>
-        <button class="btn btn-ghost" id="kOpen">Settings</button><span class="setup-msg" id="kMsg"></span></div>
-      <div class="run-out" id="kOut" hidden></div></div>`;
-  $("kBack").addEventListener("click",renderKitchen);
-  $("kRun").addEventListener("click",()=>runKitchenWf(id));
-  $("kStop").addEventListener("click",()=>{ api("/api/agents/run-ctl",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:id})}).catch(()=>{}); $("kStop").textContent="⏹ stopping…"; });
-  $("kOpen").addEventListener("click",()=>{ selectMember(id); tab="settings"; renderAgent(id); });
-}
-async function runKitchenWf(id){
-  if(acct && !isPro()){ showDemoLock(agentMeta(id).name+" runs for clients only"); return; }
-  const msg=$("kMsg"), btn=$("kRun"), out=$("kOut"); btn.disabled=true;
-  const stopB=$("kStop"); if(stopB){ stopB.hidden=false; stopB.textContent="⏹ Stop"; }
-  msg.textContent="Racing — real run on your Mac…"; msg.className="setup-msg";
-  const race=startProgressRace($("kDetail").querySelector(".racetrack"), id, Date.now());
-  let r;
-  try{ const q=await bgRun(id); r = q.queued ? await waitRun(id) : q; }
-  catch(e){ r={_err:e}; }
-  if(r && r._err && r._err.status===402){ race.finish(false); btn.disabled=false; loadAccount(); showDemoLock(TM(id).name+" runs for clients only"); return; }   // locked → book-a-call disclaimer
-  const ok = !!(r && r.ran);
-  race.finish(ok);
-  if(stopB) stopB.hidden=true;
-  if(ok) refreshUnread();
-  if(ok && r.text){
-    msg.textContent = TM(id).attn ? "Engaged ✓ — switch to your computer to finish" : "Done ✓ posted to feed";
-    msg.className="setup-msg ok"; out.hidden=false; out.innerHTML='<b>'+esc(TM(id).name)+':</b><br>'+esc(r.text).replace(/\n/g,"<br>"); }
-  else { msg.textContent = (r && (r.message || (r._err&&r._err.detail&&r._err.detail.message)))
-           || (r && r._timeout ? "Still running — its report will land in the Messages feed." : "Run failed.");
-         msg.className="setup-msg warn"; }
-  btn.disabled=false;
-}
-function raceTrackSvg(steps){
-  const n=steps.length, W=Math.max(520,n*150), H=140, padX=60, y=70, dx=(W-padX*2)/(Math.max(1,n-1));
-  let nodes="",labels="";
-  for(let i=0;i<n;i++){ const x=padX+dx*i;
-    nodes+=`<circle class="tnode" cx="${x}" cy="${y}" r="13"/><text x="${x}" y="${y+5}" text-anchor="middle" class="tnum">${i+1}</text>`;
-    labels+=`<text x="${x}" y="${y+38}" text-anchor="middle" class="tlabel">${esc(steps[i])}</text>`; }
-  return `<svg class="racetrack" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">
-    <rect x="${padX-26}" y="${y-26}" width="${W-padX*2+52}" height="52" rx="26" class="tlane"/>
-    <line x1="${padX}" y1="${y}" x2="${W-padX}" y2="${y}" class="tline"/>
-    <line x1="${padX}" y1="${y}" x2="${padX}" y2="${y}" class="tprog"/>${nodes}
-    <text class="tcar" x="${padX}" y="${y-16}" text-anchor="middle" style="opacity:0">🏎️</text>${labels}
-    <text class="tlaps" x="${W-padX+8}" y="${y-30}" text-anchor="end"></text>
-    <text x="${padX-40}" y="${y+5}" class="tflag">▶</text><text x="${W-padX+30}" y="${y+5}" class="tflag">🏁</text></svg>`;
-}
-/* Continuous race: the car laps the track while the agent works for real. */
-function startRace(svg){
-  if(!svg) return { finish(){} };
-  const car=svg.querySelector(".tcar"), prog=svg.querySelector(".tprog"), lapEl=svg.querySelector(".tlaps");
-  const nodes=[...svg.querySelectorAll(".tnode")], xs=nodes.map(c=>+c.getAttribute("cx"));
-  const x0=xs[0], x1=xs[xs.length-1], DUR=2800;
-  let raf=null, stopped=false, lapShown=-1;
-  const t0=performance.now();
-  car.style.opacity="1"; svg.classList.add("racing");
-  function frame(now){
-    if(stopped) return;
-    const e=now-t0, p=(e%DUR)/DUR, lap=Math.floor(e/DUR);
-    if(lap!==lapShown){ lapShown=lap; if(lapEl) lapEl.textContent="LAP "+(lap+1); }
-    const x=x0+(x1-x0)*p;
-    car.setAttribute("x",x); prog.setAttribute("x2",x);
-    nodes.forEach((nd,i)=>nd.classList.toggle("done", xs[i]<=x+1));
-    raf=requestAnimationFrame(frame);
-  }
-  raf=requestAnimationFrame(frame);
-  return {
-    finish(ok){ if(stopped) return; stopped=true; cancelAnimationFrame(raf);
-      svg.classList.remove("racing"); svg.classList.add(ok?"race-won":"race-fail");
-      car.setAttribute("x",x1); prog.setAttribute("x2",x1); car.style.opacity=ok?"1":"0";
-      nodes.forEach(nd=>{ nd.classList.toggle("done",!!ok); nd.classList.toggle("fail",!ok); });
-      if(lapEl) lapEl.textContent= ok ? "FINISH 🏁" : "DNF";
-    }
-  };
-}
-/* ── ETA: learn each agent's typical run time (rolling avg in localStorage) ──── */
-function _avgKey(){ return "pais_run_avg_"+(userId||"x"); }
-function avgRunMs(id){
-  try{ const m=JSON.parse(localStorage.getItem(_avgKey())||"{}"); if(m[id]>0) return m[id]; }catch{}
-  const steps=(STEPS[id]||["Run"]).length;
-  return Math.min(300000, Math.max(30000, steps*22000));  // first run: ~22s/step, clamp 30s–5m
-}
-function recordRunMs(id, ms){
-  if(!(ms>2000 && ms<1800000)) return;                    // ignore absurd durations
-  try{ const m=JSON.parse(localStorage.getItem(_avgKey())||"{}");
-    m[id] = m[id]>0 ? Math.round(m[id]*0.6 + ms*0.4) : ms;  // exponential moving avg
-    localStorage.setItem(_avgKey(), JSON.stringify(m)); }catch{}
-}
-function fmtLeft(ms){ const s=Math.max(0,Math.round(ms/1000));
-  if(s<=2) return "wrapping up…";
-  return s>=60 ? `~${Math.floor(s/60)}m ${s%60}s left` : `~${s}s left`; }
-
-/* Progress-driven race: fills the track by elapsed/avg (not a cosmetic lap), lights
-   steps proportionally, and shows the ETA — so the user sees how far + how long. */
-function startProgressRace(svg, id, started){
-  if(!svg) return { finish(){}, eta(){return 0;}, pct(){return 0;} };
-  const car=svg.querySelector(".tcar"), prog=svg.querySelector(".tprog"), lapEl=svg.querySelector(".tlaps");
-  const nodes=[...svg.querySelectorAll(".tnode")], xs=nodes.map(c=>+c.getAttribute("cx"));
-  const x0=xs[0], x1=xs[xs.length-1], avg=avgRunMs(id);
-  let raf=null, stopped=false;
-  const pctNow=()=>Math.min(0.97, (Date.now()-started)/avg);   // cap <100% until truly done
-  const etaNow=()=>Math.max(0, avg-(Date.now()-started));
-  car.style.opacity="1"; svg.classList.add("racing");
-  function frame(){
-    if(stopped) return;
-    const p=pctNow(), x=x0+(x1-x0)*p;
-    car.setAttribute("x",x); prog.setAttribute("x2",x);
-    nodes.forEach((nd,i)=>nd.classList.toggle("done", xs[i]<=x+1));
-    if(lapEl) lapEl.textContent=fmtLeft(etaNow());
-    raf=requestAnimationFrame(frame);
-  }
-  raf=requestAnimationFrame(frame);
-  return {
-    eta:etaNow, pct:pctNow,
-    finish(ok){ if(stopped) return; stopped=true; cancelAnimationFrame(raf);
-      if(ok) recordRunMs(id, Date.now()-started);
-      svg.classList.remove("racing"); svg.classList.add(ok?"race-won":"race-fail");
-      car.setAttribute("x",x1); prog.setAttribute("x2",x1); car.style.opacity=ok?"1":"0";
-      nodes.forEach(nd=>{ nd.classList.toggle("done",!!ok); nd.classList.toggle("fail",!ok); });
-      if(lapEl) lapEl.textContent= ok ? "FINISH 🏁" : "DNF";
-    }
-  };
-}
-
-/* Background run + poll until done — survives any proxy timeout. */
+// ── LIVE wiring: signed-in owner → real agents (else simulated demo) ──────────
+const SUPABASE_URL="https://pyvpgqswhbgcdqrfxoyb.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5dnBncXN3aGJnY2RxcmZ4b3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNjEyMTcsImV4cCI6MjA5NDYzNzIxN30.FxHx9OFUhCEhTOGYx6mI_M96vBEj664zWP9eRRyJ5FA";
+const PAIS_API="https://api.129.159.182.210.nip.io";
+const OWNER_EMAILS=["taran.impact@gmail.com","taranalt8@gmail.com"];
+let token=null, userId=null, LIVE=false;
+const sb=window.supabase? window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
+function api(path,opts={}){ return fetch(PAIS_API+path,{...opts,headers:{"Authorization":"Bearer "+token,...(opts.headers||{})}})
+  .then(async r=>{ if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; try{e.detail=(await r.json()).detail;}catch{} throw e;} return r.json(); }); }
 function bgRun(id){ return api("/api/agents/run/"+id+"?bg=1",{method:"POST"}); }
-async function waitRun(id, maxMs=1500000){
-  const t0=Date.now();
-  while(Date.now()-t0<maxMs){
-    await new Promise(r=>setTimeout(r,3000));
-    try{ const s=await api("/api/agents/run-status?agent="+id);
-      if(s.state==="done") return s.result||{};
-      if(s.state==="idle") return {_lost:true};
-    }catch(e){ if(e.status===402) return {_err:e}; }
-  }
-  return {_timeout:true};
-}
-/* The Routine Grand Prix: the WHOLE routine executes server-side in one
-   background job — the browser only watches. Reload-proof: on page load we
-   detect a running routine and re-open the race where it left off. */
-let gpTimer=null, gpActive=false, gpSeq=null;
-async function runAll(){
-  if(acct && !isPro()){ showDemoLock("The routine runs for clients only"); return; }
-  const msg=$("runAllMsg");
-  let init;
-  try{ init=await api("/api/agents/routine-run",{method:"POST"}); }
-  catch(e){ if(e.status===402){ showDemoLock("The routine runs for clients only"); return; }
-    msg.textContent="Couldn't start the routine."; msg.className="setup-msg warn"; return; }
-  if(!init.started){ msg.textContent=init.message||"Routine is empty."; msg.className="setup-msg warn"; return; }
-  msg.textContent="";
-  openGrandPrix(init.seq);
-}
-function fmtElapsed(ms){ const s=Math.max(0,Math.floor(ms/1000)); return `${Math.floor(s/60)}m ${String(s%60).padStart(2,"0")}s`; }
-function openGrandPrix(seq){
-  gpActive=true; gpSeq=seq;
-  if(gpTimer){ clearInterval(gpTimer); gpTimer=null; }
-  $("kGrid").style.display="none"; const d=$("kDetail"); d.hidden=false;
-  d.innerHTML=`<button class="wf-back" id="kBack">← all workflows</button>
-    <div class="gp">
-      <div class="gp-head" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <div><h3>ROUTINE GRAND PRIX</h3><p class="gp-sub">// ${seq.length} UNITS — racing server-side; you can close this page, they keep going</p></div>
-        <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn btn-ghost" id="gpPause" style="padding:7px 14px;font-size:12px">⏸ Pause</button>
-          <button class="btn btn-ghost" id="gpSkip" style="padding:7px 14px;font-size:12px">⏭ Skip next</button>
-          <button class="btn btn-ghost" id="gpStop" style="padding:7px 14px;font-size:12px;color:var(--rose);border-color:rgba(251,113,133,.4)">⏹ Stop</button>
-        </div></div>
-      ${seq.map((id,i)=>{ const m=agentMeta(id); return `
-      <div class="gp-row" data-id="${id}">
-        <div class="gp-meta">
-          <span class="gp-pos">${i+1}</span>
-          ${avatarHtml(id,"sm",esc(m.name[0]))}
-          <b>${esc(m.name)}</b>${TM(id).attn?' <span class="attn-tag">⚠ needs you</span>':""}
-          <span class="gp-status" data-st="${id}">on the grid</span>
-        </div>
-        ${raceTrackSvg(STEPS[id]||["Run"])}
-        <div class="gp-out" data-out="${id}" hidden></div>
-      </div>`;}).join("")}
-    </div>`;
-  $("kBack").addEventListener("click",()=>{ gpActive=false; if(gpTimer){ clearInterval(gpTimer); gpTimer=null; } renderKitchen(); });
-  let paused=false;
-  async function ctl(action){ try{ await api("/api/agents/routine-ctl",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action})}); }catch{} }
-  $("gpPause").addEventListener("click",()=>{ paused=!paused; ctl(paused?"pause":"resume");
-    $("gpPause").textContent=paused?"▶ Resume":"⏸ Pause"; });
-  $("gpSkip").addEventListener("click",()=>{ ctl("skip"); $("gpSkip").textContent="⏭ skipping…"; setTimeout(()=>$("gpSkip").textContent="⏭ Skip next",2500); });
-  $("gpStop").addEventListener("click",()=>{ if(confirm("Stop the routine after the current agent finishes?")) ctl("stop"); });
-  const races={};
-  async function tick(){
-    let s; try{ s=await api("/api/agents/run-status"); }catch{ return; }
-    const runs=(s&&s.runs)||{};
-    for(const id of seq){
-      const row=d.querySelector(`.gp-row[data-id="${id}"]`); if(!row){ clearInterval(gpTimer); gpTimer=null; return; }
-      const r=runs[id]||{}; const st=row.querySelector(`[data-st="${id}"]`);
-      if(r.state==="running"){
-        if(!races[id]){ races[id]=startProgressRace(row.querySelector(".racetrack"), id, r.started||Date.now()); row.classList.add("racing"); row.scrollIntoView({behavior:"smooth",block:"nearest"}); }
-        st.innerHTML=`racing… ${fmtLeft(races[id].eta())} · ${fmtElapsed(Date.now()-(r.started||Date.now()))} in <button onclick="api('/api/agents/run-ctl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent:'${id}'})});this.textContent='stopping…'" style="margin-left:8px;background:none;border:1px solid rgba(251,113,133,.4);color:var(--rose);border-radius:8px;padding:2px 8px;font-size:10px;cursor:pointer">⏹ stop</button>`; st.className="gp-status run";
-      } else if(r.state==="done" && !row.dataset.final){
-        row.dataset.final="1";
-        const res=r.result||{}; const good=!!res.ran;
-        if(!races[id]) races[id]=startProgressRace(row.querySelector(".racetrack"), id, r.started||Date.now());
-        races[id].finish(good); row.classList.remove("racing");
-        st.textContent = good ? `✓ posted to feed in ${fmtElapsed((r.finished||0)-(r.started||0))}`
-                              : "✗ " + ((res.message||"failed")).slice(0,70);
-        st.className="gp-status "+(good?"ok":"warn");
-        const out=row.querySelector(`[data-out="${id}"]`);
-        if(good && res.text){ out.hidden=false; out.textContent=res.text.slice(0,280)+(res.text.length>280?" …":""); }
-        if(good) refreshUnread();
-      }
-    }
-    const rt=runs.__routine;
-    if(rt && rt.state==="running" && rt.ctl==="pause"){ const h=d.querySelector(".gp-sub"); if(h) h.textContent="// PAUSED — current agent will finish, then the routine holds"; }
-    if(!rt || rt.state==="done"){
-      const head=d.querySelector(".gp-sub");
-      if(head) head.textContent= rt ? `// ${rt.stopped?"STOPPED":"RACE COMPLETE"} — ${rt.ok}/${seq.length} units posted to your feed`
-                                    : "// status lost (server restarted) — check each agent's Messages feed";
-      gpActive=false;
-      clearInterval(gpTimer); gpTimer=null;
-    }
-  }
-  tick(); gpTimer=setInterval(tick,3000);
-}
-/* Reload-resume: if a routine is racing server-side, re-open the Grand Prix. */
-let gpResumeChecked=false;
-async function resumeGp(){
-  if(gpResumeChecked || !token) return; gpResumeChecked=true;
-  try{ const s=await api("/api/agents/run-status"); const rt=(s.runs||{}).__routine;
-    if(rt && rt.state==="running" && selected==="assistant") openGrandPrix(rt.seq);
-  }catch{}
-}
-$("runAllBtn").addEventListener("click",runAll);
+async function waitRun(id,maxMs=1500000){ const t0=Date.now();
+  while(Date.now()-t0<maxMs){ await new Promise(r=>setTimeout(r,3000));
+    try{ const s=await api("/api/agents/run-status?agent="+id); if(s.state==="done")return s.result||{}; if(s.state==="idle")return {_lost:true}; }
+    catch(e){ if(e.status===402)return {_err:e}; } }
+  return {_timeout:true}; }
+function setLive(on,email){ LIVE=on; const s=document.getElementById("signinChip"), b=document.getElementById("liveBadge"), o=document.getElementById("signoutChip");
+  if(s) s.style.display=on?"none":"flex"; if(b){ b.style.display=on?"flex":"none"; b.title=email||""; } if(o) o.style.display=on?"flex":"none"; }
+function paisSignIn(){ if(!sb){ alert("Auth unavailable."); return; } sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href}}); }
+function paisSignOut(){ try{ sb&&sb.auth.signOut({scope:"local"}); }catch(e){} token=null; userId=null; setLive(false); }
+function applyIdentity(user){ const um=user.user_metadata||{}; const photo=um.avatar_url||um.picture;
+  const av=$("meAv"); if(av&&photo) av.innerHTML=`<img src="${photo}" referrerpolicy="no-referrer" alt="">`;
+  const name=um.full_name||um.name||(user.email||"").split("@")[0]||"Operator";
+  if($("meName")) $("meName").textContent=name;
+  // occupation from the brain / profile (best-effort)
+  api("/api/profile").then(p=>{ const occ=(p&&(p.occupation||p.title||p.headline||p.role||p.profession))||""; if(occ&&$("meOcc")) $("meOcc").textContent=occ; }).catch(()=>{}); }
+function onSess(s){ if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); } else setLive(false); }
+if(sb){ sb.auth.getSession().then(({data})=>onSess(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSess(s)); }
 
-/* ── Chief of Staff: orchestrator chat ────────────────── */
-function addMsg(role, html){ const e=document.createElement("div"); e.className="chat-msg "+(role==="user"?"user":"bot"); e.innerHTML=html; $("thread").appendChild(e); $("thread").scrollTop=$("thread").scrollHeight; return e; }
-function greet(){ if(!$("thread").children.length){ addMsg("bot","Control Room online. Ask me anything from your brain, or open a unit on the left to deploy it — your agents do the work and report back here."); renderSuggest(); } }
-function renderSuggest(){ const empty=!history.length;
-  $("suggest").innerHTML = empty ? ["What am I building right now?","What should I focus on today?","Brief me on this week"].map(s=>`<button type="button">${esc(s)}</button>`).join("") : "";
-  $("suggest").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{ $("composerText").value=b.textContent; sendChat(); })); }
-$("composer").addEventListener("submit",e=>{ e.preventDefault(); sendChat(); });
-async function sendChat(){
-  const msg=$("composerText").value.trim(); if(!msg||!token) return;
-  $("composerText").value=""; addMsg("user",esc(msg)); history.push({role:"user",content:msg}); renderSuggest(); persistActive();
-  const t=addMsg("bot",'<span class="chat-typing"><i></i><i></i><i></i></span>');
-  try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({message:msg,agent:"assistant",model:modelSel.value,history:history.slice(-12)})});
-    if(r.status===401){ t.innerHTML='<span class="chat-err">Session expired — sign in again.</span>'; return; }
-    if(r.status===402){ t.innerHTML='<b>This is a demo workspace.</b> To get your own agent team built around your business, book a call. <button class="btn btn-primary" style="margin-top:8px;padding:7px 14px" onclick="openUpgrade()">Book a call</button>'; loadAccount(); return; }
-    if(!r.ok) throw 0; const d=await r.json(); let html=esc(d.reply||"").replace(/\n/g,"<br>");
-    if(d.sources&&d.sources.length) html+=`<div class="chat-src">${d.sources.slice(0,4).map(s=>"▸ "+esc(s.title)).join("<br>")}</div>`;
-    if(!d.grounded) html+='<div class="chat-src">no notes matched yet — build your brain (left)</div>'; else setBrain(true);
-    t.innerHTML=html; history.push({role:"assistant",content:d.reply||""}); persistActive();
-  }catch(e){ t.innerHTML='<span class="chat-err">Couldn\'t reach your Chief of Staff. Try again.</span>'; }
-}
+// ── audio juice ──
+let actx; function chime(kind){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const notes= kind==="level"?[523,659,784,1047]: kind==="done"?[659,880]:[440];
+  notes.forEach((f,i)=>{ const o=actx.createOscillator(),g=actx.createGain(); o.type="triangle"; o.frequency.value=f;
+    o.connect(g); g.connect(actx.destination); const t=actx.currentTime+i*0.09; g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.18,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32); o.start(t); o.stop(t+0.34); }); }catch(e){} }
+function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; ss.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
+// per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
+let curAudio=null;
+function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
+  curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
-/* ── conversation history (ChatGPT-style, localStorage per user) ─────────
-   The chat backend is stateless — it replays whatever `history` we send. So we
-   persist each conversation client-side and, on reopen, repopulate `history` so
-   the next message continues that thread. Per-browser (not cross-device) by
-   design: zero backend change, nothing leaves the user's machine. */
-let activeConvoId = null;
-const CONVO_CAP = 50;                                  // keep the 50 most-recent
-const convoKey = () => "pais_convos_" + (userId || "anon");
-function loadConvos(){ try{ return JSON.parse(localStorage.getItem(convoKey()) || "[]"); }catch{ return []; } }
-function saveConvos(list){ try{ localStorage.setItem(convoKey(), JSON.stringify(list.slice(0, CONVO_CAP))); }catch{} }
-function newConvoId(){ return "c" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-function convoTitle(c){ const u=(c.messages||[]).find(m=>m.role==="user"); return c.title || (u? u.content : "New chat").slice(0,48); }
-function relTime(ts){ const s=(Date.now()-ts)/1000;
-  if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+"m ago";
-  if(s<86400) return Math.floor(s/3600)+"h ago"; const d=Math.floor(s/86400);
-  return d<7 ? d+"d ago" : new Date(ts).toLocaleDateString(); }
+// ── HUD / gamification ──
+function renderHud(){ $("streak").textContent=state.streak; const total=AGENTS.length; const p=Math.round(state.doneToday/total*100);
+  $("ring").style.setProperty("--p",p); $("ringN").textContent=state.doneToday; }
+function gainXp(){ /* XP removed — completion still rewards via confetti + banner */ persist(); }
+let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textContent=small; $("banner").classList.add("on");
+  clearTimeout(bt); bt=setTimeout(()=>$("banner").classList.remove("on"),1900); }
 
-/* Upsert the active conversation after every turn. Empty chats are never saved,
-   so a freshly-opened "New chat" doesn't clutter the list until it's used. */
-function persistActive(){
-  if(!history.length) return;
-  if(!activeConvoId) activeConvoId = newConvoId();
-  const list = loadConvos();
-  const prev = list.find(c=>c.id===activeConvoId);
-  const firstUser = history.find(m=>m.role==="user");
-  const rec = { id:activeConvoId,
-    title:(firstUser? firstUser.content : "New chat").slice(0,80),
-    ts: prev? prev.ts : Date.now(), updated: Date.now(),
-    messages: history.map(m=>({role:m.role, content:m.content})) };
-  saveConvos([rec, ...list.filter(c=>c.id!==activeConvoId)]);   // bubble to top
-  renderConvoList();
-}
-function newConvo(focus){
-  activeConvoId = newConvoId();
-  history.length = 0; $("thread").innerHTML = "";
-  greet(); renderConvoList(); closeDrawer();
-  if(focus) $("composerText").focus();
-}
-function openConvo(id){
-  const c = loadConvos().find(x=>x.id===id); if(!c) return;
-  activeConvoId = id;
-  history.length = 0; $("thread").innerHTML = "";
-  for(const m of (c.messages||[])){
-    history.push({role:m.role, content:m.content});
-    addMsg(m.role==="user" ? "user" : "bot",
-           m.role==="user" ? esc(m.content) : esc(m.content).replace(/\n/g,"<br>"));
-  }
-  (c.messages && c.messages.length) ? renderSuggest() : greet();
-  renderConvoList(); closeDrawer();
-}
-function deleteConvo(id, ev){
-  if(ev) ev.stopPropagation();
-  saveConvos(loadConvos().filter(c=>c.id!==id));
-  (id===activeConvoId) ? newConvo() : renderConvoList();
-}
-function renderConvoList(){
-  const wrap = $("convoList"); if(!wrap) return;
-  const list = loadConvos();
-  if(!list.length){ wrap.innerHTML = '<p class="convo-empty">No past chats yet — they\'ll appear here as you chat.</p>'; return; }
-  wrap.innerHTML = list.map(c=>`<button type="button" class="convo-item${c.id===activeConvoId?" active":""}" data-cid="${c.id}">
-      <span class="convo-t">${esc(convoTitle(c))}</span>
-      <span class="convo-time">${relTime(c.updated||c.ts)}</span>
-      <span class="convo-del" data-del="${c.id}" title="Delete">✕</span></button>`).join("");
-  wrap.querySelectorAll(".convo-item").forEach(b=>b.addEventListener("click",e=>{
-    const del = e.target.getAttribute("data-del");
-    if(del){ deleteConvo(del, e); return; }
-    openConvo(b.dataset.cid);
-  }));
-}
-function toggleDrawer(){ const d=$("convoDrawer"); d.hidden=!d.hidden; if(!d.hidden) renderConvoList(); }
-function closeDrawer(){ const d=$("convoDrawer"); if(d) d.hidden=true; }
-$("newChatBtn").addEventListener("click",()=>newConvo(true));
-$("histBtn").addEventListener("click",toggleDrawer);
-$("convoClose").addEventListener("click",closeDrawer);
+// ── confetti ──
+const fx=$("fx"), fxc=fx.getContext("2d"); let parts=[];
+function resizeFx(){ fx.width=innerWidth; fx.height=innerHeight; } addEventListener("resize",resizeFx); resizeFx();
+function confetti(n){ for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.4,
+  vx:(Math.random()-.5)*9,vy:-6-Math.random()*9,g:0.28,r:Math.random()*6+3,
+  c:["#d9a441","#f0c463","#8b94ff","#56d98a","#fff"][Math.floor(Math.random()*5)],a:1,rot:Math.random()*6}); }
+function fxLoop(){ fxc.clearRect(0,0,fx.width,fx.height); parts=parts.filter(p=>p.a>0);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.a-=0.012; p.rot+=0.2;
+    fxc.save(); fxc.globalAlpha=Math.max(0,p.a); fxc.translate(p.x,p.y); fxc.rotate(p.rot);
+    fxc.fillStyle=p.c; fxc.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.5); fxc.restore(); });
+  requestAnimationFrame(fxLoop); } fxLoop();
 
-/* ── teammate view: messages + settings ───────────────── */
-let tab = "pipeline";
-function renderAgent(id){
-  const t=TM(id), spec=(schema&&schema.agents[id])||{needs:[],fields:[]}, ac=(cfg&&cfg.agents&&cfg.agents[id])||{};
-  const m=agentMeta(id);
-  $("agentView").innerHTML=`
-    <div class="member-head">
-      <button class="wf-back" type="button" onclick="selectMember('assistant')" style="margin-right:6px">← Control Room</button>
-      ${avatarHtml(id,"",esc(m.name[0]))}
-      <div><h2>${esc(m.name)}</h2><p>${esc(m.role)} · ${m.enabled?'<span class="on-tag">active</span>':'<span class="off-tag">not set up</span>'}${t.attn?' · <span class="attn-tag">⚠ runs on your computer — needs you to finish</span>':""}</p></div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
-        <button class="btn btn-primary" type="button" onclick="runAgent('${id}')" style="padding:7px 14px;font-size:12px">▶ Run</button>
-        <div class="view-tabs">
-          <button type="button" data-tab="pipeline" class="${tab!=="settings"?"active":""}">Pipeline</button>
-          <button type="button" data-tab="settings" class="${tab==="settings"?"active":""}">Settings</button>
-        </div>
-      </div>
-    </div>
-    <div id="agentBody"></div>`;
-  $("agentView").querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{ tab=b.dataset.tab; renderAgent(id); }));
-  if(tab==="settings") renderSettings(id, spec, ac, m); else renderPipeline(id);
+// ── HUB ──
+function renderHub(){ const g=$("grid"); g.innerHTML="";
+  AGENTS.forEach((a,i)=>{ const c=document.createElement("button"); c.className="card"+(state.done[a.id]?" done":"");
+    c.innerHTML=`<span class="badge">✦</span><div class="ic"><img src="av/av-${a.id}.webp" alt=""></div>
+      <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
+      <div class="st"><span class="dot"></span>${state.done[a.id]?"cleared today":"ready"}</div>`;
+    c.onclick=()=>enterAgent(a); g.appendChild(c); });
+  const chief=document.createElement("button"); chief.className="card"; chief.style.borderColor="rgba(217,164,65,.4)";
+  chief.innerHTML=`<div class="ic" style="display:grid;place-items:center;color:var(--gold);font-size:24px">🎖</div>
+    <div class="nm">Chief of Staff</div><div class="rl">Ask your brain anything</div><div class="st"><span class="dot" style="background:var(--gold)"></span>chat</div>`;
+  chief.onclick=openChief; g.appendChild(chief);
+  const s=document.createElement("button"); s.className="card settings";
+  s.innerHTML=`<div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8b94ff" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.9 7.9 0 000-2l2-1.6-2-3.4-2.4 1a7.9 7.9 0 00-1.7-1l-.4-2.6h-4l-.4 2.6a7.9 7.9 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.9 7.9 0 000 2l-2 1.6 2 3.4 2.4-1a7.9 7.9 0 001.7 1l.4 2.6h4l.4-2.6a7.9 7.9 0 001.7-1l2.4 1 2-3.4z"/></svg></div>
+    <div class="nm">Settings</div><div class="rl">Configure every agent</div><div class="st"><span class="dot" style="background:#8b94ff"></span>edit team</div>`;
+  s.onclick=openSettings; g.appendChild(s);
+  renderHud(); }
+
+// ════════════════════════════ 3D OFFICE (fixed camera) ════════════════════════
+const renderer=new THREE.WebGLRenderer({canvas:$("c"),antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0a0b12,0.045);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
+// first-person camera modes: stand (talk to agent), seat (run, at the screen), screen (read pipeline/config)
+const CAM={ stand:[[0.95,1.62,1.5],[1.45,1.42,-0.45]], seat:[[0,1.16,0.5],[0,1.5,-1.25]], screen:[[0,1.45,0.05],[0,1.5,-1.25]],
+  zoom:[[0,1.5,-0.18],[0,1.5,-1.25]] };   // zoom right into the monitor — screen fills the view
+let camPos=new THREE.Vector3(...CAM.stand[0]), camLook=new THREE.Vector3(...CAM.stand[1]); const lookCur=camLook.clone();
+function setCam(m){ camPos.set(...CAM[m][0]); camLook.set(...CAM[m][1]); }
+camera.position.copy(camPos); camera.lookAt(camLook);
+scene.add(new THREE.AmbientLight(0x46506e,0.95));
+const keyL=new THREE.DirectionalLight(0xffe6b0,0.5); keyL.position.set(4,8,5); scene.add(keyL);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(14,48),new THREE.MeshStandardMaterial({color:0x0c0e15,roughness:.9})); floor.rotation.x=-Math.PI/2; scene.add(floor);
+const loader=new THREE.TextureLoader();
+const dark=new THREE.MeshStandardMaterial({color:0x171320,roughness:.78,metalness:.18});
+const wallMat=new THREE.MeshStandardMaterial({color:0x12101a,roughness:.96});
+// monitor faces +Z toward you/camera (default plane orientation → no mirror needed)
+const screenCanvas=document.createElement("canvas"); screenCanvas.width=512; screenCanvas.height=320;
+const sctx=screenCanvas.getContext("2d"); const screenTex=new THREE.CanvasTexture(screenCanvas);
+screenTex.encoding=THREE.sRGBEncoding; screenTex.minFilter=THREE.LinearFilter; screenTex.generateMipmaps=false;
+const monitor=new THREE.Mesh(new THREE.PlaneGeometry(2.0,1.2),new THREE.MeshBasicMaterial({map:screenTex,side:THREE.DoubleSide}));
+monitor.position.set(0,1.5,-1.25); scene.add(monitor);
+const mstand=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.7,0.14),dark); mstand.position.set(0,1.05,-1.3); scene.add(mstand);
+const monGlow=new THREE.PointLight(0xa9b6ff,0.6,6); monGlow.position.set(0,1.5,-0.4); scene.add(monGlow);
+const desk=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.12,0.95),dark); desk.position.set(0,0.8,-1.4); scene.add(desk);
+[[-1.25,-1.0],[1.25,-1.0],[-1.25,-1.8],[1.25,-1.8]].forEach(([x,z])=>{ const lg=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,0.1),dark); lg.position.set(x,0.4,z); scene.add(lg); });
+const back=new THREE.Mesh(new THREE.BoxGeometry(5,3.6,0.12),wallMat); back.position.set(0,1.8,-2.3); scene.add(back);
+const sideL=new THREE.Mesh(new THREE.BoxGeometry(0.12,3.6,3),wallMat); sideL.position.set(-2.6,1.8,-1.0); scene.add(sideL);
+const sideR=sideL.clone(); sideR.position.x=2.6; scene.add(sideR);
+const rug=new THREE.Mesh(new THREE.CircleGeometry(2.4,40),new THREE.MeshStandardMaterial({color:0x120f1a,roughness:.95})); rug.rotation.x=-Math.PI/2; rug.position.set(0,0.01,-0.7); scene.add(rug);
+// chair (yours)
+const chairMat=new THREE.MeshStandardMaterial({color:0x201b2c,roughness:.85});
+const seat=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.1,0.62),chairMat); seat.position.set(-0.7,0.52,0.4); scene.add(seat);
+const cback=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.8,0.1),chairMat); cback.position.set(-0.7,0.92,0.7); scene.add(cback);
+// plant + lamp
+const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.17,0.3,10),new THREE.MeshStandardMaterial({color:0x4a3326})); pot.position.set(-2.1,0.15,-1.6); scene.add(pot);
+const plant=new THREE.Mesh(new THREE.IcosahedronGeometry(0.34,0),new THREE.MeshStandardMaterial({color:0x2f5d3a,flatShading:true,roughness:1})); plant.position.set(-2.1,0.55,-1.6); scene.add(plant);
+const lamp=new THREE.PointLight(0xffcaa0,0.4,5); lamp.position.set(2.0,2.2,-1.3); scene.add(lamp);
+// the agent standee (texture swapped per agent)
+const agentMat=new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide});
+const agent=new THREE.Mesh(new THREE.PlaneGeometry(1.25,1.55),agentMat); agent.position.set(1.5,1.18,-0.85); scene.add(agent);
+const aseat=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,0.6),chairMat); aseat.position.set(1.5,0.52,-0.55); scene.add(aseat);
+const aback=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.8,0.1),chairMat); aback.position.set(1.5,0.92,-0.3); scene.add(aback);
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(2,0.5),new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide})); sign.position.set(0,2.7,-1.2); scene.add(sign);
+
+// you (seated articulated figure with a face)
+const you=new THREE.Group();
+const clothA=new THREE.MeshStandardMaterial({color:0x39406a,roughness:.8}), clothB=new THREE.MeshStandardMaterial({color:0x2a2f48,roughness:.8});
+const skin=new THREE.MeshStandardMaterial({color:0xc9a98c,roughness:.7}), gold=new THREE.MeshStandardMaterial({color:0xd9a441,emissive:0x3a2a08,metalness:.4,roughness:.5});
+function limb(mat,w,h,d,py){ const grp=new THREE.Group(); const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.y=-h/2; grp.add(m); grp.position.y=py; return grp; }
+const hips=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.22,0.26),clothB); hips.position.y=0.92; you.add(hips);
+const torso=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.62,0.3),clothA); torso.position.y=1.36; you.add(torso);
+const belt=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.08,0.32),gold); belt.position.y=1.06; you.add(belt);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,20),skin); head.position.y=1.86; you.add(head);
+const hair=new THREE.Mesh(new THREE.SphereGeometry(0.205,18,18,0,6.28,0,1.7),new THREE.MeshStandardMaterial({color:0x241a16,roughness:.9})); hair.position.y=1.9; you.add(hair);
+const eyeW=new THREE.MeshStandardMaterial({color:0xf3efe6}),pupil=new THREE.MeshStandardMaterial({color:0x16131c});
+[-0.072,0.072].forEach(ex=>{ const w=new THREE.Mesh(new THREE.SphereGeometry(0.042,12,12),eyeW); w.position.set(ex,1.88,0.165); w.scale.z=.55; you.add(w);
+  const pp=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),pupil); pp.position.set(ex,1.88,0.2); you.add(pp);
+  const br=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.018,0.02),new THREE.MeshStandardMaterial({color:0x241a16})); br.position.set(ex,1.94,0.18); you.add(br); });
+const nose=new THREE.Mesh(new THREE.SphereGeometry(0.028,8,8),skin); nose.position.set(0,1.84,0.2); you.add(nose);
+const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.02,0.02),new THREE.MeshStandardMaterial({color:0x7a4a44})); mouth.position.set(0,1.78,0.18); you.add(mouth);
+const legL=limb(clothB,0.18,0.8,0.2,0.92); legL.position.x=-0.12; you.add(legL);
+const legR=limb(clothB,0.18,0.8,0.2,0.92); legR.position.x=0.12; you.add(legR);
+const armL=limb(clothA,0.14,0.62,0.16,1.62); armL.position.x=-0.32; you.add(armL);
+const armR=limb(clothA,0.14,0.62,0.16,1.62); armR.position.x=0.32; you.add(armR);
+you.position.set(-0.7,0,0.5); you.rotation.y=Math.PI-0.22; you.visible=false;   // first-person — the camera is you
+legL.rotation.x=-1.45; legR.rotation.x=-1.45; armL.rotation.x=-0.6; armR.rotation.x=-0.6;  // seated pose
+scene.add(you);
+const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4,1); scene.add(youLight);
+
+// ── screen drawing (faces you, no mirror) ──
+const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null,mode:"ready"};
+function drawScreen(){ const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
+  x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
+  const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
+  x.strokeStyle="rgba(217,164,65,.55)"; x.lineWidth=4; x.strokeRect(8,8,W-16,H-16);
+  x.textBaseline="top"; x.textAlign="left"; x.fillStyle="#d9a441"; x.font="700 26px Cinzel, serif"; x.fillText(a.name.toUpperCase(),26,22);
+  const m=st.mode||"ready";
+  const label = m==="pipeline"?"▦ PIPELINE": m==="config"?"⚙ CONFIGURE": st.done?"● COMPLETE":st.running?"● RUNNING":"○ READY";
+  x.fillStyle= m==="pipeline"?"#d9a441": m==="config"?"#8b94ff": st.done?"#56d98a":st.running?"#8b94ff":"#6b6675"; x.font="13px 'JetBrains Mono', monospace";
+  x.fillText(label,28,56);
+  if(m==="config"){ x.fillStyle="#9a93a6"; x.font="16px 'EB Garamond', serif"; x.fillText("Editing this agent — use the panel below.",28,98); screenTex.needsUpdate=true; return; }
+  x.font="17px 'EB Garamond', serif";
+  a.steps.forEach((step,i)=>{ const y=92+i*34, done=(m!=="pipeline")&&(st.done||i<st.stepIdx), active=(m!=="pipeline")&&!st.done&&i===st.stepIdx;
+    x.beginPath(); x.arc(34,y+9,7,0,7);
+    if(done){x.fillStyle="#d9a441";x.fill();} else if(m==="pipeline"){x.strokeStyle="#d9a441";x.lineWidth=1.5;x.stroke();x.fillStyle="#d9a441";x.font="11px 'JetBrains Mono'";x.fillText(i+1,30.5,y+4);x.font="17px 'EB Garamond', serif";} else {x.strokeStyle=active?"#8b94ff":"#46414f";x.lineWidth=2;x.stroke();}
+    x.fillStyle= m==="pipeline"?"#e9dcc0": done?"#d9a441":active?"#e9dcc0":"#5a5566";
+    x.fillText((m==="pipeline"?"":done?"✓  ":active?"▸  ":"    ")+step, m==="pipeline"?52:52, y); });
+  if(m!=="pipeline"){ const by=H-44; x.fillStyle="rgba(255,255,255,.08)"; x.fillRect(26,by,W-52,9); x.fillStyle="#d9a441"; x.fillRect(26,by,(W-52)*(st.pct||0),9);
+    if(st.running&&!st.done){ x.fillStyle="#c9a35e"; x.font="12px 'JetBrains Mono'"; x.textAlign="right"; x.fillText("~"+st.eta+"s left",W-28,by-18); } }
+  screenTex.needsUpdate=true; }
+function signFor(a){ const c=document.createElement("canvas"); c.width=256;c.height=64; const x=c.getContext("2d");
+  x.fillStyle="#d9a441"; x.font="700 30px Cinzel, serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(a.name.toUpperCase(),128,26);
+  x.fillStyle="#9a93a6"; x.font="16px 'EB Garamond'"; x.fillText(a.role,128,50);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.minFilter=THREE.LinearFilter; return t; }
+
+// ── flow: enter agent → talk → pipeline / run ──
+let currentAgent=null, busy=false, agentWatch=0;
+function enterAgent(a){ currentAgent=a;
+  agentMat.map=loader.load("av/av-"+a.id+".webp"); agentMat.map.encoding=THREE.sRGBEncoding; agentMat.needsUpdate=true;
+  sign.material.map=signFor(a); sign.material.needsUpdate=true;
+  screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; drawScreen();
+  agent.rotation.y=0; agentWatch=0; screenState.mode="ready"; setCam("stand");   // stand, talking to the agent
+  $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("backbtn").style.display="block";
+  $("dImg").src="av/av-"+a.id+".webp"; $("dWho").textContent=a.name; $("dRole").textContent=a.role; $("dSay").textContent=a.say;
+  renderActs(); $("dialogue").classList.add("on"); voiceLine(a.id,"greet");
 }
-async function renderMessages(id){
-  const body=$("agentBody"); if(!body) return;
-  body.innerHTML='<div class="feed" id="feed"><p class="feed-empty">Loading…</p></div>';
-  let msgs=[]; try{ const r=await api("/api/agents/messages?agent="+id); msgs=r.messages||[]; }catch{}
-  markSeen(id);   // opening the feed clears the blue unread dot
-  if(selected!==id || tab!=="messages" || !$("feed")) return;   // user navigated away
-  const t=TM(id);
-  $("feed").innerHTML = msgs.length ? msgs.map(m=>`
-    <div class="fmsg">${avatarHtml(id,"sm",esc(TM(id).name[0]))}
-      <div class="fbody"><div class="ftext">${esc(m.text).replace(/\n/g,"<br>")}</div>
-        <div class="fts">${new Date(m.ts).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div></div></div>`).join("")
-    : `<p class="feed-empty">No messages yet. When ${esc(TM(id).name)} runs (on your desktop), its updates land here — not in Telegram.</p>`;
+function renderActs(){ const d=$("dActs"); d.innerHTML="";
+  if(screenState.running) return;
+  const talk=el("button","btn ghost","💬 Talk"); talk.onclick=()=>{ closeCfg(); screenState.mode="ready"; setCam("stand"); drawScreen(); $("dSay").textContent=currentAgent.say; voiceLine(currentAgent.id,"greet"); };
+  const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=openPipe;
+  const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
+  const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=openCfgScreen;
+  d.append(talk,pipe,run,cfg);
 }
-async function renderPipeline(id){
-  const body=$("agentBody"); if(!body) return;
-  body.innerHTML='<div class="feed"><p class="feed-empty">Loading pipeline…</p></div>';
-  let items=[]; try{ items=(await api("/api/agents/leads?agent="+id)).items||[]; }catch{}
-  let msgs=[]; try{ msgs=(await api("/api/agents/messages?agent="+id)).messages||[]; }catch{}
-  markSeen(id);
-  if(selected!==id||tab==="settings") return;
-  const last=msgs[msgs.length-1];
-  const report=last?`<div style="margin-top:20px"><div style="font-family:var(--font-mono);font-size:11px;letter-spacing:2px;color:var(--green);margin-bottom:8px">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div>
-    <div style="border:1px solid var(--border-l);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;color:var(--muted);white-space:pre-wrap">${esc(last.text)}</div></div>`:"";
-  const steps=(STEPS[id]||[]).map((st,i)=>`<span style="font-family:var(--font-mono);font-size:11px;color:var(--green);border:1px solid rgba(52,211,153,.3);border-radius:999px;padding:4px 12px">${i+1}. ${esc(st)}</span>`).join('<span style="color:var(--dim)">→</span>');
-  const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||"";
-  if(id==="sales"){ renderSalesPipeline(body, items, steps, report, persona);
-    body.querySelectorAll("select[data-biz]").forEach(sel=>sel.addEventListener("change",()=>setSalesStatus(sel)));
-    body.querySelectorAll("button[data-draft]").forEach(btn=>btn.addEventListener("click",()=>draftSales(btn)));
-    return; }
-  if(id==="jobs"){ renderJobPipeline(body, items, steps, report, persona);
-    body.querySelectorAll("select[data-url]").forEach(sel=>sel.addEventListener("change",()=>setJobStatus(sel)));
-    body.querySelectorAll("button[data-fill]").forEach(btn=>btn.addEventListener("click",()=>fillJob(btn)));
-    return; }
-  if(id==="linkedin"){ renderLinkedInPipeline(body, items, steps, report, persona);
-    body.querySelectorAll("select[data-name]").forEach(sel=>sel.addEventListener("change",()=>setLinkedInStatus(sel)));
-    body.querySelectorAll("button[data-copy]").forEach(btn=>btn.addEventListener("click",()=>copyConnect(btn)));
-    return; }
-  const done=items.filter(x=>x.done).length;
-  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">${steps}</div>
-    <p style="font-size:12.5px;color:var(--muted);margin-bottom:18px">${esc(persona)}</p>
-    ${items.length?`<div style="display:flex;gap:26px;font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:14px">
-      <span><b style="font-size:20px;color:var(--text)">${items.length}</b><br>in pipeline</span>
-      <span><b style="font-size:20px;color:var(--green)">${done}</b><br>done</span>
-      <span><b style="font-size:20px;color:var(--amber)">${items.length-done}</b><br>pending</span></div>
-    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">
-    ${items.map(l=>`<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--border-l);font-size:13px">
-      <span style="min-width:0"><b>${l.url?`<a href="${esc(l.url)}" target="_blank" style="color:var(--text)">${esc(l.title||"?")}</a>`:esc(l.title||"?")}</b><br>
-        <span style="font-size:11.5px;color:var(--dim);font-family:var(--font-mono)">${esc(String(l.sub||"").replace(/^https?:\/\//,""))}${l.note?" · "+esc(l.note):""}${l.phone?` · <a href="tel:${esc(l.phone)}" style="color:var(--sky)">📞 ${esc(l.phone)}</a>`:""}</span></span>
-      <span style="font-family:var(--font-mono);font-size:10.5px;padding:3px 10px;border-radius:999px;border:1px solid ${l.done?"rgba(52,211,153,.4)":"rgba(251,191,36,.4)"};color:${l.done?"var(--green)":"var(--amber)"}">${l.done?"DONE":"PENDING"}</span>
-    </div>`).join("")}</div>`:""}
-    ${report || (items.length?"":'<p class="feed-empty">Nothing in the pipeline yet — run this agent and its work appears here.</p>')}
-  </div>`;
-}
-/* The Sales agent's Pipeline tab = the live, editable cold-call sheet.
-   Each row's status is a dropdown that writes straight back to the vault note. */
-const SALES_STAT_COLOR = {"🟣 To call":"#a78bfa","🟡 Demo sent":"var(--amber)","🔴 Call back":"var(--rose)",
-                          "🟢 WON":"var(--green)","⚫ Rejected":"var(--dim)","⚪ Skip":"var(--dim)"};
-// Call-sheet ordering: Call back on top → To call in the middle → Demo sent at the bottom (WON/closed last).
-const SALES_STATUS_RANK = {"🔴 Call back":0,"🟣 To call":1,"🟡 Demo sent":2,"🟢 WON":3,"⚫ Rejected":4,"⚪ Skip":5};
-// Rejected/Skip drop off the active sheet on refresh (they stay in the vault, just out of the way)…
-const SALES_DROP_STATUSES = new Set(["⚫ Rejected","⚪ Skip"]);
-// …but only after a 5-minute grace window when set live, so an accidental click can be undone by re-picking a status.
-const SALES_DROP_GRACE_MS = 5*60*1000;
-const salesDropTimers = new Map();   // business → pending row-removal timeout
-function renderSalesPipeline(body, items, steps, report, persona){
-  const counts={}; SALES_STATUSES.forEach(s=>counts[s]=0);
-  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
-  // Active sheet = everything except Rejected/Skip, ordered by urgency (stable within a status).
-  const visible=items
-    .map((it,i)=>({it,i}))
-    .filter(({it})=>!SALES_DROP_STATUSES.has(it.status))
-    .sort((a,b)=>((SALES_STATUS_RANK[a.it.status]??99)-(SALES_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
-    .map(({it})=>it);
-  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
-  const row=l=>{
-    const opts=SALES_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
-    const tel=l.phone&&/\d/.test(l.phone)?` · <a href="tel:${esc(l.phone)}" style="color:var(--sky)">📞 ${esc(l.phone)}</a>`:"";
-    // ✉ Draft: the same scouted business can be CALLED (phone above) or EMAILED —
-    // this runs the draft on your Mac and saves a Gmail draft for this business.
-    const draftBtn=`<button class="sales-draft-btn" data-draft="${esc(l.title)}" data-vert="${esc(l.sub||"")}" title="Draft an outreach email for this business" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:var(--sky);cursor:pointer;white-space:nowrap;transition:background .15s">✉ Draft</button>`;
-    return `<div class="sales-row" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
-      <span style="min-width:0"><b>${esc(l.title||"?")}</b>
-        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}${tel}</span></span>
-      ${draftBtn}
-      <select data-biz="${esc(l.title)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${SALES_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
-    </div>`;
-  };
-  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
-    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live call sheet — change a status here and it saves straight to your Obsidian note. The Sales agent appends new prospects below.</p>
-    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
-      ${stat("in pipeline",visible.length,"var(--text)")}
-      ${stat("to call",counts["🟣 To call"],"#a78bfa")}
-      ${stat("demo sent",counts["🟡 Demo sent"],"var(--amber)")}
-      ${stat("call back",counts["🔴 Call back"],"var(--rose)")}
-      ${stat("won",counts["🟢 WON"],"var(--green)")}</div>
-    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
-      :'<p class="feed-empty">No prospects yet — run the Sales agent and it fills your call sheet.</p>'}
-    ${report||""}</div>`;
-}
-async function setSalesStatus(sel){
-  const business=sel.dataset.biz, status=sel.value, prev=sel.style.borderColor;
-  const rowEl=sel.closest(".sales-row");
-  // Any status change cancels a pending auto-removal — this is the undo for an accidental Rejected/Skip.
-  if(salesDropTimers.has(business)){ clearTimeout(salesDropTimers.get(business)); salesDropTimers.delete(business); if(rowEl) rowEl.style.opacity=""; }
-  sel.disabled=true; sel.style.color=SALES_STAT_COLOR[status]||"var(--text)";
-  try{
-    await api("/api/agents/sales/status",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({business,status})});
-    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
-    // Rejected/Skip: dim the row now, then drop it after a 5-min grace window (re-pick a status to keep it).
-    if(SALES_DROP_STATUSES.has(status) && rowEl){
-      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
-      const t=setTimeout(()=>{ salesDropTimers.delete(business); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, SALES_DROP_GRACE_MS);
-      salesDropTimers.set(business,t);
+function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
+function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show");
+  $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe(); closeCfg(); setCam("stand");
+  try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
+$("backbtn").onclick=backToHub;
+
+async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="pipeline"; setCam("screen"); drawScreen(); openModal("pipePanel");
+  $("ppImg").src="av/av-"+a.id+".webp"; $("ppName").textContent=a.name; $("ppRole").textContent=a.role+" · pipeline";
+  $("ppSteps").innerHTML=a.steps.map((s,i)=>`<span class="step-pill">${i+1}. ${s}</span>`).join('<span class="arrow">→</span>');
+  $("ppPersona").textContent=a.persona||a.say||"";
+  $("ppReport").innerHTML='<span style="color:var(--muted)">Loading latest report…</span>';
+  $("ppLeads").innerHTML="";
+  if(LIVE && token){
+    try{ const c=await api("/api/agents/config"); const p=(c.agents&&c.agents[a.id]||{}).persona; if(p) $("ppPersona").textContent=p; }catch{}
+    if(["sales","jobs","linkedin"].includes(a.id)){
+      const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
+      try{ const lr=await api("/api/agents/leads?agent="+a.id); const items=lr.items||[]; window.__leads={agent:a.id,items};
+        if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
+          const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+          return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0"><b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div></div>
+            <select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
+        }).join(""); }catch(e){}
     }
-  }catch(e){
-    sel.style.borderColor="var(--rose)";
-    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
-  }finally{ sel.disabled=false; }
+    try{ const r=await api("/api/agents/messages?agent="+a.id); const msgs=r.messages||[]; const last=msgs[msgs.length-1];
+      if(last) $("ppReport").innerHTML=`<div class="report-head">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div><div class="report-body">${esc(last.text)}</div>`;
+      else $("ppReport").innerHTML='<span style="color:var(--muted)">No report yet — Run '+esc(a.name)+' to generate one.</span>';
+    }catch(e){ $("ppReport").innerHTML='<span style="color:var(--muted)">Couldn\'t load the report.</span>'; }
+  } else { $("ppReport").innerHTML='<span style="color:var(--muted)">Sign in to see this agent\'s latest run report. (Demo mode shows the pipeline only.)</span>'; } }
+function closePipe(){ $("pipe").classList.remove("on"); }
+// ── real per-agent config (schema + secrets/connections/persona/schedule) ──
+let schema=null, cfg=null;
+const CRON_PRESETS=[{v:"",l:"Manual only"},{v:"30 7 * * *",l:"Every day · 7:30 AM"},{v:"30 7 * * 1-5",l:"Weekdays · 7:30 AM"},{v:"0 18 * * 0",l:"Sunday · 6 PM"}];
+async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} }
+function agentReady(id){ if(!schema) return true; const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
+function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
+function openCfgScreen(){ openAgentSettings(currentAgent.id); }
+async function openAgentSettings(id){
+  const a=AGENTS.find(x=>x.id===id)||currentAgent;
+  if(!LIVE||!token){ banner("SIGN IN FIRST","Sign in to configure your agents"); return; }
+  openModal("agentCfg"); const body=$("agentCfgBody"); body.innerHTML="Loading your setup…";
+  if(!schema||!cfg) await loadConfig();
+  const sp=(schema&&schema.agents&&schema.agents[id])||{needs:[],fields:[],persona:""};
+  const ac=(cfg&&cfg.agents&&cfg.agents[id])||{}, conns=(cfg&&cfg.connections)||{};
+  const needed=((schema&&schema.connections)||[]).filter(c=>(sp.needs||[]).includes(c.key));
+  const ip="width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:4px";
+  body.innerHTML=`<div class="pp-head"><img src="av/av-${id}.webp"><div><h3 style="margin:0">${esc(a.name)}</h3><div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase">Configure · for you</div></div></div>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:0">Give ${esc(a.name)} what it needs to work for you — its instructions, details it should know, and any keys / passwords it needs. <b style="color:var(--green)">Secrets are encrypted and never shown again.</b></p>
+    <label>Persona — how it should work</label><textarea id="cfPersona" rows="3" style="${ip}">${esc(ac.persona||sp.persona||"")}</textarea>
+    ${(sp.fields||[]).length?`<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px"><span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">What it should know about you</span><button class="btn ghost" style="padding:5px 10px;font-size:10px" onclick="doPrefill('${id}',this)">✦ Prefill from my brain</button></div>
+      ${sp.fields.map(f=>`<label>${esc(f.label)}</label><input data-f="${f.key}" style="${ip}" value="${esc((ac.fields||{})[f.key]||"")}">`).join("")}`:""}
+    ${needed.length?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 4px">Keys & passwords it needs <span style="color:var(--green)">🔒 encrypted</span></div>
+      ${needed.map(c=>`<label>${esc(c.label)}${c.secret?' 🔒':''}${conns[c.key]?' <span style="color:var(--green)">· saved</span>':''}</label><input data-k="${c.key}" type="${c.secret?'password':'text'}" style="${ip}" placeholder="${c.secret&&conns[c.key]?'•••••• saved — leave blank to keep':''}" value="${c.secret?'':esc(conns[c.key]||'')}">`).join("")}`:""}
+    <label style="margin-top:12px">Schedule</label><select id="cfCron" style="${ip}">${CRON_PRESETS.map(p=>`<option value="${p.v}" ${(((cfg&&cfg.routine)||{}).cron===p.v)?'selected':''}>${p.l}</option>`).join("")}</select>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — runs on your desktop & messages you here</label>
+    <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" onclick="saveAgentCfg('${id}')">Save</button><button class="btn ghost" onclick="closeModal('agentCfg')">Done</button><span id="cfMsg" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span></div>`;
 }
-/* Per-business '✉ Draft': drafts an outreach email for this scouted business and
-   saves it to Gmail → Drafts on the owner's Mac. The worker posts the result to
-   the feed when done; nothing is ever sent. */
-async function draftSales(btn){
-  const business=btn.dataset.draft; if(!business) return;
-  const vertical=btn.dataset.vert||"", orig=btn.textContent;
-  btn.disabled=true; btn.textContent="✉ Drafting…"; btn.style.opacity="0.7";
-  try{
-    const r=await api("/api/agents/sales/draft",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({business,vertical})});
-    btn.textContent="✓ Drafting"; btn.style.borderColor="var(--green)";
-    alert((r&&r.message)||"Drafting on your Mac — I'll save it to Gmail → Drafts and post in the feed when ready. Nothing is sent.");
-  }catch(e){
-    btn.textContent=orig; btn.style.borderColor="var(--rose)";
-    alert((e&&e.detail)?e.detail:"Couldn't start the draft — is your Mac awake?");
-  }finally{
-    setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.style.opacity=""; btn.style.borderColor="rgba(56,118,243,.4)"; }, 4000);
-  }
-}
-/* The Jobs agent's Pipeline tab = the live, editable application tracker.
-   Each row's status is a dropdown that writes straight back to the vault note,
-   so Taran keeps an organized record of everything he's applied to. */
-const JOB_STAT_COLOR = {"🔍 To apply":"#a78bfa","📤 Applied":"var(--sky)","📞 Interview":"var(--amber)",
-                        "🎯 Offer":"var(--green)","⚫ Rejected":"var(--dim)","⚪ Skip":"var(--dim)"};
-// Most actionable on top: interviews (don't miss them) → offers → still-to-apply → applied (waiting).
-const JOB_STATUS_RANK = {"📞 Interview":0,"🎯 Offer":1,"🔍 To apply":2,"📤 Applied":3,"⚫ Rejected":4,"⚪ Skip":5};
-const JOB_DROP_STATUSES = new Set(["⚫ Rejected","⚪ Skip"]);
-const JOB_DROP_GRACE_MS = 5*60*1000;
-const jobDropTimers = new Map();
-function renderJobPipeline(body, items, steps, report, persona){
-  const counts={}; JOB_STATUSES.forEach(s=>counts[s]=0);
-  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
-  const visible=items
-    .map((it,i)=>({it,i}))
-    .filter(({it})=>!JOB_DROP_STATUSES.has(it.status))
-    .sort((a,b)=>((JOB_STATUS_RANK[a.it.status]??99)-(JOB_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
-    .map(({it})=>it);
-  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
-  const row=l=>{
-    const opts=JOB_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
-    const title=l.url?`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(l.title||"?")}</a>`:esc(l.title||"?");
-    // 'Fill' only shows on '🔍 To apply' rows with a real URL — it runs the fill
-    // for just this job on the owner's Mac (form opens on screen, nothing submitted).
-    const canFill = l.status==="🔍 To apply" && /^https?:/.test(l.url||"");
-    const fillBtn = canFill
-      ? `<button class="job-fill-btn" data-fill="${esc(l.url)}" title="Fill this application on your Mac" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap;transition:background .15s">✎ Fill</button>`
-      : `<span aria-hidden="true"></span>`;
-    return `<div class="job-row" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
-      <span style="min-width:0"><b>${title}</b>
-        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
-      ${fillBtn}
-      <select data-url="${esc(l.url)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${JOB_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
-    </div>`;
-  };
-  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
-    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live application tracker — change a status here and it saves straight to your Obsidian note. The Jobs agent scouts fresh roles and adds them below as 🔍 To apply.</p>
-    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
-      ${stat("in pipeline",visible.length,"var(--text)")}
-      ${stat("to apply",counts["🔍 To apply"],"#a78bfa")}
-      ${stat("applied",counts["📤 Applied"],"var(--sky)")}
-      ${stat("interview",counts["📞 Interview"],"var(--amber)")}
-      ${stat("offer",counts["🎯 Offer"],"var(--green)")}</div>
-    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
-      :'<p class="feed-empty">No roles yet — run the Jobs agent and it scouts + fills your pipeline.</p>'}
-    ${report||""}</div>`;
-}
-async function setJobStatus(sel){
-  const url=sel.dataset.url, status=sel.value, prev=sel.style.borderColor;
-  const rowEl=sel.closest(".job-row");
-  if(jobDropTimers.has(url)){ clearTimeout(jobDropTimers.get(url)); jobDropTimers.delete(url); if(rowEl) rowEl.style.opacity=""; }
-  sel.disabled=true; sel.style.color=JOB_STAT_COLOR[status]||"var(--text)";
-  try{
-    await api("/api/agents/jobs/status",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({url,status})});
-    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
-    if(JOB_DROP_STATUSES.has(status) && rowEl){
-      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
-      const t=setTimeout(()=>{ jobDropTimers.delete(url); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, JOB_DROP_GRACE_MS);
-      jobDropTimers.set(url,t);
-    }
-  }catch(e){
-    sel.style.borderColor="var(--rose)";
-    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
-  }finally{ sel.disabled=false; }
-}
-/* Per-job 'Fill': runs the fill for just this row on the owner's Mac. The bridge
-   spawns a detached worker that opens the form on screen; nothing is submitted. */
-async function fillJob(btn){
-  const url=btn.dataset.fill; if(!url) return;
-  const orig=btn.textContent;
-  btn.disabled=true; btn.textContent="✎ Filling…"; btn.style.opacity="0.7";
-  try{
-    const r=await api("/api/agents/jobs/fill",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({url})});
-    btn.textContent="✓ Opening"; btn.style.borderColor="var(--green)";
-    alert((r&&r.message)||"Filling on your Mac — the form opens on your screen to review and submit. Nothing is submitted automatically.");
-  }catch(e){
-    btn.textContent=orig; btn.style.borderColor="var(--rose)";
-    const msg=(e&&e.detail)?e.detail:"Couldn't start the fill — is your Mac awake?";
-    alert(msg);
-  }finally{
-    setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.style.opacity=""; btn.style.borderColor="rgba(52,211,153,.4)"; }, 4000);
-  }
-}
-/* The LinkedIn agent's Pipeline tab = the live, editable networking tracker.
-   Status dropdown writes to the vault note; each row carries its drafted connect
-   note with a one-tap copy so Taran can paste the invite by hand (ToS-safe). */
-const LI_STAT_COLOR = {"🔍 To send":"#a78bfa","📨 Invite sent":"var(--sky)","🤝 Connected":"var(--green)",
-                       "💬 Replied":"var(--amber)","⚪ Skip":"var(--dim)"};
-// Most actionable on top: replies (respond!) → connected (send follow-up) → still-to-send → invite sent (waiting).
-const LI_STATUS_RANK = {"💬 Replied":0,"🤝 Connected":1,"🔍 To send":2,"📨 Invite sent":3,"⚪ Skip":4};
-const LI_DROP_STATUSES = new Set(["⚪ Skip"]);
-const LI_DROP_GRACE_MS = 5*60*1000;
-const liDropTimers = new Map();
-function renderLinkedInPipeline(body, items, steps, report, persona){
-  const counts={}; LI_STATUSES.forEach(s=>counts[s]=0);
-  items.forEach(it=>{ if(counts[it.status]!==undefined) counts[it.status]++; });
-  const visible=items
-    .map((it,i)=>({it,i}))
-    .filter(({it})=>!LI_DROP_STATUSES.has(it.status))
-    .sort((a,b)=>((LI_STATUS_RANK[a.it.status]??99)-(LI_STATUS_RANK[b.it.status]??99))||(a.i-b.i))
-    .map(({it})=>it);
-  const stat=(label,n,col)=>`<span><b style="font-size:20px;color:${col}">${n}</b><br>${label}</span>`;
-  const row=l=>{
-    const opts=LI_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
-    const copy=l.connect?`<button type="button" data-copy="${esc(l.connect)}" title="Copy connect note" style="margin-left:8px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:10px;font-family:var(--font-mono);cursor:pointer">⧉ note</button>`:"";
-    // LinkedIn has no predictable per-person URL, so deep-link a people-search for
-    // name + company — one click lands on that exact person's profile.
-    const liUrl="https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([l.title,l.company].filter(Boolean).join(" "));
-    const profile=`<a href="${liUrl}" target="_blank" rel="noopener" title="Find on LinkedIn" style="margin-left:8px;text-decoration:none;border:1px solid rgba(56,118,243,.4);color:var(--sky);border-radius:8px;padding:3px 8px;font-size:10px;font-family:var(--font-mono);white-space:nowrap">🔗 view</a>`;
-    return `<div class="li-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
-      <span style="min-width:0"><b>${esc(l.title||"?")}</b>
-        <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
-      <span style="display:flex;align-items:center">
-        <select data-name="${esc(l.title)}" data-company="${esc(l.company||"")}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${LI_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>${profile}${copy}</span>
-    </div>`;
-  };
-  body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">${steps}</div>
-    <p style="font-size:12.5px;color:var(--muted);margin-bottom:6px">Your live networking tracker — change a status here and it saves to your Obsidian note. The LinkedIn agent adds new targets below as 🔍 To send. Tap ⧉ note to copy the drafted invite, send it by hand, then mark it 📨 Invite sent.</p>
-    <div style="display:flex;gap:22px;font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin:10px 0 16px;flex-wrap:wrap">
-      ${stat("in pipeline",visible.length,"var(--text)")}
-      ${stat("to send",counts["🔍 To send"],"#a78bfa")}
-      ${stat("invite sent",counts["📨 Invite sent"],"var(--sky)")}
-      ${stat("connected",counts["🤝 Connected"],"var(--green)")}
-      ${stat("replied",counts["💬 Replied"],"var(--amber)")}</div>
-    ${visible.length?`<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden">${visible.map(row).join("")}</div>`
-      :'<p class="feed-empty">No targets yet — run the LinkedIn agent and it scouts + drafts your pipeline.</p>'}
-    ${report||""}</div>`;
-}
-async function copyConnect(btn){
-  try{ await navigator.clipboard.writeText(btn.dataset.copy); const o=btn.textContent; btn.textContent="✓ copied"; setTimeout(()=>btn.textContent=o,1200); }
-  catch(e){ alert("Connect note:\n\n"+btn.dataset.copy); }
-}
-async function setLinkedInStatus(sel){
-  const name=sel.dataset.name, company=sel.dataset.company||"", status=sel.value, prev=sel.style.borderColor;
-  const rowEl=sel.closest(".li-row"), k=name+"|"+company;
-  if(liDropTimers.has(k)){ clearTimeout(liDropTimers.get(k)); liDropTimers.delete(k); if(rowEl) rowEl.style.opacity=""; }
-  sel.disabled=true; sel.style.color=LI_STAT_COLOR[status]||"var(--text)";
-  try{
-    await api("/api/agents/linkedin/status",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({name,company,status})});
-    sel.style.borderColor="var(--green)"; setTimeout(()=>{sel.style.borderColor=prev||"var(--border)";},1000);
-    if(LI_DROP_STATUSES.has(status) && rowEl){
-      rowEl.style.transition="opacity .5s ease"; rowEl.style.opacity="0.5";
-      const t=setTimeout(()=>{ liDropTimers.delete(k); rowEl.style.opacity="0"; setTimeout(()=>rowEl.remove(),500); }, LI_DROP_GRACE_MS);
-      liDropTimers.set(k,t);
-    }
-  }catch(e){
-    sel.style.borderColor="var(--rose)";
-    alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
-  }finally{ sel.disabled=false; }
-}
-function renderSettings(id, spec, ac, m){
-  const conns=(cfg&&cfg.connections)||{};
-  const needed=(schema.connections||[]).filter(c=>spec.needs.includes(c.key));
-  $("agentBody").innerHTML=`
-    <div class="settings">
-      <div class="set-grp"><h4>Who they are</h4>
-        <div class="field"><label>Display name</label><input id="sName" value="${esc(m.name)}"></div>
-        <div class="field"><label>Role</label><input id="sRole" value="${esc(m.role)}"></div>
-        <div class="field"><label>Persona — how they should work</label>
-          <textarea id="sPersona" rows="3">${esc(ac.persona || spec.persona || "")}</textarea></div>
-      </div>
-      ${spec.fields.length?`<div class="set-grp"><h4>What they should know
-        <button type="button" class="prefill-btn" id="sPrefill">✦ Prefill from my brain</button> <span class="setup-msg" id="sPfMsg"></span></h4>
-        ${spec.fields.map(f=>`<div class="field"><label>${esc(f.label)}</label><input data-f="${f.key}" value="${esc((ac.fields||{})[f.key]||"")}"></div>`).join("")}</div>`:""}
-      ${needed.length?`<div class="set-grp"><h4>Keys they need <span class="muted">(optional · encrypted)</span></h4>
-        ${needed.map(c=>`<div class="field"><label>${esc(c.label)} ${c.secret?'<span class="lock">🔒</span>':""}</label>
-          <input data-k="${c.key}" type="${c.secret?"password":"text"}" class="${c.secret&&conns[c.key]?"saved":""}"
-            placeholder="${c.secret&&conns[c.key]?"•••••• saved":""}" value="${c.secret?"":esc(conns[c.key]||"")}"></div>`).join("")}</div>`:""}
-      <div class="set-grp"><h4>When they run</h4>
-        <label class="set-toggle"><input type="checkbox" id="sEnabled" ${ac.enabled?"checked":""}> Active — runs on your desktop and messages you here</label>
-        <div class="trigger-row" style="margin-top:10px"><span class="muted" style="font-size:12.5px">schedule</span>
-          <select id="sCron">${CRON_PRESETS.map(p=>`<option value="${p.v}" ${((cfg.routine||{}).cron===p.v)?"selected":""}>${p.l}</option>`).join("")}</select></div>
-      </div>
-      <div class="set-save"><button type="button" class="btn btn-primary" id="sSave">Save</button>
-        <button type="button" class="btn btn-ghost" id="sTest">Post a test message</button>
-        <span class="setup-msg" id="sMsg"></span></div>
-    </div>`;
-  const pf=$("sPrefill"); if(pf) pf.addEventListener("click",()=>doPrefill(id,pf));
-  $("sSave").addEventListener("click",()=>saveAgent(id));
-  $("sTest").addEventListener("click",()=>testMessage(id));
-}
-async function doPrefill(id,btn){
-  btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
-  const msg=$("sPfMsg"); msg.className="setup-msg"; msg.textContent="searching your notes (a few seconds)…";
-  try{ const r=await api("/api/agents/prefill/"+id,{method:"POST"});
-    if(!r.grounded){ msg.textContent="No matching notes — is your brain connected?"; msg.className="setup-msg warn"; }
-    else { let n=0; for(const [k,v] of Object.entries(r.fields||{})){ const i=$("agentBody").querySelector(`input[data-f="${k}"]`); if(i&&v){ i.value=v; i.classList.add("flash"); n++; } }
-      const pt=$("sPersona"); if(pt&&r.persona){ pt.value=r.persona; pt.classList.add("flash"); n++; }
-      msg.textContent=n?`Prefilled ${n} field${n>1?"s":""} — review &amp; save.`:"Nothing to prefill from your notes yet."; msg.className="setup-msg ok"; } }
-  catch(e){ msg.textContent="Prefill failed — try again."; msg.className="setup-msg warn"; }
-  finally{ btn.disabled=false; btn.textContent=o; }
-}
-async function saveAgent(id){
-  const msg=$("sMsg"); msg.textContent="Saving…"; msg.className="setup-msg";
+async function saveAgentCfg(id){ const body=$("agentCfgBody"), msg=$("cfMsg"); if(msg)msg.textContent="Saving…";
   const connections={}, fields={};
-  $("agentBody").querySelectorAll("input[data-k]").forEach(i=>{ if(i.value.trim()) connections[i.dataset.k]=i.value.trim(); });
-  $("agentBody").querySelectorAll("input[data-f]").forEach(i=>{ fields[i.dataset.f]=i.value.trim(); });
-  const enabled=$("sEnabled").checked, cron=$("sCron").value;
+  body.querySelectorAll("input[data-k]").forEach(i=>{ if(i.value.trim()) connections[i.dataset.k]=i.value.trim(); });
+  body.querySelectorAll("input[data-f]").forEach(i=>{ fields[i.dataset.f]=i.value.trim(); });
+  const enabled=$("cfEnabled").checked, cron=$("cfCron").value;
   const order=[...(((cfg||{}).routine||{}).order||[])].filter(x=>x!==id); if(enabled) order.push(id);
-  const body={ connections, agents:{ [id]:{ display_name:$("sName").value.trim(), role:$("sRole").value.trim(),
-    persona:$("sPersona").value.trim(), fields, enabled } }, routine:{ cron, order } };
-  // ONLY the network call is guarded — a render glitch must never look like a save failure.
-  try{ cfg=await api("/api/agents/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); }
-  catch(e){ msg.textContent = String(e).includes("401") ? "Session expired — sign in again." : "Save failed — try again."; msg.className="setup-msg warn"; return; }
-  try{ renderTeam(); }catch(_){}              // update the rail; never throws past here
-  msg.textContent="Saved ✓"; msg.className="setup-msg ok";   // form + message stay intact
-}
-async function testMessage(id){
-  const msg=$("sMsg"); msg.textContent="Posting…"; msg.className="setup-msg";
-  const m=agentMeta(id);
-  try{ await api("/api/agents/message",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({agent:id,text:`Hi — this is ${m.name}. I'm set up and will message you here when I run.`})});
-    msg.textContent="Posted ✓ — see the Messages tab."; msg.className="setup-msg ok"; }
-  catch{ msg.textContent="Post failed."; msg.className="setup-msg warn"; }
+  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron, order } };
+  try{ cfg=await api("/api/agents/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); }
+  catch(e){ if(msg)msg.textContent="Save failed — try again."; return; }
+  if(msg)msg.textContent="Saved ✓"; banner("AGENT CONFIGURED",(AGENTS.find(a=>a.id===id)||{}).name+" is set up"); chime("done"); }
+async function doPrefill(id,btn){ btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
+  try{ const r=await api("/api/agents/prefill/"+id,{method:"POST"});
+    if(r.fields) for(const [k,v] of Object.entries(r.fields)){ const i=$("agentCfgBody").querySelector(`input[data-f="${k}"]`); if(i&&v) i.value=v; }
+    const pt=$("cfPersona"); if(pt&&r.persona) pt.value=r.persona; btn.textContent="✦ Prefilled"; }
+  catch(e){ btn.textContent="Prefill failed"; } finally{ setTimeout(()=>{btn.disabled=false;btn.textContent=o;},1600); } }
+
+function runTask(){ const a=currentAgent;
+  if(LIVE && !agentReady(a.id)){ $("dSay").textContent="I'm not set up yet — give me my keys & details in Settings, then I can run for you.";
+    try{ speechSynthesis.cancel(); }catch(e){} speak("Please configure my settings first.");
+    banner("SETUP NEEDED",a.name+" needs configuring"); openAgentSettings(a.id); return; }
+  closePipe(); busy=true;
+  screenState.running=true; screenState.done=false; screenState.stepIdx=0; screenState.pct=0; monGlow.intensity=1.3;
+  agentWatch=1; $("dActs").innerHTML=""; closeCfg(); screenState.mode="running"; setCam("zoom");   // zoom into the screen
+  $("dSay").textContent= LIVE? "Running for real on your Mac… watch the screen." : "Working… watch the screen."; voiceLine(a.id,"working");
+  // LIVE: fire the real agent in the background; screen shows estimated progress until it returns.
+  let realDone=false, realResult=null;
+  if(LIVE){ bgRun(a.id).then(q=> q && q.queued? waitRun(a.id) : q).then(r=>{ realResult=r||{}; realDone=true; })
+    .catch(e=>{ realResult={_err:e}; realDone=true; }); }
+  const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
+    if(ok && !state.done[a.id]){ state.done[a.id]=true; state.doneToday++; } persist();
+    busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"It is done. Posted to your feed.":"Run ended — check your feed.");
+    voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished"); persist();} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
+  const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
+  const tick=()=>{ const e=performance.now()-t0; let pct=Math.min(1,e/total);
+    if(LIVE) pct=Math.min(realDone?1:0.94, e/total);
+    screenState.pct=pct; screenState.eta=Math.max(0,Math.round((total-e)/1000)); screenState.stepIdx=Math.min(a.steps.length-1,Math.floor(pct*a.steps.length)); drawScreen();
+    if(LIVE){ if(realDone){ const r=realResult||{}; const ok=!!r.ran && !r._err && !r._lost;
+        finish(ok, r._timeout? "Still running — its report will land in your feed." : (r.message||(r.text? null : null))); }
+      else requestAnimationFrame(tick); }
+    else { if(pct<1) requestAnimationFrame(tick); else finish(true); } };
+  requestAnimationFrame(tick);
 }
 
-/* When the brain is connected, prefill EVERY agent once (descriptive fields +
-   persona) so the whole team has max context. Runs in the background. */
-let _prefilledAll = false;
-async function autoPrefillAll(){
-  if(_prefilledAll) return; _prefilledAll = true;
-  try{ const r = await api("/api/agents/prefill-all",{method:"POST"});
-    if(r && r.prefilled && r.prefilled.length){ cfg = await api("/api/agents/config"); renderTeam();
-      if(selected!=="assistant" && tab==="settings") renderAgent(selected); }
-  }catch{ _prefilledAll=false; }
-}
+// ── settings ──
+async function openSettings(){ if(!LIVE||!token){ banner("SIGN IN FIRST","Sign in to configure your agents"); return; }
+  $("settings").classList.add("on"); const L=$("sList"); L.innerHTML="Loading…"; if(!schema||!cfg) await loadConfig();
+  L.innerHTML=AGENTS.map(a=>{ const ready=agentReady(a.id);
+    return `<button class="si" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeSettings();openAgentSettings('${a.id}')">
+      <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover">
+      <div style="flex:1"><b style="font-family:var(--display);color:var(--gold)">${esc(a.name)}</b><div style="color:var(--muted);font-size:13px">${esc(a.role)}</div></div>
+      <span style="font-family:var(--mono);font-size:10px;color:${ready?'var(--green)':'#fb4'}">${ready?'✓ ready':'⚠ needs setup'}</span></button>`; }).join("");
+  const sv=document.querySelector("#settings .btn"); if(sv) sv.style.display="none"; }
+function saveSettings(){ closeSettings(); }
+function closeSettings(){ $("settings").classList.remove("on"); }
 
-/* ── brain pill / upload ──────────────────────────────── */
-function agoTxt(ts){ if(!ts) return ""; const m=Math.floor((Date.now()-ts)/60000);
-  if(m<1) return "updated just now"; if(m<60) return `updated ${m}m ago`;
-  const h=Math.floor(m/60); if(h<24) return `updated ${h}h ago`;
-  const d=Math.floor(h/24); if(d<7) return `updated ${d}d ago`;
-  return "updated "+new Date(ts).toLocaleDateString([], {month:"short",day:"numeric"}); }
-function setBrain(ready){ $("brainPill").classList.toggle("ready",ready); if(!$("brainPillText").textContent.includes("notes")) $("brainPillText").textContent=ready?"brain: connected":"brain: not connected"; }
-async function loadBrainStatus(){ const upBtn=$("brainUploadBtn");
-  try{ const s=await api("/api/brain/status");
-    if(s.connected){ $("brainPill").classList.add("ready");
-      $("brainPillText").textContent=s.notes?`brain: ${s.notes.toLocaleString()} notes`:"brain: connected";
-      const from=s.source==="local"?" from your Mac vault":"";
-      const upd=agoTxt(s.updated); const updTxt=upd?` · ${upd}`:"";
-      $("brainCardText").textContent=s.notes?`Connected — ${s.notes.toLocaleString()} notes${from}${updTxt}. Your team works from your own knowledge.`:"Connected.";
-      if(upd) $("brainPill").title="brain "+upd;
-      upBtn.hidden=true;
-      autoPrefillAll();   // brain connected → give the whole team context
-    } else { $("brainPill").classList.remove("ready"); $("brainPillText").textContent=s.offline?"brain: offline":"brain: not connected";
-      if(isPro()){ $("brainCardText").textContent="Upload your vault so your team can work — and answer — from your own notes."; upBtn.hidden=false; }
-      else { $("brainCardText").textContent="We build and connect your business brain during onboarding — book a call and your team will know your company inside out."; upBtn.hidden=true; } }
-  }catch{ upBtn.hidden=isPro()?false:true; } }
-$("brainUploadBtn").addEventListener("click",()=>$("vaultFile").click());
-$("vaultFile").addEventListener("change",async ()=>{ const f=$("vaultFile").files[0]; $("vaultFile").value=""; if(!f||!token) return;
+// ── render loop ──
+const clock=new THREE.Clock();
+function loop(){ requestAnimationFrame(loop); const t=clock.getElapsedTime();
+  agent.position.y=1.18+Math.sin(t*1.5)*0.02;                                  // seated bob
+  const targetRot=agentWatch? 0.85 : Math.sin(t*0.5)*0.07;                      // watch screen, else gentle idle sway
+  agent.rotation.y += (targetRot-agent.rotation.y)*0.08;
+  torso.scale.y=1+Math.sin(t*1.8)*0.015; head.position.y=1.86+Math.sin(t*1.8)*0.008;  // (you are hidden in 1st person)
+  lookCur.lerp(camLook,0.1); camera.position.lerp(camPos,0.1); camera.lookAt(lookCur);   // smooth 1st-person camera moves
+  renderer.render(scene,camera); }
+loop();
+addEventListener("resize",()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+renderHub(); setTimeout(()=>$("loading").style.display="none",450);
+// ── feature modals: Chief of Staff, Connect, Usage, Brain ────────────────────
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function openModal(id){ document.getElementById(id).classList.add("on"); }
+function closeModal(id){ document.getElementById(id).classList.remove("on"); }
+function requireLive(){ if(LIVE&&token) return true; banner("SIGN IN FIRST","Use 🔓 Sign in to unlock live features"); return false; }
+
+// Chief of Staff = full-page chat (ChatGPT-style sidebar of previous chats)
+const chiefKey=()=>"pais_chief_"+(userId||"anon");
+let chiefConvos=[], chiefActive=null;
+function chiefLoadStore(){ try{ return JSON.parse(localStorage.getItem(chiefKey())||"[]"); }catch{ return []; } }
+function chiefSaveStore(){ try{ localStorage.setItem(chiefKey(),JSON.stringify(chiefConvos.slice(0,50))); }catch{} }
+function openChief(){ if(!requireLive())return; chiefConvos=chiefLoadStore();
+  if(!chiefConvos.length) chiefNew(); else selectConvo(chiefConvos[0].id);
+  $("chiefPage").classList.add("on"); setTimeout(()=>$("chiefInput").focus(),120); }
+function closeChief(){ $("chiefPage").classList.remove("on"); }
+function chiefNew(){ const id="c"+Date.now().toString(36); chiefConvos.unshift({id,title:"New chat",msgs:[]}); chiefSaveStore(); selectConvo(id); $("chiefInput").focus(); }
+function selectConvo(id){ chiefActive=id; const c=chiefConvos.find(x=>x.id===id); $("chiefThread").innerHTML="";
+  (c?c.msgs:[]).forEach(m=>chiefMsg(m.role, m.role==="user"?esc(m.content):esc(m.content).replace(/\n/g,"<br>"))); chiefRenderList(); }
+function chiefRenderList(){ $("chiefConvos").innerHTML=chiefConvos.map(c=>`<button class="cv ${c.id===chiefActive?'active':''}" onclick="selectConvo('${c.id}')">${esc(c.title)}</button>`).join(""); }
+function chiefMsg(role,html){ const e=document.createElement("div"); e.className="cm "+role; e.innerHTML=html; $("chiefThread").appendChild(e); $("chiefThread").scrollTop=1e9; return e; }
+async function chiefSend(){ const v=$("chiefInput").value.trim(); if(!v||!token) return; $("chiefInput").value="";
+  const c=chiefConvos.find(x=>x.id===chiefActive)||chiefConvos[0]; if(!c) return;
+  chiefMsg("user",esc(v)); c.msgs.push({role:"user",content:v}); if(c.title==="New chat") c.title=v.slice(0,42); chiefSaveStore(); chiefRenderList();
+  const t=chiefMsg("bot","…");
+  try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify({message:v,agent:"assistant",history:c.msgs.slice(-12)})});
+    if(!r.ok){ t.innerHTML="<span style='color:#f99'>"+(r.status===401?"Session expired — sign in again.":"Couldn't reach your Chief of Staff.")+"</span>"; return; }
+    const d=await r.json(); t.innerHTML=esc(d.reply||"").replace(/\n/g,"<br>"); c.msgs.push({role:"assistant",content:d.reply||""}); chiefSaveStore();
+  }catch(e){ t.innerHTML="<span style='color:#f99'>Couldn't reach your Chief of Staff.</span>"; } }
+
+// Connect desktop (runtime link code)
+function openConnect(){ if(!requireLive())return; openModal("connectPanel");
+  $("cdInstall").textContent="git clone https://github.com/Taran132g/pais-runtime && cd pais-runtime && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt";
+  $("cdToken").textContent="generating…"; $("cdLogin").textContent="./venv/bin/python runtime.py link <code>";
+  api("/api/runtime/link-code",{method:"POST"}).then(({code})=>{ $("cdToken").textContent=code; $("cdLogin").textContent=`./venv/bin/python runtime.py link ${code}`; })
+    .catch(e=>{ $("cdToken").textContent= e.status===401?"sign in first":"couldn't get a code — try again"; }); }
+
+// Usage (Claude account + quota)
+function openUsage(){ if(!requireLive())return; openModal("usagePanel"); loadUsage(); }
+async function loadUsage(){ const b=$("usageBody"); b.innerHTML="Loading…"; let d;
+  try{ d=await api("/api/agents/claude-account"); }catch(e){ b.innerHTML="Couldn't load account ("+(e.detail||e.status||"error")+")."; return; }
+  const accts=d.accounts||[]; const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.active?'active':''}" ${a.active?'disabled':''} onclick="switchAcct('${a.name}',this)">${esc(a.name)}${a.active?' ✓':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
+  const q=d.quota||{}; const bar=(w,l)=>{ if(!w||w.utilization==null) return ""; const u=Math.round(w.utilization); const c=u>=90?'#f87':u>=70?'#fb4':'#6e9';
+    return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${l}</span><span style="color:${c};font-weight:600">${u}%</span></div><div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:4px"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:4px"></div></div></div>`; };
+  b.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${chips}</div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">Subscription quota</div>${bar(q.five_hour,'5-hour window')}${bar(q.seven_day,'Weekly limit')}`; }
+async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.firstChild.textContent="Switching…"; }
+  try{ await api("/api/agents/claude-account/switch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); }
+  catch(e){ alert("Switch failed: "+(e.detail||e.status||"error")); } loadUsage(); }
+
+// Brain (vault upload + status)
+function openBrain(){ if(!requireLive())return; openModal("brainPanel"); loadBrain(); }
+async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status");
+    b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.`
+      : "Not connected. Upload your vault as a <b>.zip</b> of markdown notes to build your brain."; }
+  catch{ b.innerHTML="Couldn't load brain status."; } }
+document.getElementById("vaultFile2").addEventListener("change",async ()=>{ const fi=document.getElementById("vaultFile2"); const f=fi.files[0]; fi.value=""; if(!f||!token) return;
   if(!f.name.toLowerCase().endsWith(".zip")){ alert("Vault must be a .zip of markdown notes."); return; }
-  const btn=$("brainUploadBtn"); btn.disabled=true; const prev=btn.innerHTML; btn.innerHTML="Building your brain…"; $("brainCardText").textContent="Reading "+f.name+"…";
+  const btn=$("brainUp"); btn.disabled=true; const prev=btn.textContent; btn.textContent="Building your brain…"; $("brainBody").textContent="Reading "+f.name+"…";
   try{ const fd=new FormData(); fd.append("file",f,f.name);
     const r=await fetch(PAIS_API+"/api/upload/"+encodeURIComponent(userId),{method:"POST",headers:{"Authorization":"Bearer "+token},body:fd});
-    if(r.status===402){ $("brainCardText").textContent="Building your brain runs on your own machine — book a call to get set up."; }
-    else if(!r.ok){ $("brainCardText").textContent="Upload failed — try again."; }
-    else { loadBrainStatus(); }
-  }catch{ $("brainCardText").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.innerHTML=prev; } });
+    if(!r.ok){ $("brainBody").textContent="Upload failed — try again."; } else loadBrain();
+  }catch{ $("brainBody").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.textContent=prev; } });
 
-/* ── connect desktop modal ────────────────────────────── */
-const cdModal=$("cdModal");
-$("connectDesktopBtn").addEventListener("click", openConnect);
-$("cdClose").addEventListener("click",()=>{ cdModal.hidden=true; });
-cdModal.addEventListener("click",e=>{ if(e.target===cdModal) cdModal.hidden=true; });
-document.addEventListener("keydown",e=>{ if(e.key!=="Escape") return;
-  if(!cdModal.hidden) cdModal.hidden=true; });
-async function openConnect(){ cdModal.hidden=false;
-  $("cdInstall").textContent="git clone https://github.com/Taran132g/pais-runtime && cd pais-runtime && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt";
-  $("cdToken").textContent="generating…";
-  $("cdLogin").textContent="./venv/bin/python runtime.py link <code>";
-  try{
-    const {code}=await api("/api/runtime/link-code",{method:"POST"});
-    $("cdToken").textContent=code;
-    $("cdLogin").textContent=`./venv/bin/python runtime.py link ${code}`;
-  }catch(e){
-    $("cdToken").textContent = e.status===401 ? "sign in first" : "couldn't get a code — try again";
-  } }
-document.querySelectorAll(".cd-copy").forEach(b=>b.addEventListener("click",()=>{
-  const txt=b.dataset.copy2||($(b.dataset.copy)?.textContent||"");
-  navigator.clipboard.writeText(txt).then(()=>{ const o=b.textContent; b.textContent="copied ✓"; setTimeout(()=>b.textContent=o,1200); }); }));
-
-/* init */
-selectMember("assistant");
+async function setLeadStatus(agent,idx,status){ const it=(window.__leads&&window.__leads.items[idx])||{};
+  const body= agent==="sales"?{business:it.business,status}: agent==="jobs"?{url:it.url,status}:{name:it.name,company:it.company,status};
+  try{ await api("/api/agents/"+agent+"/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); banner("UPDATED",status); chime("done"); }
+  catch(e){ alert("Couldn't update status."); } }
+Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings,openPipe,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,LIVE_force:()=>{}}); // debug hooks
 </script>
 </body>
 </html>

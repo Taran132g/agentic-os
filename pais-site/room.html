@@ -112,20 +112,73 @@ button{font-family:inherit;cursor:pointer}
 .banner .small{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--parch);text-transform:uppercase;margin-top:6px}
 #fx{position:fixed;inset:0;z-index:39;pointer-events:none}
 .loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-family:var(--mono);color:var(--gold);letter-spacing:.2em;font-size:12px}
+.cfg-overlay{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.96);z-index:27;width:min(440px,90vw);pointer-events:auto;opacity:0;transition:opacity .3s,transform .3s;
+  background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--magic);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.cfg-overlay.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.cfg-overlay label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:8px 0 4px}
+.cfg-overlay input{width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:8px 10px;font-family:var(--serif);font-size:14px}
+/* feature modals (chief / connect / usage / brain) */
+.modal-scrim{position:fixed;inset:0;z-index:40;display:none;place-items:center;background:rgba(5,6,10,.72);backdrop-filter:blur(4px)}
+.modal-scrim.on{display:grid}
+.modal-box{position:relative;width:min(560px,94vw);max-height:85vh;overflow:auto;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.modal-box h3{font-family:var(--display);color:var(--gold);margin:0 0 12px;font-size:20px}
+.modal-box .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+.modal-box label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:10px 0 4px}
+.chat-thread{height:min(46vh,320px);overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.cm{padding:9px 13px;border-radius:11px;font-size:14px;line-height:1.5;max-width:86%}
+.cm.user{align-self:flex-end;background:var(--gold);color:#1a140a}
+.cm.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+#chiefForm{display:flex;gap:8px}#chiefInput{flex:1;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:9px;padding:11px;font-family:var(--serif);font-size:14px}
+.cd-code{font-family:var(--mono);font-size:11px;background:#0c0b12;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px 11px;margin:4px 0;color:var(--gold);word-break:break-all}
+.acct-chip{display:inline-flex;flex-direction:column;text-align:left;padding:9px 13px;border-radius:10px;border:1px solid var(--line,#3a3a44);background:rgba(255,255,255,.03);color:var(--parch);font-size:13px}
+.acct-chip.active{border-color:var(--green);background:rgba(86,217,138,.1)}
+.acct-chip small{color:var(--muted);font-size:11px}
+/* rich pipeline view (steps + persona + latest report) */
+.pp-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.pp-head img{width:46px;height:46px;border-radius:11px;object-fit:cover;border:1px solid var(--gold)}
+.pp-steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
+.step-pill{font-family:var(--mono);font-size:11px;color:var(--gold);border:1px solid rgba(217,164,65,.4);border-radius:999px;padding:5px 12px}
+.pp-steps .arrow{color:var(--dim)}
+.pp-persona{font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:16px;white-space:pre-wrap}
+.report-head{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--green);margin-bottom:8px}
+.report-body{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.6;color:var(--parch);white-space:pre-wrap;max-height:38vh;overflow:auto}
+.modal-box.wide{width:min(820px,95vw)}
+/* chief of staff full page (ChatGPT-style) */
+.chief-page{position:fixed;inset:0;z-index:42;display:none;background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%)}
+.chief-page.on{display:flex}
+.chief-close{position:fixed;top:16px;right:20px;z-index:43;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);width:34px;height:34px;border-radius:9px;font-size:15px;cursor:pointer}
+.chief-sidebar{width:264px;flex:none;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;padding:18px 12px;gap:12px;background:rgba(0,0,0,.25)}
+.chief-brand{font-family:var(--display);color:var(--gold);font-size:14px;letter-spacing:.08em;padding:2px 8px}
+.chief-sidebar .newchat{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--gold);background:none;border:1px solid var(--gold);border-radius:10px;padding:11px;cursor:pointer}
+.chief-convos{flex:1;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.chief-convos .cv{text-align:left;background:none;border:none;color:var(--muted);font-family:var(--serif);font-size:14px;padding:9px 11px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chief-convos .cv:hover{background:rgba(255,255,255,.05);color:var(--parch)}
+.chief-convos .cv.active{background:rgba(217,164,65,.12);color:var(--gold)}
+.chief-main{flex:1;display:flex;flex-direction:column;min-width:0;padding:0 24px}
+.chief-thread{flex:1;overflow:auto;padding:40px 0 16px;display:flex;flex-direction:column;gap:16px;width:100%;max-width:760px;margin:0 auto}
+.chief-thread .cm{max-width:100%}
+.chief-composer{display:flex;gap:10px;padding:12px 0 28px;width:100%;max-width:760px;margin:0 auto}
+.chief-composer #chiefInput{flex:1;background:#0f0e16;border:1px solid rgba(255,255,255,.14);color:var(--parch);border-radius:12px;padding:13px 15px;font-family:var(--serif);font-size:15px}
+/* HUD identity (google avatar + name + occupation) */
+.hud .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.hud .occ{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
 </style>
 </head>
 <body>
 <div class="loading" id="loading">LOADING CONTROL ROOM…</div>
 
 <header class="hud">
-  <div class="me"><div class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg><span class="lvl" id="lvl">1</span></div>
-    <div><h1>OPERATOR</h1></div></div>
-  <div class="xpwrap"><div class="xpbar"><div class="xpfill" id="xpfill"></div></div><div class="xptxt" id="xptxt">40 / 100 XP</div></div>
+  <div class="me"><div class="av" id="meAv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg></div>
+    <div><h1 id="meName">OPERATOR</h1><div class="occ" id="meOcc"></div></div></div>
   <div class="spacer"></div>
   <div class="chip streak">🔥 <b id="streak">4</b> day streak</div>
   <div class="chip">Today <div class="ring" id="ring" style="--p:0"><i id="ringN">0</i></div></div>
   <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
-  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE agents</div>
+  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE</div>
+  <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 Connect</button>
+  <button class="chip" onclick="openUsage()" style="cursor:pointer">📊 Usage</button>
+  <button class="chip" onclick="openBrain()" style="cursor:pointer">🧠 Brain</button>
+  <button class="chip" id="signoutChip" onclick="paisSignOut()" style="display:none;cursor:pointer">Sign out</button>
 </header>
 
 <!-- HUB -->
@@ -155,6 +208,56 @@ button{font-family:inherit;cursor:pointer}
 </div></div>
 
 <div class="banner" id="banner"><div class="big" id="bBig">DONE</div><div class="small" id="bSmall"></div></div>
+<div class="cfg-overlay" id="cfgOverlay"></div>
+
+<!-- rich pipeline view (steps + persona + latest report) -->
+<div class="modal-scrim" id="pipePanel"><div class="modal-box wide"><button class="x" onclick="closeModal('pipePanel')">✕</button>
+  <div class="pp-head"><img id="ppImg" alt=""><div><h3 id="ppName" style="margin:0">—</h3><div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase" id="ppRole">—</div></div></div>
+  <div class="pp-steps" id="ppSteps"></div>
+  <div class="pp-persona" id="ppPersona"></div>
+  <div id="ppLeads" style="margin-bottom:16px"></div>
+  <div id="ppReport"></div>
+</div></div>
+
+<!-- chief of staff — full page (ChatGPT-style sidebar + chat) -->
+<div class="chief-page" id="chiefPage">
+  <button class="chief-close" onclick="closeChief()">✕</button>
+  <aside class="chief-sidebar">
+    <div class="chief-brand">🎖 Chief of Staff</div>
+    <button class="newchat" onclick="chiefNew()">＋ New chat</button>
+    <div class="chief-convos" id="chiefConvos"></div>
+  </aside>
+  <main class="chief-main">
+    <div class="chief-thread" id="chiefThread"></div>
+    <form class="chief-composer" id="chiefForm" onsubmit="event.preventDefault();chiefSend()">
+      <input id="chiefInput" placeholder="Ask your brain anything…" autocomplete="off" maxlength="4000"><button class="btn">Send</button>
+    </form>
+  </main>
+</div>
+
+<!-- connect desktop -->
+<div class="modal-scrim" id="connectPanel"><div class="modal-box"><button class="x" onclick="closeModal('connectPanel')">✕</button>
+  <h3>🖥 Connect your desktop</h3>
+  <p style="color:var(--muted);font-size:14px;margin-top:0">Link your Mac so your agents run on your own machine.</p>
+  <label>1 · Get the runtime</label><div class="cd-code" id="cdInstall">…</div>
+  <label>2 · Your one-time link code</label><div class="cd-code" id="cdToken">…</div>
+  <label>3 · Link it</label><div class="cd-code" id="cdLogin">./venv/bin/python runtime.py link &lt;code&gt;</div>
+</div></div>
+
+<!-- usage (claude account) -->
+<div class="modal-scrim" id="usagePanel"><div class="modal-box"><button class="x" onclick="closeModal('usagePanel')">✕</button>
+  <h3>📊 Claude account &amp; usage</h3><div id="usageBody">Loading…</div></div></div>
+
+<!-- per-agent settings (secrets / connections / persona / schedule) -->
+<div class="modal-scrim" id="agentCfg"><div class="modal-box"><button class="x" onclick="closeModal('agentCfg')">✕</button>
+  <div id="agentCfgBody">Loading…</div></div></div>
+
+<!-- brain -->
+<div class="modal-scrim" id="brainPanel"><div class="modal-box"><button class="x" onclick="closeModal('brainPanel')">✕</button>
+  <h3>🧠 Your brain</h3><div id="brainBody" style="margin-bottom:14px;font-size:14px;color:var(--muted)">…</div>
+  <input type="file" id="vaultFile2" accept=".zip,application/zip" hidden>
+  <button class="btn" id="brainUp" onclick="document.getElementById('vaultFile2').click()">⬆ Build / update brain (.zip)</button></div></div>
+
 <canvas id="fx"></canvas>
 
 <script src="vendor/three.min.js"></script>
@@ -191,11 +294,18 @@ async function waitRun(id,maxMs=1500000){ const t0=Date.now();
     try{ const s=await api("/api/agents/run-status?agent="+id); if(s.state==="done")return s.result||{}; if(s.state==="idle")return {_lost:true}; }
     catch(e){ if(e.status===402)return {_err:e}; } }
   return {_timeout:true}; }
-function setLive(on,email){ LIVE=on; const s=document.getElementById("signinChip"), b=document.getElementById("liveBadge");
-  if(s) s.style.display=on?"none":"flex"; if(b){ b.style.display=on?"flex":"none"; b.title=email||""; } }
+function setLive(on,email){ LIVE=on; const s=document.getElementById("signinChip"), b=document.getElementById("liveBadge"), o=document.getElementById("signoutChip");
+  if(s) s.style.display=on?"none":"flex"; if(b){ b.style.display=on?"flex":"none"; b.title=email||""; } if(o) o.style.display=on?"flex":"none"; }
 function paisSignIn(){ if(!sb){ alert("Auth unavailable."); return; } sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href}}); }
-if(sb){ sb.auth.getSession().then(({data})=>{ const s=data.session; if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email);} });
-  sb.auth.onAuthStateChange((_e,s)=>{ if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email);} else setLive(false); }); }
+function paisSignOut(){ try{ sb&&sb.auth.signOut({scope:"local"}); }catch(e){} token=null; userId=null; setLive(false); }
+function applyIdentity(user){ const um=user.user_metadata||{}; const photo=um.avatar_url||um.picture;
+  const av=$("meAv"); if(av&&photo) av.innerHTML=`<img src="${photo}" referrerpolicy="no-referrer" alt="">`;
+  const name=um.full_name||um.name||(user.email||"").split("@")[0]||"Operator";
+  if($("meName")) $("meName").textContent=name;
+  // occupation from the brain / profile (best-effort)
+  api("/api/profile").then(p=>{ const occ=(p&&(p.occupation||p.title||p.headline||p.role||p.profession))||""; if(occ&&$("meOcc")) $("meOcc").textContent=occ; }).catch(()=>{}); }
+function onSess(s){ if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); } else setLive(false); }
+if(sb){ sb.auth.getSession().then(({data})=>onSess(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSess(s)); }
 
 // ── audio juice ──
 let actx; function chime(kind){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
@@ -211,12 +321,9 @@ function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Au
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
-function renderHud(){ $("lvl").textContent=state.level; const need=state.level*100;
-  $("xpfill").style.width=Math.min(100,state.xp/need*100)+"%"; $("xptxt").textContent=state.xp+" / "+need+" XP";
-  $("streak").textContent=state.streak; const total=AGENTS.length; const p=Math.round(state.doneToday/total*100);
+function renderHud(){ $("streak").textContent=state.streak; const total=AGENTS.length; const p=Math.round(state.doneToday/total*100);
   $("ring").style.setProperty("--p",p); $("ringN").textContent=state.doneToday; }
-function gainXp(n){ state.xp+=n; let leveled=false; while(state.xp>=state.level*100){ state.xp-=state.level*100; state.level++; leveled=true; }
-  renderHud(); persist(); if(leveled){ chime("level"); banner("LEVEL "+state.level,"Your legend grows"); confetti(140); } }
+function gainXp(){ /* XP removed — completion still rewards via confetti + banner */ persist(); }
 let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textContent=small; $("banner").classList.add("on");
   clearTimeout(bt); bt=setTimeout(()=>$("banner").classList.remove("on"),1900); }
 
@@ -239,6 +346,10 @@ function renderHub(){ const g=$("grid"); g.innerHTML="";
       <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
       <div class="st"><span class="dot"></span>${state.done[a.id]?"cleared today":"ready"}</div>`;
     c.onclick=()=>enterAgent(a); g.appendChild(c); });
+  const chief=document.createElement("button"); chief.className="card"; chief.style.borderColor="rgba(217,164,65,.4)";
+  chief.innerHTML=`<div class="ic" style="display:grid;place-items:center;color:var(--gold);font-size:24px">🎖</div>
+    <div class="nm">Chief of Staff</div><div class="rl">Ask your brain anything</div><div class="st"><span class="dot" style="background:var(--gold)"></span>chat</div>`;
+  chief.onclick=openChief; g.appendChild(chief);
   const s=document.createElement("button"); s.className="card settings";
   s.innerHTML=`<div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8b94ff" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.9 7.9 0 000-2l2-1.6-2-3.4-2.4 1a7.9 7.9 0 00-1.7-1l-.4-2.6h-4l-.4 2.6a7.9 7.9 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.9 7.9 0 000 2l-2 1.6 2 3.4 2.4-1a7.9 7.9 0 001.7 1l.4 2.6h4l.4-2.6a7.9 7.9 0 001.7-1l2.4 1 2-3.4z"/></svg></div>
     <div class="nm">Settings</div><div class="rl">Configure every agent</div><div class="st"><span class="dot" style="background:#8b94ff"></span>edit team</div>`;
@@ -250,7 +361,12 @@ const renderer=new THREE.WebGLRenderer({canvas:$("c"),antialias:true,alpha:true}
 renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputEncoding=THREE.sRGBEncoding;
 const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0a0b12,0.045);
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
-camera.position.set(0.1,1.65,3.15); camera.lookAt(0,1.4,-1.2);
+// first-person camera modes: stand (talk to agent), seat (run, at the screen), screen (read pipeline/config)
+const CAM={ stand:[[0.95,1.62,1.5],[1.45,1.42,-0.45]], seat:[[0,1.16,0.5],[0,1.5,-1.25]], screen:[[0,1.45,0.05],[0,1.5,-1.25]],
+  zoom:[[0,1.5,-0.18],[0,1.5,-1.25]] };   // zoom right into the monitor — screen fills the view
+let camPos=new THREE.Vector3(...CAM.stand[0]), camLook=new THREE.Vector3(...CAM.stand[1]); const lookCur=camLook.clone();
+function setCam(m){ camPos.set(...CAM[m][0]); camLook.set(...CAM[m][1]); }
+camera.position.copy(camPos); camera.lookAt(camLook);
 scene.add(new THREE.AmbientLight(0x46506e,0.95));
 const keyL=new THREE.DirectionalLight(0xffe6b0,0.5); keyL.position.set(4,8,5); scene.add(keyL);
 const floor=new THREE.Mesh(new THREE.CircleGeometry(14,48),new THREE.MeshStandardMaterial({color:0x0c0e15,roughness:.9})); floor.rotation.x=-Math.PI/2; scene.add(floor);
@@ -306,26 +422,31 @@ const legL=limb(clothB,0.18,0.8,0.2,0.92); legL.position.x=-0.12; you.add(legL);
 const legR=limb(clothB,0.18,0.8,0.2,0.92); legR.position.x=0.12; you.add(legR);
 const armL=limb(clothA,0.14,0.62,0.16,1.62); armL.position.x=-0.32; you.add(armL);
 const armR=limb(clothA,0.14,0.62,0.16,1.62); armR.position.x=0.32; you.add(armR);
-you.position.set(-0.7,0,0.5); you.rotation.y=Math.PI-0.22;   // seated to the side, angled toward the monitor
+you.position.set(-0.7,0,0.5); you.rotation.y=Math.PI-0.22; you.visible=false;   // first-person — the camera is you
 legL.rotation.x=-1.45; legR.rotation.x=-1.45; armL.rotation.x=-0.6; armR.rotation.x=-0.6;  // seated pose
 scene.add(you);
 const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4,1); scene.add(youLight);
 
 // ── screen drawing (faces you, no mirror) ──
-const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null};
+const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null,mode:"ready"};
 function drawScreen(){ const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
   x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
   const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
   x.strokeStyle="rgba(217,164,65,.55)"; x.lineWidth=4; x.strokeRect(8,8,W-16,H-16);
   x.textBaseline="top"; x.textAlign="left"; x.fillStyle="#d9a441"; x.font="700 26px Cinzel, serif"; x.fillText(a.name.toUpperCase(),26,22);
-  x.fillStyle=st.done?"#56d98a":st.running?"#8b94ff":"#6b6675"; x.font="13px 'JetBrains Mono', monospace";
-  x.fillText(st.done?"● COMPLETE":st.running?"● RUNNING":"○ READY",28,56);
+  const m=st.mode||"ready";
+  const label = m==="pipeline"?"▦ PIPELINE": m==="config"?"⚙ CONFIGURE": st.done?"● COMPLETE":st.running?"● RUNNING":"○ READY";
+  x.fillStyle= m==="pipeline"?"#d9a441": m==="config"?"#8b94ff": st.done?"#56d98a":st.running?"#8b94ff":"#6b6675"; x.font="13px 'JetBrains Mono', monospace";
+  x.fillText(label,28,56);
+  if(m==="config"){ x.fillStyle="#9a93a6"; x.font="16px 'EB Garamond', serif"; x.fillText("Editing this agent — use the panel below.",28,98); screenTex.needsUpdate=true; return; }
   x.font="17px 'EB Garamond', serif";
-  a.steps.forEach((step,i)=>{ const y=92+i*34,done=st.done||i<st.stepIdx,active=!st.done&&i===st.stepIdx;
-    x.beginPath(); x.arc(34,y+9,7,0,7); if(done){x.fillStyle="#d9a441";x.fill();} else {x.strokeStyle=active?"#8b94ff":"#46414f";x.lineWidth=2;x.stroke();}
-    x.fillStyle=done?"#d9a441":active?"#e9dcc0":"#5a5566"; x.fillText((done?"✓  ":active?"▸  ":"    ")+step,52,y); });
-  const by=H-44; x.fillStyle="rgba(255,255,255,.08)"; x.fillRect(26,by,W-52,9); x.fillStyle="#d9a441"; x.fillRect(26,by,(W-52)*(st.pct||0),9);
-  if(st.running&&!st.done){ x.fillStyle="#c9a35e"; x.font="12px 'JetBrains Mono'"; x.textAlign="right"; x.fillText("~"+st.eta+"s left",W-28,by-18); }
+  a.steps.forEach((step,i)=>{ const y=92+i*34, done=(m!=="pipeline")&&(st.done||i<st.stepIdx), active=(m!=="pipeline")&&!st.done&&i===st.stepIdx;
+    x.beginPath(); x.arc(34,y+9,7,0,7);
+    if(done){x.fillStyle="#d9a441";x.fill();} else if(m==="pipeline"){x.strokeStyle="#d9a441";x.lineWidth=1.5;x.stroke();x.fillStyle="#d9a441";x.font="11px 'JetBrains Mono'";x.fillText(i+1,30.5,y+4);x.font="17px 'EB Garamond', serif";} else {x.strokeStyle=active?"#8b94ff":"#46414f";x.lineWidth=2;x.stroke();}
+    x.fillStyle= m==="pipeline"?"#e9dcc0": done?"#d9a441":active?"#e9dcc0":"#5a5566";
+    x.fillText((m==="pipeline"?"":done?"✓  ":active?"▸  ":"    ")+step, m==="pipeline"?52:52, y); });
+  if(m!=="pipeline"){ const by=H-44; x.fillStyle="rgba(255,255,255,.08)"; x.fillRect(26,by,W-52,9); x.fillStyle="#d9a441"; x.fillRect(26,by,(W-52)*(st.pct||0),9);
+    if(st.running&&!st.done){ x.fillStyle="#c9a35e"; x.font="12px 'JetBrains Mono'"; x.textAlign="right"; x.fillText("~"+st.eta+"s left",W-28,by-18); } }
   screenTex.needsUpdate=true; }
 function signFor(a){ const c=document.createElement("canvas"); c.width=256;c.height=64; const x=c.getContext("2d");
   x.fillStyle="#d9a441"; x.font="700 30px Cinzel, serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(a.name.toUpperCase(),128,26);
@@ -338,32 +459,98 @@ function enterAgent(a){ currentAgent=a;
   agentMat.map=loader.load("av/av-"+a.id+".webp"); agentMat.map.encoding=THREE.sRGBEncoding; agentMat.needsUpdate=true;
   sign.material.map=signFor(a); sign.material.needsUpdate=true;
   screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; drawScreen();
-  agent.rotation.y=0; agentWatch=0;   // facing you
+  agent.rotation.y=0; agentWatch=0; screenState.mode="ready"; setCam("stand");   // stand, talking to the agent
   $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("backbtn").style.display="block";
   $("dImg").src="av/av-"+a.id+".webp"; $("dWho").textContent=a.name; $("dRole").textContent=a.role; $("dSay").textContent=a.say;
   renderActs(); $("dialogue").classList.add("on"); voiceLine(a.id,"greet");
 }
 function renderActs(){ const d=$("dActs"); d.innerHTML="";
   if(screenState.running) return;
-  const pipe=el("button","btn ghost","📋 See pipeline"); pipe.onclick=openPipe;
+  const talk=el("button","btn ghost","💬 Talk"); talk.onclick=()=>{ closeCfg(); screenState.mode="ready"; setCam("stand"); drawScreen(); $("dSay").textContent=currentAgent.say; voiceLine(currentAgent.id,"greet"); };
+  const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=openPipe;
   const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
-  const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=()=>{ openSettings(currentAgent.id); };
-  d.append(pipe,run,cfg);
+  const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=openCfgScreen;
+  d.append(talk,pipe,run,cfg);
 }
 function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
 function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show");
-  $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe();
-  try{speechSynthesis.cancel();}catch(e){} renderHub(); }
+  $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe(); closeCfg(); setCam("stand");
+  try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
 $("backbtn").onclick=backToHub;
 
-function openPipe(){ const a=currentAgent; $("pName").textContent=a.name; $("pRole").textContent=a.role+" · PIPELINE";
-  $("pSteps").innerHTML=a.steps.map((s,i)=>`<div class="step"><span class="n">${i+1}</span>${s}</div>`).join("");
-  $("pipe").classList.add("on"); }
+async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="pipeline"; setCam("screen"); drawScreen(); openModal("pipePanel");
+  $("ppImg").src="av/av-"+a.id+".webp"; $("ppName").textContent=a.name; $("ppRole").textContent=a.role+" · pipeline";
+  $("ppSteps").innerHTML=a.steps.map((s,i)=>`<span class="step-pill">${i+1}. ${s}</span>`).join('<span class="arrow">→</span>');
+  $("ppPersona").textContent=a.persona||a.say||"";
+  $("ppReport").innerHTML='<span style="color:var(--muted)">Loading latest report…</span>';
+  $("ppLeads").innerHTML="";
+  if(LIVE && token){
+    try{ const c=await api("/api/agents/config"); const p=(c.agents&&c.agents[a.id]||{}).persona; if(p) $("ppPersona").textContent=p; }catch{}
+    if(["sales","jobs","linkedin"].includes(a.id)){
+      const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
+      try{ const lr=await api("/api/agents/leads?agent="+a.id); const items=lr.items||[]; window.__leads={agent:a.id,items};
+        if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
+          const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+          return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0"><b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div></div>
+            <select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
+        }).join(""); }catch(e){}
+    }
+    try{ const r=await api("/api/agents/messages?agent="+a.id); const msgs=r.messages||[]; const last=msgs[msgs.length-1];
+      if(last) $("ppReport").innerHTML=`<div class="report-head">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div><div class="report-body">${esc(last.text)}</div>`;
+      else $("ppReport").innerHTML='<span style="color:var(--muted)">No report yet — Run '+esc(a.name)+' to generate one.</span>';
+    }catch(e){ $("ppReport").innerHTML='<span style="color:var(--muted)">Couldn\'t load the report.</span>'; }
+  } else { $("ppReport").innerHTML='<span style="color:var(--muted)">Sign in to see this agent\'s latest run report. (Demo mode shows the pipeline only.)</span>'; } }
 function closePipe(){ $("pipe").classList.remove("on"); }
+// ── real per-agent config (schema + secrets/connections/persona/schedule) ──
+let schema=null, cfg=null;
+const CRON_PRESETS=[{v:"",l:"Manual only"},{v:"30 7 * * *",l:"Every day · 7:30 AM"},{v:"30 7 * * 1-5",l:"Weekdays · 7:30 AM"},{v:"0 18 * * 0",l:"Sunday · 6 PM"}];
+async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} }
+function agentReady(id){ if(!schema) return true; const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
+function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
+function openCfgScreen(){ openAgentSettings(currentAgent.id); }
+async function openAgentSettings(id){
+  const a=AGENTS.find(x=>x.id===id)||currentAgent;
+  if(!LIVE||!token){ banner("SIGN IN FIRST","Sign in to configure your agents"); return; }
+  openModal("agentCfg"); const body=$("agentCfgBody"); body.innerHTML="Loading your setup…";
+  if(!schema||!cfg) await loadConfig();
+  const sp=(schema&&schema.agents&&schema.agents[id])||{needs:[],fields:[],persona:""};
+  const ac=(cfg&&cfg.agents&&cfg.agents[id])||{}, conns=(cfg&&cfg.connections)||{};
+  const needed=((schema&&schema.connections)||[]).filter(c=>(sp.needs||[]).includes(c.key));
+  const ip="width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:4px";
+  body.innerHTML=`<div class="pp-head"><img src="av/av-${id}.webp"><div><h3 style="margin:0">${esc(a.name)}</h3><div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase">Configure · for you</div></div></div>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:0">Give ${esc(a.name)} what it needs to work for you — its instructions, details it should know, and any keys / passwords it needs. <b style="color:var(--green)">Secrets are encrypted and never shown again.</b></p>
+    <label>Persona — how it should work</label><textarea id="cfPersona" rows="3" style="${ip}">${esc(ac.persona||sp.persona||"")}</textarea>
+    ${(sp.fields||[]).length?`<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px"><span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">What it should know about you</span><button class="btn ghost" style="padding:5px 10px;font-size:10px" onclick="doPrefill('${id}',this)">✦ Prefill from my brain</button></div>
+      ${sp.fields.map(f=>`<label>${esc(f.label)}</label><input data-f="${f.key}" style="${ip}" value="${esc((ac.fields||{})[f.key]||"")}">`).join("")}`:""}
+    ${needed.length?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 4px">Keys & passwords it needs <span style="color:var(--green)">🔒 encrypted</span></div>
+      ${needed.map(c=>`<label>${esc(c.label)}${c.secret?' 🔒':''}${conns[c.key]?' <span style="color:var(--green)">· saved</span>':''}</label><input data-k="${c.key}" type="${c.secret?'password':'text'}" style="${ip}" placeholder="${c.secret&&conns[c.key]?'•••••• saved — leave blank to keep':''}" value="${c.secret?'':esc(conns[c.key]||'')}">`).join("")}`:""}
+    <label style="margin-top:12px">Schedule</label><select id="cfCron" style="${ip}">${CRON_PRESETS.map(p=>`<option value="${p.v}" ${(((cfg&&cfg.routine)||{}).cron===p.v)?'selected':''}>${p.l}</option>`).join("")}</select>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — runs on your desktop & messages you here</label>
+    <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" onclick="saveAgentCfg('${id}')">Save</button><button class="btn ghost" onclick="closeModal('agentCfg')">Done</button><span id="cfMsg" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span></div>`;
+}
+async function saveAgentCfg(id){ const body=$("agentCfgBody"), msg=$("cfMsg"); if(msg)msg.textContent="Saving…";
+  const connections={}, fields={};
+  body.querySelectorAll("input[data-k]").forEach(i=>{ if(i.value.trim()) connections[i.dataset.k]=i.value.trim(); });
+  body.querySelectorAll("input[data-f]").forEach(i=>{ fields[i.dataset.f]=i.value.trim(); });
+  const enabled=$("cfEnabled").checked, cron=$("cfCron").value;
+  const order=[...(((cfg||{}).routine||{}).order||[])].filter(x=>x!==id); if(enabled) order.push(id);
+  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron, order } };
+  try{ cfg=await api("/api/agents/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); }
+  catch(e){ if(msg)msg.textContent="Save failed — try again."; return; }
+  if(msg)msg.textContent="Saved ✓"; banner("AGENT CONFIGURED",(AGENTS.find(a=>a.id===id)||{}).name+" is set up"); chime("done"); }
+async function doPrefill(id,btn){ btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
+  try{ const r=await api("/api/agents/prefill/"+id,{method:"POST"});
+    if(r.fields) for(const [k,v] of Object.entries(r.fields)){ const i=$("agentCfgBody").querySelector(`input[data-f="${k}"]`); if(i&&v) i.value=v; }
+    const pt=$("cfPersona"); if(pt&&r.persona) pt.value=r.persona; btn.textContent="✦ Prefilled"; }
+  catch(e){ btn.textContent="Prefill failed"; } finally{ setTimeout(()=>{btn.disabled=false;btn.textContent=o;},1600); } }
 
-function runTask(){ const a=currentAgent; closePipe(); busy=true;
+function runTask(){ const a=currentAgent;
+  if(LIVE && !agentReady(a.id)){ $("dSay").textContent="I'm not set up yet — give me my keys & details in Settings, then I can run for you.";
+    try{ speechSynthesis.cancel(); }catch(e){} speak("Please configure my settings first.");
+    banner("SETUP NEEDED",a.name+" needs configuring"); openAgentSettings(a.id); return; }
+  closePipe(); busy=true;
   screenState.running=true; screenState.done=false; screenState.stepIdx=0; screenState.pct=0; monGlow.intensity=1.3;
-  agentWatch=1; $("dActs").innerHTML="";
+  agentWatch=1; $("dActs").innerHTML=""; closeCfg(); screenState.mode="running"; setCam("zoom");   // zoom into the screen
   $("dSay").textContent= LIVE? "Running for real on your Mac… watch the screen." : "Working… watch the screen."; voiceLine(a.id,"working");
   // LIVE: fire the real agent in the background; screen shows estimated progress until it returns.
   let realDone=false, realResult=null;
@@ -372,7 +559,7 @@ function runTask(){ const a=currentAgent; closePipe(); busy=true;
   const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
     if(ok && !state.done[a.id]){ state.done[a.id]=true; state.doneToday++; } persist();
     busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"It is done. Posted to your feed.":"Run ended — check your feed.");
-    voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished · +40 XP"); gainXp(40);} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
+    voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished"); persist();} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
   const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
   const tick=()=>{ const e=performance.now()-t0; let pct=Math.min(1,e/total);
     if(LIVE) pct=Math.min(realDone?1:0.94, e/total);
@@ -385,20 +572,15 @@ function runTask(){ const a=currentAgent; closePipe(); busy=true;
 }
 
 // ── settings ──
-let editId=null;
-function openSettings(focusId){ editId = typeof focusId==="string"? focusId : null;
-  const L=$("sList"); L.innerHTML=AGENTS.map((a,i)=>`<div class="si" data-i="${i}">
-    <div class="srow"><img src="av/av-${a.id}.webp"><b>${a.id}</b></div>
-    <label>Name</label><input data-f="name" value="${a.name.replace(/"/g,'&quot;')}">
-    <label>Role</label><input data-f="role" value="${a.role.replace(/"/g,'&quot;')}">
-    <label>Pipeline steps (comma-separated)</label><input data-f="steps" value="${a.steps.join(', ').replace(/"/g,'&quot;')}">
-    </div>`).join("");
-  $("settings").classList.add("on"); }
-function saveSettings(){ document.querySelectorAll("#sList .si").forEach(si=>{ const i=+si.dataset.i;
-    si.querySelectorAll("input").forEach(inp=>{ const f=inp.dataset.f;
-      if(f==="steps") AGENTS[i].steps=inp.value.split(",").map(s=>s.trim()).filter(Boolean);
-      else AGENTS[i][f]=inp.value; }); });
-  persist(); closeSettings(); renderHub(); banner("AGENTS UPDATED","Your team is reconfigured"); chime("done"); }
+async function openSettings(){ if(!LIVE||!token){ banner("SIGN IN FIRST","Sign in to configure your agents"); return; }
+  $("settings").classList.add("on"); const L=$("sList"); L.innerHTML="Loading…"; if(!schema||!cfg) await loadConfig();
+  L.innerHTML=AGENTS.map(a=>{ const ready=agentReady(a.id);
+    return `<button class="si" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeSettings();openAgentSettings('${a.id}')">
+      <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover">
+      <div style="flex:1"><b style="font-family:var(--display);color:var(--gold)">${esc(a.name)}</b><div style="color:var(--muted);font-size:13px">${esc(a.role)}</div></div>
+      <span style="font-family:var(--mono);font-size:10px;color:${ready?'var(--green)':'#fb4'}">${ready?'✓ ready':'⚠ needs setup'}</span></button>`; }).join("");
+  const sv=document.querySelector("#settings .btn"); if(sv) sv.style.display="none"; }
+function saveSettings(){ closeSettings(); }
 function closeSettings(){ $("settings").classList.remove("on"); }
 
 // ── render loop ──
@@ -407,13 +589,81 @@ function loop(){ requestAnimationFrame(loop); const t=clock.getElapsedTime();
   agent.position.y=1.18+Math.sin(t*1.5)*0.02;                                  // seated bob
   const targetRot=agentWatch? 0.85 : Math.sin(t*0.5)*0.07;                      // watch screen, else gentle idle sway
   agent.rotation.y += (targetRot-agent.rotation.y)*0.08;
-  torso.scale.y=1+Math.sin(t*1.8)*0.015; head.position.y=1.86+Math.sin(t*1.8)*0.008;  // your idle breathing
+  torso.scale.y=1+Math.sin(t*1.8)*0.015; head.position.y=1.86+Math.sin(t*1.8)*0.008;  // (you are hidden in 1st person)
+  lookCur.lerp(camLook,0.1); camera.position.lerp(camPos,0.1); camera.lookAt(lookCur);   // smooth 1st-person camera moves
   renderer.render(scene,camera); }
 loop();
 addEventListener("resize",()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 
 renderHub(); setTimeout(()=>$("loading").style.display="none",450);
-Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings}); // debug hooks
+// ── feature modals: Chief of Staff, Connect, Usage, Brain ────────────────────
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function openModal(id){ document.getElementById(id).classList.add("on"); }
+function closeModal(id){ document.getElementById(id).classList.remove("on"); }
+function requireLive(){ if(LIVE&&token) return true; banner("SIGN IN FIRST","Use 🔓 Sign in to unlock live features"); return false; }
+
+// Chief of Staff = full-page chat (ChatGPT-style sidebar of previous chats)
+const chiefKey=()=>"pais_chief_"+(userId||"anon");
+let chiefConvos=[], chiefActive=null;
+function chiefLoadStore(){ try{ return JSON.parse(localStorage.getItem(chiefKey())||"[]"); }catch{ return []; } }
+function chiefSaveStore(){ try{ localStorage.setItem(chiefKey(),JSON.stringify(chiefConvos.slice(0,50))); }catch{} }
+function openChief(){ if(!requireLive())return; chiefConvos=chiefLoadStore();
+  if(!chiefConvos.length) chiefNew(); else selectConvo(chiefConvos[0].id);
+  $("chiefPage").classList.add("on"); setTimeout(()=>$("chiefInput").focus(),120); }
+function closeChief(){ $("chiefPage").classList.remove("on"); }
+function chiefNew(){ const id="c"+Date.now().toString(36); chiefConvos.unshift({id,title:"New chat",msgs:[]}); chiefSaveStore(); selectConvo(id); $("chiefInput").focus(); }
+function selectConvo(id){ chiefActive=id; const c=chiefConvos.find(x=>x.id===id); $("chiefThread").innerHTML="";
+  (c?c.msgs:[]).forEach(m=>chiefMsg(m.role, m.role==="user"?esc(m.content):esc(m.content).replace(/\n/g,"<br>"))); chiefRenderList(); }
+function chiefRenderList(){ $("chiefConvos").innerHTML=chiefConvos.map(c=>`<button class="cv ${c.id===chiefActive?'active':''}" onclick="selectConvo('${c.id}')">${esc(c.title)}</button>`).join(""); }
+function chiefMsg(role,html){ const e=document.createElement("div"); e.className="cm "+role; e.innerHTML=html; $("chiefThread").appendChild(e); $("chiefThread").scrollTop=1e9; return e; }
+async function chiefSend(){ const v=$("chiefInput").value.trim(); if(!v||!token) return; $("chiefInput").value="";
+  const c=chiefConvos.find(x=>x.id===chiefActive)||chiefConvos[0]; if(!c) return;
+  chiefMsg("user",esc(v)); c.msgs.push({role:"user",content:v}); if(c.title==="New chat") c.title=v.slice(0,42); chiefSaveStore(); chiefRenderList();
+  const t=chiefMsg("bot","…");
+  try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify({message:v,agent:"assistant",history:c.msgs.slice(-12)})});
+    if(!r.ok){ t.innerHTML="<span style='color:#f99'>"+(r.status===401?"Session expired — sign in again.":"Couldn't reach your Chief of Staff.")+"</span>"; return; }
+    const d=await r.json(); t.innerHTML=esc(d.reply||"").replace(/\n/g,"<br>"); c.msgs.push({role:"assistant",content:d.reply||""}); chiefSaveStore();
+  }catch(e){ t.innerHTML="<span style='color:#f99'>Couldn't reach your Chief of Staff.</span>"; } }
+
+// Connect desktop (runtime link code)
+function openConnect(){ if(!requireLive())return; openModal("connectPanel");
+  $("cdInstall").textContent="git clone https://github.com/Taran132g/pais-runtime && cd pais-runtime && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt";
+  $("cdToken").textContent="generating…"; $("cdLogin").textContent="./venv/bin/python runtime.py link <code>";
+  api("/api/runtime/link-code",{method:"POST"}).then(({code})=>{ $("cdToken").textContent=code; $("cdLogin").textContent=`./venv/bin/python runtime.py link ${code}`; })
+    .catch(e=>{ $("cdToken").textContent= e.status===401?"sign in first":"couldn't get a code — try again"; }); }
+
+// Usage (Claude account + quota)
+function openUsage(){ if(!requireLive())return; openModal("usagePanel"); loadUsage(); }
+async function loadUsage(){ const b=$("usageBody"); b.innerHTML="Loading…"; let d;
+  try{ d=await api("/api/agents/claude-account"); }catch(e){ b.innerHTML="Couldn't load account ("+(e.detail||e.status||"error")+")."; return; }
+  const accts=d.accounts||[]; const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.active?'active':''}" ${a.active?'disabled':''} onclick="switchAcct('${a.name}',this)">${esc(a.name)}${a.active?' ✓':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
+  const q=d.quota||{}; const bar=(w,l)=>{ if(!w||w.utilization==null) return ""; const u=Math.round(w.utilization); const c=u>=90?'#f87':u>=70?'#fb4':'#6e9';
+    return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${l}</span><span style="color:${c};font-weight:600">${u}%</span></div><div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:4px"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:4px"></div></div></div>`; };
+  b.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${chips}</div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">Subscription quota</div>${bar(q.five_hour,'5-hour window')}${bar(q.seven_day,'Weekly limit')}`; }
+async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.firstChild.textContent="Switching…"; }
+  try{ await api("/api/agents/claude-account/switch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); }
+  catch(e){ alert("Switch failed: "+(e.detail||e.status||"error")); } loadUsage(); }
+
+// Brain (vault upload + status)
+function openBrain(){ if(!requireLive())return; openModal("brainPanel"); loadBrain(); }
+async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status");
+    b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.`
+      : "Not connected. Upload your vault as a <b>.zip</b> of markdown notes to build your brain."; }
+  catch{ b.innerHTML="Couldn't load brain status."; } }
+document.getElementById("vaultFile2").addEventListener("change",async ()=>{ const fi=document.getElementById("vaultFile2"); const f=fi.files[0]; fi.value=""; if(!f||!token) return;
+  if(!f.name.toLowerCase().endsWith(".zip")){ alert("Vault must be a .zip of markdown notes."); return; }
+  const btn=$("brainUp"); btn.disabled=true; const prev=btn.textContent; btn.textContent="Building your brain…"; $("brainBody").textContent="Reading "+f.name+"…";
+  try{ const fd=new FormData(); fd.append("file",f,f.name);
+    const r=await fetch(PAIS_API+"/api/upload/"+encodeURIComponent(userId),{method:"POST",headers:{"Authorization":"Bearer "+token},body:fd});
+    if(!r.ok){ $("brainBody").textContent="Upload failed — try again."; } else loadBrain();
+  }catch{ $("brainBody").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.textContent=prev; } });
+
+async function setLeadStatus(agent,idx,status){ const it=(window.__leads&&window.__leads.items[idx])||{};
+  const body= agent==="sales"?{business:it.business,status}: agent==="jobs"?{url:it.url,status}:{name:it.name,company:it.company,status};
+  try{ await api("/api/agents/"+agent+"/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); banner("UPDATED",status); chime("done"); }
+  catch(e){ alert("Couldn't update status."); } }
+Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings,openPipe,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,LIVE_force:()=>{}}); // debug hooks
 </script>
 </body>
 </html>
