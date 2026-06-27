@@ -3,11 +3,417 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAIS — your workspace</title>
-<meta name="theme-color" content="#08090d">
-<meta http-equiv="refresh" content="0; url=/app">
-<style>html,body{background:#08090d;color:#c9a35e;font-family:'Fraunces',serif;height:100%;margin:0;display:grid;place-items:center}</style>
-<script>location.replace("/app");</script>
+<title>PAIS — Control Room (gamified prototype)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=EB+Garamond:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--gold:#d9a441;--gold2:#f0c463;--parch:#e9dcc0;--muted:#9a93a6;--dim:#6b6675;--magic:#8b94ff;--green:#56d98a;--ink:#0a0b12;--panel:#14141d;
+  --display:'Cinzel',serif;--serif:'EB Garamond',Georgia,serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%);color:var(--parch);font-family:var(--serif);overflow:hidden;user-select:none}
+button{font-family:inherit;cursor:pointer}
+
+/* ── HUD ── */
+.hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;padding:14px 26px;
+  background:linear-gradient(180deg,rgba(8,9,14,.92),transparent)}
+.hud .me{display:flex;align-items:center;gap:12px}
+.hud .av{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 35%,#2a2535,#13121a);box-shadow:0 0 20px -4px var(--gold);position:relative}
+.hud .av .lvl{position:absolute;bottom:-6px;right:-6px;background:var(--gold);color:#1a140a;font-family:var(--mono);font-weight:700;font-size:10px;border-radius:8px;padding:1px 5px}
+.hud h1{font-family:var(--display);font-size:15px;letter-spacing:.14em;margin:0}
+.xpwrap{flex:1;max-width:300px}
+.xpbar{height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.xpfill{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#b9842f,var(--gold2));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.xptxt{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.1em;margin-top:4px}
+.hud .spacer{flex:1}
+.chip{font-family:var(--mono);display:flex;align-items:center;gap:7px;font-size:12px;color:var(--parch);
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 13px}
+.chip b{color:var(--gold)}.chip .ring{--p:0;width:26px;height:26px;border-radius:50%;
+  background:conic-gradient(var(--green) calc(var(--p)*1%),rgba(255,255,255,.08) 0);display:grid;place-items:center}
+.chip .ring i{width:18px;height:18px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-style:normal;font-size:9px;color:var(--green)}
+.streak b{color:#ff9d4d}
+
+/* ── HUB (card grid) ── */
+.hub{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 30px;
+  transition:opacity .4s,transform .4s}
+.hub.hide{opacity:0;transform:scale(.97);pointer-events:none}
+.hub .lead{font-family:var(--display);font-size:26px;letter-spacing:.04em;color:var(--gold);margin-bottom:4px}
+.hub .sub{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;width:min(1000px,94vw)}
+.card{position:relative;background:linear-gradient(180deg,rgba(26,24,36,.85),rgba(15,14,22,.9));border:1px solid rgba(217,164,65,.18);
+  border-radius:16px;padding:18px;text-align:left;color:inherit;overflow:hidden;transition:transform .14s,border-color .25s,box-shadow .25s}
+.card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 14px 40px -14px rgba(217,164,65,.5)}
+.card:active{transform:translateY(-1px)}
+.card .ic{width:46px;height:46px;border-radius:12px;overflow:hidden;border:1px solid rgba(217,164,65,.3);margin-bottom:12px;background:#17131f}
+.card .ic img{width:100%;height:100%;object-fit:cover}
+.card .nm{font-family:var(--display);font-size:15px;letter-spacing:.06em}
+.card .rl{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--muted)}
+.card .st{margin-top:12px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
+.card .dot{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.card.done{border-color:rgba(86,217,138,.4)}.card.done .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+.card.done .st{color:var(--green)}
+.card .badge{position:absolute;top:12px;right:12px;font-size:14px;opacity:0;transition:opacity .3s}
+.card.done .badge{opacity:1}
+.card.settings{border-style:dashed;border-color:rgba(139,148,255,.3)}
+.card.settings .ic{display:grid;place-items:center;color:var(--magic)}
+
+/* ── OFFICE (3D) ── */
+#c{position:fixed;inset:0;z-index:5;display:block;opacity:0;transition:opacity .5s}
+#c.show{opacity:1}
+.office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
+.office-ui.show{opacity:1}
+.backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  color:var(--gold);background:rgba(10,12,20,.7);border:1px solid rgba(217,164,65,.3);border-radius:9px;padding:8px 14px}
+.backbtn:hover{border-color:var(--gold)}
+.dialogue{position:fixed;left:50%;bottom:30px;transform:translate(-50%,140%);z-index:26;width:min(700px,94vw);pointer-events:auto;
+  transition:transform .5s cubic-bezier(.16,1,.3,1);background:linear-gradient(180deg,#15131c,#0d0c12);border:1px solid var(--gold);
+  border-radius:16px;box-shadow:0 -10px 50px rgba(0,0,0,.7),0 0 40px -12px rgba(217,164,65,.35);padding:18px 22px}
+.dialogue.on{transform:translate(-50%,0)}
+.dialogue .row{display:flex;gap:16px;align-items:flex-start}
+.dialogue .por{width:62px;height:62px;border-radius:12px;overflow:hidden;border:1px solid var(--gold);flex:none;box-shadow:0 0 18px -6px var(--gold)}
+.dialogue .por img{width:100%;height:100%;object-fit:cover}
+.dialogue .who{font-family:var(--display);font-size:19px;color:var(--gold);letter-spacing:.04em}
+.dialogue .role{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px}
+.dialogue .say{font-size:16px;line-height:1.5;color:var(--parch);min-height:44px}
+.dialogue .acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn{font-family:var(--display);letter-spacing:.1em;text-transform:uppercase;font-size:11px;border-radius:9px;padding:11px 18px;
+  border:1px solid var(--gold);color:#1a140a;background:linear-gradient(180deg,var(--gold2),#b9842f);box-shadow:0 6px 18px -6px var(--gold);transition:transform .12s}
+.btn:hover{transform:translateY(-1px)}.btn[disabled]{opacity:.5;cursor:default;transform:none}
+.btn.ghost{background:none;color:var(--gold)}
+.btn.run{border-color:var(--green);background:linear-gradient(180deg,#6ee29b,#2f9d5e);color:#06160d;box-shadow:0 6px 18px -6px var(--green)}
+.acts .spacer{flex:1}
+/* pipeline panel */
+.pipe{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:27;width:min(520px,92vw);pointer-events:auto;
+  opacity:0;transition:opacity .3s,transform .3s;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;
+  box-shadow:0 24px 70px rgba(0,0,0,.7)}
+.pipe.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pipe h3{font-family:var(--display);font-size:20px;color:var(--gold);margin:0 0 2px}
+.pipe .pr{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+.pipe .step{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
+.pipe .step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
+.pipe .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+
+/* settings */
+.settings-panel{position:fixed;inset:0;z-index:35;display:none;place-items:center;background:rgba(5,6,10,.7);backdrop-filter:blur(4px)}
+.settings-panel.on{display:grid}
+.spanel{width:min(620px,94vw);max-height:84vh;overflow:auto;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--magic);border-radius:18px;padding:24px 26px}
+.spanel h2{font-family:var(--display);color:var(--magic);margin:0 0 4px;font-size:22px}
+.spanel .si{margin:14px 0;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:12px}
+.spanel label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin-bottom:5px}
+.spanel input{width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:8px}
+.spanel .srow{display:flex;align-items:center;gap:8px}
+.spanel .srow img{width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid rgba(217,164,65,.3)}
+.spanel .srow b{font-family:var(--display);color:var(--gold)}
+
+/* banner + confetti */
+.banner{position:fixed;top:38%;left:50%;z-index:40;transform:translate(-50%,-50%) scale(.85);opacity:0;text-align:center;pointer-events:none;transition:.45s}
+.banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.banner .big{font-family:var(--display);font-size:42px;font-weight:800;color:var(--gold2);text-shadow:0 0 40px rgba(217,164,65,.7)}
+.banner .small{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--parch);text-transform:uppercase;margin-top:6px}
+#fx{position:fixed;inset:0;z-index:39;pointer-events:none}
+.loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-family:var(--mono);color:var(--gold);letter-spacing:.2em;font-size:12px}
+</style>
 </head>
-<body>Loading your PAIS…</body>
+<body>
+<div class="loading" id="loading">LOADING CONTROL ROOM…</div>
+
+<header class="hud">
+  <div class="me"><div class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg><span class="lvl" id="lvl">1</span></div>
+    <div><h1>OPERATOR</h1></div></div>
+  <div class="xpwrap"><div class="xpbar"><div class="xpfill" id="xpfill"></div></div><div class="xptxt" id="xptxt">40 / 100 XP</div></div>
+  <div class="spacer"></div>
+  <div class="chip streak">🔥 <b id="streak">4</b> day streak</div>
+  <div class="chip">Today <div class="ring" id="ring" style="--p:0"><i id="ringN">0</i></div></div>
+  <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
+  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE agents</div>
+</header>
+
+<!-- HUB -->
+<div class="hub" id="hub">
+  <div class="lead">Your Agent Team</div>
+  <div class="sub">click an agent to meet them</div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- 3D office -->
+<canvas id="c"></canvas>
+<div class="office-ui" id="officeUI"></div>
+<button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
+<div class="dialogue" id="dialogue">
+  <div class="row"><div class="por"><img id="dImg" alt=""></div>
+    <div style="flex:1"><div class="who" id="dWho">—</div><div class="role" id="dRole">—</div>
+      <div class="say" id="dSay">—</div><div class="acts" id="dActs"></div></div></div>
+</div>
+<div class="pipe" id="pipe"><button class="x" onclick="closePipe()">✕</button>
+  <h3 id="pName">—</h3><div class="pr" id="pRole">—</div><div id="pSteps"></div></div>
+
+<!-- settings -->
+<div class="settings-panel" id="settings"><div class="spanel">
+  <h2>⚙ Agent Settings</h2><div class="pr" style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;margin-bottom:10px">EDIT EVERY AGENT — name, role, pipeline steps (saved locally)</div>
+  <div id="sList"></div>
+  <div style="display:flex;gap:10px;margin-top:16px"><button class="btn" onclick="saveSettings()">Save</button><button class="btn ghost" onclick="closeSettings()">Close</button></div>
+</div></div>
+
+<div class="banner" id="banner"><div class="big" id="bBig">DONE</div><div class="small" id="bSmall"></div></div>
+<canvas id="fx"></canvas>
+
+<script src="vendor/three.min.js"></script>
+<script>
+const DEFAULT_AGENTS=[
+  {id:"briefing",name:"Briefing",role:"Daily Seer",say:"I am your Daily Seer. Shall I read the vault and bring word of the day?",steps:["Read the vault","Divine the digest","Post the omen"]},
+  {id:"email",name:"Email",role:"Keeper of the Inbox",say:"The inbox never rests. Shall I sort the day's letters?",steps:["Gather letters","Sort by intent","Distill","Deliver"]},
+  {id:"jobs",name:"Jobs",role:"Questgiver",say:"New roles await across the realms. Shall I scout and forge your applications?",steps:["Scout the realms","Mark the map","Forge application","Seek your seal"]},
+  {id:"outreach",name:"Outreach",role:"Envoy",say:"The Envoy stands ready. Send me to find leads and pen the missives?",steps:["Find leads","Pen the missive","Draft scrolls","Send"]},
+  {id:"sales",name:"Sales",role:"Hunter of Patrons",say:"I hunt patrons worth your time. Shall I search the territory?",steps:["Search territory","Weigh the worthy","Purge duplicates","Inscribe ledger"]},
+  {id:"linkedin",name:"LinkedIn",role:"Networker",say:"I know the lords who hire. Say the word and I'll draft the pacts.",steps:["Find the lords","Draft the pact","Carry from ledger"]},
+  {id:"code",name:"Code",role:"The Smith",say:"Point me at the forge and I'll seal the work, then send it forth.",steps:["Scan the forge","Ward the gates","Seal the commit","Send forth"]},
+  {id:"reviewer",name:"Reviewer",role:"The Arbiter",say:"I read the day's deeds. Shall I judge the work and counsel you?",steps:["Read the day","Judge the work","Counsel changes"]},
+];
+const $=id=>document.getElementById(id);
+let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
+if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
+const state={ level:1, xp:40, streak:4, doneToday:0, done:{}, };
+try{ Object.assign(state,JSON.parse(localStorage.getItem("pais_state"))||{}); }catch{}
+function persist(){ localStorage.setItem("pais_agents",JSON.stringify(AGENTS)); localStorage.setItem("pais_state",JSON.stringify(state)); }
+
+// ── LIVE wiring: signed-in owner → real agents (else simulated demo) ──────────
+const SUPABASE_URL="https://pyvpgqswhbgcdqrfxoyb.supabase.co";
+const SUPABASE_ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5dnBncXN3aGJnY2RxcmZ4b3liIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNjEyMTcsImV4cCI6MjA5NDYzNzIxN30.FxHx9OFUhCEhTOGYx6mI_M96vBEj664zWP9eRRyJ5FA";
+const PAIS_API="https://api.129.159.182.210.nip.io";
+const OWNER_EMAILS=["taran.impact@gmail.com","taranalt8@gmail.com"];
+let token=null, userId=null, LIVE=false;
+const sb=window.supabase? window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON):null;
+function api(path,opts={}){ return fetch(PAIS_API+path,{...opts,headers:{"Authorization":"Bearer "+token,...(opts.headers||{})}})
+  .then(async r=>{ if(!r.ok){ const e=new Error("HTTP "+r.status); e.status=r.status; try{e.detail=(await r.json()).detail;}catch{} throw e;} return r.json(); }); }
+function bgRun(id){ return api("/api/agents/run/"+id+"?bg=1",{method:"POST"}); }
+async function waitRun(id,maxMs=1500000){ const t0=Date.now();
+  while(Date.now()-t0<maxMs){ await new Promise(r=>setTimeout(r,3000));
+    try{ const s=await api("/api/agents/run-status?agent="+id); if(s.state==="done")return s.result||{}; if(s.state==="idle")return {_lost:true}; }
+    catch(e){ if(e.status===402)return {_err:e}; } }
+  return {_timeout:true}; }
+function setLive(on,email){ LIVE=on; const s=document.getElementById("signinChip"), b=document.getElementById("liveBadge");
+  if(s) s.style.display=on?"none":"flex"; if(b){ b.style.display=on?"flex":"none"; b.title=email||""; } }
+function paisSignIn(){ if(!sb){ alert("Auth unavailable."); return; } sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href}}); }
+if(sb){ sb.auth.getSession().then(({data})=>{ const s=data.session; if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email);} });
+  sb.auth.onAuthStateChange((_e,s)=>{ if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email);} else setLive(false); }); }
+
+// ── audio juice ──
+let actx; function chime(kind){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const notes= kind==="level"?[523,659,784,1047]: kind==="done"?[659,880]:[440];
+  notes.forEach((f,i)=>{ const o=actx.createOscillator(),g=actx.createGain(); o.type="triangle"; o.frequency.value=f;
+    o.connect(g); g.connect(actx.destination); const t=actx.currentTime+i*0.09; g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.18,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32); o.start(t); o.stop(t+0.34); }); }catch(e){} }
+function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; ss.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
+// per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
+let curAudio=null;
+function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
+  curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
+
+// ── HUD / gamification ──
+function renderHud(){ $("lvl").textContent=state.level; const need=state.level*100;
+  $("xpfill").style.width=Math.min(100,state.xp/need*100)+"%"; $("xptxt").textContent=state.xp+" / "+need+" XP";
+  $("streak").textContent=state.streak; const total=AGENTS.length; const p=Math.round(state.doneToday/total*100);
+  $("ring").style.setProperty("--p",p); $("ringN").textContent=state.doneToday; }
+function gainXp(n){ state.xp+=n; let leveled=false; while(state.xp>=state.level*100){ state.xp-=state.level*100; state.level++; leveled=true; }
+  renderHud(); persist(); if(leveled){ chime("level"); banner("LEVEL "+state.level,"Your legend grows"); confetti(140); } }
+let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textContent=small; $("banner").classList.add("on");
+  clearTimeout(bt); bt=setTimeout(()=>$("banner").classList.remove("on"),1900); }
+
+// ── confetti ──
+const fx=$("fx"), fxc=fx.getContext("2d"); let parts=[];
+function resizeFx(){ fx.width=innerWidth; fx.height=innerHeight; } addEventListener("resize",resizeFx); resizeFx();
+function confetti(n){ for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.4,
+  vx:(Math.random()-.5)*9,vy:-6-Math.random()*9,g:0.28,r:Math.random()*6+3,
+  c:["#d9a441","#f0c463","#8b94ff","#56d98a","#fff"][Math.floor(Math.random()*5)],a:1,rot:Math.random()*6}); }
+function fxLoop(){ fxc.clearRect(0,0,fx.width,fx.height); parts=parts.filter(p=>p.a>0);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.a-=0.012; p.rot+=0.2;
+    fxc.save(); fxc.globalAlpha=Math.max(0,p.a); fxc.translate(p.x,p.y); fxc.rotate(p.rot);
+    fxc.fillStyle=p.c; fxc.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.5); fxc.restore(); });
+  requestAnimationFrame(fxLoop); } fxLoop();
+
+// ── HUB ──
+function renderHub(){ const g=$("grid"); g.innerHTML="";
+  AGENTS.forEach((a,i)=>{ const c=document.createElement("button"); c.className="card"+(state.done[a.id]?" done":"");
+    c.innerHTML=`<span class="badge">✦</span><div class="ic"><img src="av/av-${a.id}.webp" alt=""></div>
+      <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
+      <div class="st"><span class="dot"></span>${state.done[a.id]?"cleared today":"ready"}</div>`;
+    c.onclick=()=>enterAgent(a); g.appendChild(c); });
+  const s=document.createElement("button"); s.className="card settings";
+  s.innerHTML=`<div class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8b94ff" stroke-width="1.6"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13a7.9 7.9 0 000-2l2-1.6-2-3.4-2.4 1a7.9 7.9 0 00-1.7-1l-.4-2.6h-4l-.4 2.6a7.9 7.9 0 00-1.7 1l-2.4-1-2 3.4L4.6 11a7.9 7.9 0 000 2l-2 1.6 2 3.4 2.4-1a7.9 7.9 0 001.7 1l.4 2.6h4l.4-2.6a7.9 7.9 0 001.7-1l2.4 1 2-3.4z"/></svg></div>
+    <div class="nm">Settings</div><div class="rl">Configure every agent</div><div class="st"><span class="dot" style="background:#8b94ff"></span>edit team</div>`;
+  s.onclick=openSettings; g.appendChild(s);
+  renderHud(); }
+
+// ════════════════════════════ 3D OFFICE (fixed camera) ════════════════════════
+const renderer=new THREE.WebGLRenderer({canvas:$("c"),antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(2,devicePixelRatio)); renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0a0b12,0.045);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
+camera.position.set(0.1,1.65,3.15); camera.lookAt(0,1.4,-1.2);
+scene.add(new THREE.AmbientLight(0x46506e,0.95));
+const keyL=new THREE.DirectionalLight(0xffe6b0,0.5); keyL.position.set(4,8,5); scene.add(keyL);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(14,48),new THREE.MeshStandardMaterial({color:0x0c0e15,roughness:.9})); floor.rotation.x=-Math.PI/2; scene.add(floor);
+const loader=new THREE.TextureLoader();
+const dark=new THREE.MeshStandardMaterial({color:0x171320,roughness:.78,metalness:.18});
+const wallMat=new THREE.MeshStandardMaterial({color:0x12101a,roughness:.96});
+// monitor faces +Z toward you/camera (default plane orientation → no mirror needed)
+const screenCanvas=document.createElement("canvas"); screenCanvas.width=512; screenCanvas.height=320;
+const sctx=screenCanvas.getContext("2d"); const screenTex=new THREE.CanvasTexture(screenCanvas);
+screenTex.encoding=THREE.sRGBEncoding; screenTex.minFilter=THREE.LinearFilter; screenTex.generateMipmaps=false;
+const monitor=new THREE.Mesh(new THREE.PlaneGeometry(2.0,1.2),new THREE.MeshBasicMaterial({map:screenTex,side:THREE.DoubleSide}));
+monitor.position.set(0,1.5,-1.25); scene.add(monitor);
+const mstand=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.7,0.14),dark); mstand.position.set(0,1.05,-1.3); scene.add(mstand);
+const monGlow=new THREE.PointLight(0xa9b6ff,0.6,6); monGlow.position.set(0,1.5,-0.4); scene.add(monGlow);
+const desk=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.12,0.95),dark); desk.position.set(0,0.8,-1.4); scene.add(desk);
+[[-1.25,-1.0],[1.25,-1.0],[-1.25,-1.8],[1.25,-1.8]].forEach(([x,z])=>{ const lg=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,0.1),dark); lg.position.set(x,0.4,z); scene.add(lg); });
+const back=new THREE.Mesh(new THREE.BoxGeometry(5,3.6,0.12),wallMat); back.position.set(0,1.8,-2.3); scene.add(back);
+const sideL=new THREE.Mesh(new THREE.BoxGeometry(0.12,3.6,3),wallMat); sideL.position.set(-2.6,1.8,-1.0); scene.add(sideL);
+const sideR=sideL.clone(); sideR.position.x=2.6; scene.add(sideR);
+const rug=new THREE.Mesh(new THREE.CircleGeometry(2.4,40),new THREE.MeshStandardMaterial({color:0x120f1a,roughness:.95})); rug.rotation.x=-Math.PI/2; rug.position.set(0,0.01,-0.7); scene.add(rug);
+// chair (yours)
+const chairMat=new THREE.MeshStandardMaterial({color:0x201b2c,roughness:.85});
+const seat=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.1,0.62),chairMat); seat.position.set(-0.7,0.52,0.4); scene.add(seat);
+const cback=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.8,0.1),chairMat); cback.position.set(-0.7,0.92,0.7); scene.add(cback);
+// plant + lamp
+const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.17,0.3,10),new THREE.MeshStandardMaterial({color:0x4a3326})); pot.position.set(-2.1,0.15,-1.6); scene.add(pot);
+const plant=new THREE.Mesh(new THREE.IcosahedronGeometry(0.34,0),new THREE.MeshStandardMaterial({color:0x2f5d3a,flatShading:true,roughness:1})); plant.position.set(-2.1,0.55,-1.6); scene.add(plant);
+const lamp=new THREE.PointLight(0xffcaa0,0.4,5); lamp.position.set(2.0,2.2,-1.3); scene.add(lamp);
+// the agent standee (texture swapped per agent)
+const agentMat=new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide});
+const agent=new THREE.Mesh(new THREE.PlaneGeometry(1.25,1.55),agentMat); agent.position.set(1.5,1.18,-0.85); scene.add(agent);
+const aseat=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,0.6),chairMat); aseat.position.set(1.5,0.52,-0.55); scene.add(aseat);
+const aback=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.8,0.1),chairMat); aback.position.set(1.5,0.92,-0.3); scene.add(aback);
+const sign=new THREE.Mesh(new THREE.PlaneGeometry(2,0.5),new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide})); sign.position.set(0,2.7,-1.2); scene.add(sign);
+
+// you (seated articulated figure with a face)
+const you=new THREE.Group();
+const clothA=new THREE.MeshStandardMaterial({color:0x39406a,roughness:.8}), clothB=new THREE.MeshStandardMaterial({color:0x2a2f48,roughness:.8});
+const skin=new THREE.MeshStandardMaterial({color:0xc9a98c,roughness:.7}), gold=new THREE.MeshStandardMaterial({color:0xd9a441,emissive:0x3a2a08,metalness:.4,roughness:.5});
+function limb(mat,w,h,d,py){ const grp=new THREE.Group(); const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.y=-h/2; grp.add(m); grp.position.y=py; return grp; }
+const hips=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.22,0.26),clothB); hips.position.y=0.92; you.add(hips);
+const torso=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.62,0.3),clothA); torso.position.y=1.36; you.add(torso);
+const belt=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.08,0.32),gold); belt.position.y=1.06; you.add(belt);
+const head=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,20),skin); head.position.y=1.86; you.add(head);
+const hair=new THREE.Mesh(new THREE.SphereGeometry(0.205,18,18,0,6.28,0,1.7),new THREE.MeshStandardMaterial({color:0x241a16,roughness:.9})); hair.position.y=1.9; you.add(hair);
+const eyeW=new THREE.MeshStandardMaterial({color:0xf3efe6}),pupil=new THREE.MeshStandardMaterial({color:0x16131c});
+[-0.072,0.072].forEach(ex=>{ const w=new THREE.Mesh(new THREE.SphereGeometry(0.042,12,12),eyeW); w.position.set(ex,1.88,0.165); w.scale.z=.55; you.add(w);
+  const pp=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),pupil); pp.position.set(ex,1.88,0.2); you.add(pp);
+  const br=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.018,0.02),new THREE.MeshStandardMaterial({color:0x241a16})); br.position.set(ex,1.94,0.18); you.add(br); });
+const nose=new THREE.Mesh(new THREE.SphereGeometry(0.028,8,8),skin); nose.position.set(0,1.84,0.2); you.add(nose);
+const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.02,0.02),new THREE.MeshStandardMaterial({color:0x7a4a44})); mouth.position.set(0,1.78,0.18); you.add(mouth);
+const legL=limb(clothB,0.18,0.8,0.2,0.92); legL.position.x=-0.12; you.add(legL);
+const legR=limb(clothB,0.18,0.8,0.2,0.92); legR.position.x=0.12; you.add(legR);
+const armL=limb(clothA,0.14,0.62,0.16,1.62); armL.position.x=-0.32; you.add(armL);
+const armR=limb(clothA,0.14,0.62,0.16,1.62); armR.position.x=0.32; you.add(armR);
+you.position.set(-0.7,0,0.5); you.rotation.y=Math.PI-0.22;   // seated to the side, angled toward the monitor
+legL.rotation.x=-1.45; legR.rotation.x=-1.45; armL.rotation.x=-0.6; armR.rotation.x=-0.6;  // seated pose
+scene.add(you);
+const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4,1); scene.add(youLight);
+
+// ── screen drawing (faces you, no mirror) ──
+const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null};
+function drawScreen(){ const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
+  x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
+  const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
+  x.strokeStyle="rgba(217,164,65,.55)"; x.lineWidth=4; x.strokeRect(8,8,W-16,H-16);
+  x.textBaseline="top"; x.textAlign="left"; x.fillStyle="#d9a441"; x.font="700 26px Cinzel, serif"; x.fillText(a.name.toUpperCase(),26,22);
+  x.fillStyle=st.done?"#56d98a":st.running?"#8b94ff":"#6b6675"; x.font="13px 'JetBrains Mono', monospace";
+  x.fillText(st.done?"● COMPLETE":st.running?"● RUNNING":"○ READY",28,56);
+  x.font="17px 'EB Garamond', serif";
+  a.steps.forEach((step,i)=>{ const y=92+i*34,done=st.done||i<st.stepIdx,active=!st.done&&i===st.stepIdx;
+    x.beginPath(); x.arc(34,y+9,7,0,7); if(done){x.fillStyle="#d9a441";x.fill();} else {x.strokeStyle=active?"#8b94ff":"#46414f";x.lineWidth=2;x.stroke();}
+    x.fillStyle=done?"#d9a441":active?"#e9dcc0":"#5a5566"; x.fillText((done?"✓  ":active?"▸  ":"    ")+step,52,y); });
+  const by=H-44; x.fillStyle="rgba(255,255,255,.08)"; x.fillRect(26,by,W-52,9); x.fillStyle="#d9a441"; x.fillRect(26,by,(W-52)*(st.pct||0),9);
+  if(st.running&&!st.done){ x.fillStyle="#c9a35e"; x.font="12px 'JetBrains Mono'"; x.textAlign="right"; x.fillText("~"+st.eta+"s left",W-28,by-18); }
+  screenTex.needsUpdate=true; }
+function signFor(a){ const c=document.createElement("canvas"); c.width=256;c.height=64; const x=c.getContext("2d");
+  x.fillStyle="#d9a441"; x.font="700 30px Cinzel, serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(a.name.toUpperCase(),128,26);
+  x.fillStyle="#9a93a6"; x.font="16px 'EB Garamond'"; x.fillText(a.role,128,50);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.minFilter=THREE.LinearFilter; return t; }
+
+// ── flow: enter agent → talk → pipeline / run ──
+let currentAgent=null, busy=false, agentWatch=0;
+function enterAgent(a){ currentAgent=a;
+  agentMat.map=loader.load("av/av-"+a.id+".webp"); agentMat.map.encoding=THREE.sRGBEncoding; agentMat.needsUpdate=true;
+  sign.material.map=signFor(a); sign.material.needsUpdate=true;
+  screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; drawScreen();
+  agent.rotation.y=0; agentWatch=0;   // facing you
+  $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("backbtn").style.display="block";
+  $("dImg").src="av/av-"+a.id+".webp"; $("dWho").textContent=a.name; $("dRole").textContent=a.role; $("dSay").textContent=a.say;
+  renderActs(); $("dialogue").classList.add("on"); voiceLine(a.id,"greet");
+}
+function renderActs(){ const d=$("dActs"); d.innerHTML="";
+  if(screenState.running) return;
+  const pipe=el("button","btn ghost","📋 See pipeline"); pipe.onclick=openPipe;
+  const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
+  const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=()=>{ openSettings(currentAgent.id); };
+  d.append(pipe,run,cfg);
+}
+function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
+function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show");
+  $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe();
+  try{speechSynthesis.cancel();}catch(e){} renderHub(); }
+$("backbtn").onclick=backToHub;
+
+function openPipe(){ const a=currentAgent; $("pName").textContent=a.name; $("pRole").textContent=a.role+" · PIPELINE";
+  $("pSteps").innerHTML=a.steps.map((s,i)=>`<div class="step"><span class="n">${i+1}</span>${s}</div>`).join("");
+  $("pipe").classList.add("on"); }
+function closePipe(){ $("pipe").classList.remove("on"); }
+
+function runTask(){ const a=currentAgent; closePipe(); busy=true;
+  screenState.running=true; screenState.done=false; screenState.stepIdx=0; screenState.pct=0; monGlow.intensity=1.3;
+  agentWatch=1; $("dActs").innerHTML="";
+  $("dSay").textContent= LIVE? "Running for real on your Mac… watch the screen." : "Working… watch the screen."; voiceLine(a.id,"working");
+  // LIVE: fire the real agent in the background; screen shows estimated progress until it returns.
+  let realDone=false, realResult=null;
+  if(LIVE){ bgRun(a.id).then(q=> q && q.queued? waitRun(a.id) : q).then(r=>{ realResult=r||{}; realDone=true; })
+    .catch(e=>{ realResult={_err:e}; realDone=true; }); }
+  const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
+    if(ok && !state.done[a.id]){ state.done[a.id]=true; state.doneToday++; } persist();
+    busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"It is done. Posted to your feed.":"Run ended — check your feed.");
+    voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished · +40 XP"); gainXp(40);} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
+  const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
+  const tick=()=>{ const e=performance.now()-t0; let pct=Math.min(1,e/total);
+    if(LIVE) pct=Math.min(realDone?1:0.94, e/total);
+    screenState.pct=pct; screenState.eta=Math.max(0,Math.round((total-e)/1000)); screenState.stepIdx=Math.min(a.steps.length-1,Math.floor(pct*a.steps.length)); drawScreen();
+    if(LIVE){ if(realDone){ const r=realResult||{}; const ok=!!r.ran && !r._err && !r._lost;
+        finish(ok, r._timeout? "Still running — its report will land in your feed." : (r.message||(r.text? null : null))); }
+      else requestAnimationFrame(tick); }
+    else { if(pct<1) requestAnimationFrame(tick); else finish(true); } };
+  requestAnimationFrame(tick);
+}
+
+// ── settings ──
+let editId=null;
+function openSettings(focusId){ editId = typeof focusId==="string"? focusId : null;
+  const L=$("sList"); L.innerHTML=AGENTS.map((a,i)=>`<div class="si" data-i="${i}">
+    <div class="srow"><img src="av/av-${a.id}.webp"><b>${a.id}</b></div>
+    <label>Name</label><input data-f="name" value="${a.name.replace(/"/g,'&quot;')}">
+    <label>Role</label><input data-f="role" value="${a.role.replace(/"/g,'&quot;')}">
+    <label>Pipeline steps (comma-separated)</label><input data-f="steps" value="${a.steps.join(', ').replace(/"/g,'&quot;')}">
+    </div>`).join("");
+  $("settings").classList.add("on"); }
+function saveSettings(){ document.querySelectorAll("#sList .si").forEach(si=>{ const i=+si.dataset.i;
+    si.querySelectorAll("input").forEach(inp=>{ const f=inp.dataset.f;
+      if(f==="steps") AGENTS[i].steps=inp.value.split(",").map(s=>s.trim()).filter(Boolean);
+      else AGENTS[i][f]=inp.value; }); });
+  persist(); closeSettings(); renderHub(); banner("AGENTS UPDATED","Your team is reconfigured"); chime("done"); }
+function closeSettings(){ $("settings").classList.remove("on"); }
+
+// ── render loop ──
+const clock=new THREE.Clock();
+function loop(){ requestAnimationFrame(loop); const t=clock.getElapsedTime();
+  agent.position.y=1.18+Math.sin(t*1.5)*0.02;                                  // seated bob
+  const targetRot=agentWatch? 0.85 : Math.sin(t*0.5)*0.07;                      // watch screen, else gentle idle sway
+  agent.rotation.y += (targetRot-agent.rotation.y)*0.08;
+  torso.scale.y=1+Math.sin(t*1.8)*0.015; head.position.y=1.86+Math.sin(t*1.8)*0.008;  // your idle breathing
+  renderer.render(scene,camera); }
+loop();
+addEventListener("resize",()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+renderHub(); setTimeout(()=>$("loading").style.display="none",450);
+Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings}); // debug hooks
+</script>
+</body>
 </html>

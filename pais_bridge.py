@@ -358,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/job-status", "/linkedin-status", "/account", "/account-switch"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/sales-draft", "/job-status", "/job-fill", "/linkedin-status", "/account", "/account-switch"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -556,6 +556,47 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": job_sheet.set_status(url, status)})
             except Exception as e:
                 return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/job-fill":
+            # Owner presses 'Fill' on a pipeline row → run the detached fill worker
+            # for JUST that job on this Mac. Reuses pais-runtime's on-demand path so
+            # the fill is byte-identical to the old routine fill, one job at a time.
+            url = (data.get("url") or "").strip()
+            if not url:
+                return self._send(400, {"error": "url required"})
+            if pais_agents is None or not hasattr(pais_agents, "_fill_one_url"):
+                return self._send(503, {"error": "fill runner unavailable on this host"})
+            try:
+                res = pais_agents._fill_one_url(url)
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+            if res.get("ok"):
+                who = f"{res.get('company','?')} — {res.get('role','')}".strip(" —")
+                return self._send(200, {"ok": True,
+                    "message": f"Filling {who} on your Mac — the form opens on your "
+                               "screen for review. Nothing is submitted automatically."})
+            return self._send(409, {"ok": False, "error": res.get("error", "fill failed")})
+
+        if self.path == "/sales-draft":
+            # Owner presses '✉ Draft' on a Sales pipeline row → spawn the detached
+            # draft worker for that business (finds email, drafts the pitch, saves a
+            # Gmail draft, posts the result to the feed). Never sends.
+            business = (data.get("business") or "").strip()
+            vertical = (data.get("vertical") or "").strip()
+            if not business:
+                return self._send(400, {"error": "business required"})
+            if pais_agents is None or not hasattr(pais_agents, "_draft_one_business"):
+                return self._send(503, {"error": "draft runner unavailable on this host"})
+            try:
+                res = pais_agents._draft_one_business(business, vertical)
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+            if res.get("ok"):
+                return self._send(200, {"ok": True,
+                    "message": f"Drafting an email for {business} on your Mac — I'll save "
+                               "it to Gmail → Drafts and post here when it's ready. Nothing "
+                               "is sent automatically."})
+            return self._send(409, {"ok": False, "error": res.get("error", "draft failed")})
 
         if self.path == "/linkedin-status":
             # Owner edits a LinkedIn target's status → write to the vault note

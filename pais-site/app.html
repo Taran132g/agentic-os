@@ -173,7 +173,6 @@ const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const ICON = {
   briefing:'<path d="M4 4h16v4H4zM4 11h10M4 16h16M4 20h10"/>',
   jobs:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a4 4 0 018 0v2"/><path d="M9.5 14l1.8 1.8L15 12"/>',
-  outreach:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
   email:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
   linkedin:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 10v7M7 7v.01M11 17v-4a2 2 0 014 0v4"/>',
   code:'<path d="M8 6l-5 6 5 6M16 6l5 6-5 6"/>',
@@ -184,8 +183,7 @@ const TEAM = [
   { id:"briefing",  name:"Briefing",     role:"Daily analyst", ac:"var(--blue)" },
   { id:"email",     name:"Email",        role:"Inbox analyst", ac:"var(--violet)" },
   { id:"jobs",      name:"Jobs",         role:"Scout + apply", ac:"var(--amber)", attn:true },
-  { id:"outreach",  name:"Outreach",     role:"BD rep",        ac:"var(--rose)" },
-  { id:"sales",     name:"Sales",        role:"Lead scout",    ac:"#a3e635" },
+  { id:"sales",     name:"Sales",        role:"Lead scout + outreach", ac:"#a3e635" },
   { id:"linkedin",  name:"LinkedIn",     role:"Networker",     ac:"var(--sky)" },
   { id:"code",      name:"Code",         role:"Engineer",      ac:"var(--teal)" },
   { id:"reviewer",  name:"Reviewer",     role:"Routine auditor", ac:"var(--indigo)" },
@@ -202,12 +200,11 @@ Object.assign(ICON, {
 const STEPS = {
   briefing:["Read vault","Digest","Post"], email:["Fetch inbox","Classify","Digest","Post"],
   jobs:["Scout roles","Add to pipeline","Auto-fill form","You review & submit"],
-  outreach:["Scout leads","Draft","Gmail drafts","Post"],
-  sales:["Search territory","Screen & qualify","Dedupe vs sheet","Add to call sheet"],
+  sales:["Search territory","Screen & qualify","Add to call sheet","✉ Draft per business"],
   linkedin:["Find hiring managers","Draft connect + PAIS pitch","Copy-paste from Pipeline"], code:["Scan","Guard","Commit","Push"],
   reviewer:["Read routine","Analyze","Suggest fixes"],
 };
-const RUNNABLE = ["briefing","email","jobs","outreach","sales","linkedin","code","reviewer"];
+const RUNNABLE = ["briefing","email","jobs","sales","linkedin","code","reviewer"];
 /* Sales call-sheet statuses — editable in the Pipeline tab, saved to the vault note. */
 const SALES_STATUSES = ["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"];
 /* Job pipeline statuses — editable in the Jobs Pipeline tab, saved to the vault note. */
@@ -216,7 +213,7 @@ const JOB_STATUSES = ["🔍 To apply","📤 Applied","📞 Interview","🎯 Offe
 const LI_STATUSES = ["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"];
 const TM = id => TEAM.find(t => t.id === id);
 /* Generated android portraits (Higgsfield) for the 8 working agents. */
-const AVA = new Set(["assistant","briefing","email","jobs","outreach","sales","linkedin","code","reviewer"]);
+const AVA = new Set(["assistant","briefing","email","jobs","sales","linkedin","code","reviewer"]);
 /* Sidebar icon: use the cool line-art ICON[id] (same as the Run cards), accent-tinted.
    Falls back to the photo avatar for any agent without a line icon. */
 function teamIcon(t){
@@ -328,12 +325,23 @@ async function loadClaudeAccount(){
   try{ d=await api("/api/agents/claude-account"); }
   catch(e){ body.innerHTML=`<div style="color:var(--rose);font-size:13px">${e.status===503?"Your Mac is asleep/offline — wake it and try again.":("Couldn't load account ("+(e.detail||e.status||"error")+").")}</div>`; return; }
   const accts=d.accounts||[];
-  const chips = accts.length ? accts.map(a=>`
+  const chips = accts.length ? accts.map(a=>{
+    const stale = a.expired && !a.active;   // idle profile whose token has lapsed
+    const tag = a.active
+      ? ' <span style="color:var(--green);font-size:10px;text-transform:uppercase">active</span>'
+      : stale ? ' <span style="color:var(--rose);font-size:10px;text-transform:uppercase">re-login</span>' : "";
+    const border = a.active ? "var(--green)" : stale ? "var(--rose)" : "rgba(255,255,255,.14)";
+    const bg = a.active ? "rgba(57,217,138,.10)" : stale ? "rgba(224,138,138,.10)" : "rgba(255,255,255,.03)";
+    const sub = stale
+      ? '<span style="font-size:10px;color:var(--rose)">session expired — sign in once to re-enable</span>'
+      : `<span style="font-size:11px;color:var(--muted)">${a.email||""}</span>`;
+    return `
     <button onclick="switchClaudeAccount('${a.name}',this)" ${a.active?"disabled":""}
       style="display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 14px;border-radius:10px;cursor:${a.active?"default":"pointer"};min-width:150px;
-      border:1px solid ${a.active?"var(--green)":"rgba(255,255,255,.14)"};background:${a.active?"rgba(57,217,138,.10)":"rgba(255,255,255,.03)"};color:inherit;font:inherit">
-      <span style="font-size:13px;font-weight:600">${a.name}${a.active?' <span style="color:var(--green);font-size:10px;text-transform:uppercase">active</span>':""}</span>
-      <span style="font-size:11px;color:var(--muted)">${a.email||""}</span></button>`).join("")
+      border:1px solid ${border};background:${bg};color:inherit;font:inherit">
+      <span style="font-size:13px;font-weight:600">${a.name}${tag}</span>
+      ${sub}</button>`;
+  }).join("")
     : '<div style="color:var(--muted);font-size:13px">No saved accounts on the Mac.</div>';
   const q=d.quota||{};
   body.innerHTML = `
@@ -810,9 +818,11 @@ async function renderPipeline(id){
   const persona=((cfg&&cfg.agents&&cfg.agents[id]||{}).persona)||((schema&&schema.agents[id]||{}).persona)||"";
   if(id==="sales"){ renderSalesPipeline(body, items, steps, report, persona);
     body.querySelectorAll("select[data-biz]").forEach(sel=>sel.addEventListener("change",()=>setSalesStatus(sel)));
+    body.querySelectorAll("button[data-draft]").forEach(btn=>btn.addEventListener("click",()=>draftSales(btn)));
     return; }
   if(id==="jobs"){ renderJobPipeline(body, items, steps, report, persona);
     body.querySelectorAll("select[data-url]").forEach(sel=>sel.addEventListener("change",()=>setJobStatus(sel)));
+    body.querySelectorAll("button[data-fill]").forEach(btn=>btn.addEventListener("click",()=>fillJob(btn)));
     return; }
   if(id==="linkedin"){ renderLinkedInPipeline(body, items, steps, report, persona);
     body.querySelectorAll("select[data-name]").forEach(sel=>sel.addEventListener("change",()=>setLinkedInStatus(sel)));
@@ -859,9 +869,13 @@ function renderSalesPipeline(body, items, steps, report, persona){
   const row=l=>{
     const opts=SALES_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
     const tel=l.phone&&/\d/.test(l.phone)?` · <a href="tel:${esc(l.phone)}" style="color:var(--sky)">📞 ${esc(l.phone)}</a>`:"";
-    return `<div class="sales-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
+    // ✉ Draft: the same scouted business can be CALLED (phone above) or EMAILED —
+    // this runs the draft on your Mac and saves a Gmail draft for this business.
+    const draftBtn=`<button class="sales-draft-btn" data-draft="${esc(l.title)}" data-vert="${esc(l.sub||"")}" title="Draft an outreach email for this business" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:var(--sky);cursor:pointer;white-space:nowrap;transition:background .15s">✉ Draft</button>`;
+    return `<div class="sales-row" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
       <span style="min-width:0"><b>${esc(l.title||"?")}</b>
         <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}${tel}</span></span>
+      ${draftBtn}
       <select data-biz="${esc(l.title)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${SALES_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
     </div>`;
   };
@@ -899,6 +913,25 @@ async function setSalesStatus(sel){
     alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
   }finally{ sel.disabled=false; }
 }
+/* Per-business '✉ Draft': drafts an outreach email for this scouted business and
+   saves it to Gmail → Drafts on the owner's Mac. The worker posts the result to
+   the feed when done; nothing is ever sent. */
+async function draftSales(btn){
+  const business=btn.dataset.draft; if(!business) return;
+  const vertical=btn.dataset.vert||"", orig=btn.textContent;
+  btn.disabled=true; btn.textContent="✉ Drafting…"; btn.style.opacity="0.7";
+  try{
+    const r=await api("/api/agents/sales/draft",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({business,vertical})});
+    btn.textContent="✓ Drafting"; btn.style.borderColor="var(--green)";
+    alert((r&&r.message)||"Drafting on your Mac — I'll save it to Gmail → Drafts and post in the feed when ready. Nothing is sent.");
+  }catch(e){
+    btn.textContent=orig; btn.style.borderColor="var(--rose)";
+    alert((e&&e.detail)?e.detail:"Couldn't start the draft — is your Mac awake?");
+  }finally{
+    setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.style.opacity=""; btn.style.borderColor="rgba(56,118,243,.4)"; }, 4000);
+  }
+}
 /* The Jobs agent's Pipeline tab = the live, editable application tracker.
    Each row's status is a dropdown that writes straight back to the vault note,
    so Taran keeps an organized record of everything he's applied to. */
@@ -921,9 +954,16 @@ function renderJobPipeline(body, items, steps, report, persona){
   const row=l=>{
     const opts=JOB_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
     const title=l.url?`<a href="${esc(l.url)}" target="_blank" rel="noopener" style="color:var(--text)">${esc(l.title||"?")}</a>`:esc(l.title||"?");
-    return `<div class="job-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
+    // 'Fill' only shows on '🔍 To apply' rows with a real URL — it runs the fill
+    // for just this job on the owner's Mac (form opens on screen, nothing submitted).
+    const canFill = l.status==="🔍 To apply" && /^https?:/.test(l.url||"");
+    const fillBtn = canFill
+      ? `<button class="job-fill-btn" data-fill="${esc(l.url)}" title="Fill this application on your Mac" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 12px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap;transition:background .15s">✎ Fill</button>`
+      : `<span aria-hidden="true"></span>`;
+    return `<div class="job-row" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
       <span style="min-width:0"><b>${title}</b>
         <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
+      ${fillBtn}
       <select data-url="${esc(l.url)}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${JOB_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>
     </div>`;
   };
@@ -959,6 +999,25 @@ async function setJobStatus(sel){
     alert("Couldn't save the status — is your Mac awake? (The bridge writes to your vault note.)");
   }finally{ sel.disabled=false; }
 }
+/* Per-job 'Fill': runs the fill for just this row on the owner's Mac. The bridge
+   spawns a detached worker that opens the form on screen; nothing is submitted. */
+async function fillJob(btn){
+  const url=btn.dataset.fill; if(!url) return;
+  const orig=btn.textContent;
+  btn.disabled=true; btn.textContent="✎ Filling…"; btn.style.opacity="0.7";
+  try{
+    const r=await api("/api/agents/jobs/fill",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url})});
+    btn.textContent="✓ Opening"; btn.style.borderColor="var(--green)";
+    alert((r&&r.message)||"Filling on your Mac — the form opens on your screen to review and submit. Nothing is submitted automatically.");
+  }catch(e){
+    btn.textContent=orig; btn.style.borderColor="var(--rose)";
+    const msg=(e&&e.detail)?e.detail:"Couldn't start the fill — is your Mac awake?";
+    alert(msg);
+  }finally{
+    setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; btn.style.opacity=""; btn.style.borderColor="rgba(52,211,153,.4)"; }, 4000);
+  }
+}
 /* The LinkedIn agent's Pipeline tab = the live, editable networking tracker.
    Status dropdown writes to the vault note; each row carries its drafted connect
    note with a one-tap copy so Taran can paste the invite by hand (ToS-safe). */
@@ -981,11 +1040,15 @@ function renderLinkedInPipeline(body, items, steps, report, persona){
   const row=l=>{
     const opts=LI_STATUSES.map(s=>`<option ${s===l.status?"selected":""}>${s}</option>`).join("");
     const copy=l.connect?`<button type="button" data-copy="${esc(l.connect)}" title="Copy connect note" style="margin-left:8px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:10px;font-family:var(--font-mono);cursor:pointer">⧉ note</button>`:"";
+    // LinkedIn has no predictable per-person URL, so deep-link a people-search for
+    // name + company — one click lands on that exact person's profile.
+    const liUrl="https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([l.title,l.company].filter(Boolean).join(" "));
+    const profile=`<a href="${liUrl}" target="_blank" rel="noopener" title="Find on LinkedIn" style="margin-left:8px;text-decoration:none;border:1px solid rgba(56,118,243,.4);color:var(--sky);border-radius:8px;padding:3px 8px;font-size:10px;font-family:var(--font-mono);white-space:nowrap">🔗 view</a>`;
     return `<div class="li-row" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 14px;border-top:1px solid var(--border-l);font-size:13px">
       <span style="min-width:0"><b>${esc(l.title||"?")}</b>
         <span style="display:block;font-size:11.5px;color:var(--dim);font-family:var(--font-mono);margin-top:2px">${esc(l.sub||"")}${l.note?" · "+esc(l.note):""}</span></span>
       <span style="display:flex;align-items:center">
-        <select data-name="${esc(l.title)}" data-company="${esc(l.company||"")}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${LI_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>${copy}</span>
+        <select data-name="${esc(l.title)}" data-company="${esc(l.company||"")}" aria-label="status" style="font-family:var(--font-mono);font-size:11px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:${LI_STAT_COLOR[l.status]||"var(--text)"};cursor:pointer">${opts}</select>${profile}${copy}</span>
     </div>`;
   };
   body.innerHTML=`<div style="padding:20px clamp(16px,3vw,32px)">
