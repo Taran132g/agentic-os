@@ -162,10 +162,111 @@ button{font-family:inherit;cursor:pointer}
 /* HUD identity (google avatar + name + occupation) */
 .hud .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .hud .occ{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+
+/* ─── cinematic intro (signed-out) ─── */
+.intro{position:fixed;inset:0;z-index:100000;background:var(--ink);display:none;place-items:center;overflow:hidden;opacity:0;transition:opacity .6s ease}
+.intro.on{display:grid;opacity:1}
+.intro.leaving{opacity:0;transform:scale(1.04);transition:opacity .7s ease,transform .9s cubic-bezier(.16,1,.3,1)}
+.intro::before{content:"";position:absolute;width:120vmax;height:120vmax;left:-10vmax;top:-40vmax;
+  background:radial-gradient(circle at 50% 50%,rgba(217,164,65,.20),rgba(139,148,255,.10) 38%,transparent 62%);
+  filter:blur(20px);animation:auroraDrift 26s ease-in-out infinite alternate;will-change:transform}
+.intro::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+@keyframes auroraDrift{0%{transform:translate(0,0) rotate(0deg)}100%{transform:translate(14vmax,10vmax) rotate(40deg)}}
+.intro-inner{position:relative;text-align:center;padding:0 24px;max-width:760px}
+.intro-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.42em;color:var(--gold);text-transform:uppercase;opacity:0;animation:introRise .9s .2s cubic-bezier(.16,1,.3,1) forwards}
+.intro-mark{font-family:var(--display);font-weight:700;font-size:clamp(4rem,16vw,11rem);line-height:.92;color:var(--parch);letter-spacing:.04em;margin:.18em 0 .1em}
+.intro-mark span{display:inline-block;transform:translateY(120%);animation:markRise .95s cubic-bezier(.16,1,.3,1) forwards;background:linear-gradient(180deg,var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+.intro-mark span:nth-child(1){animation-delay:.30s}.intro-mark span:nth-child(2){animation-delay:.40s}.intro-mark span:nth-child(3){animation-delay:.50s}.intro-mark span:nth-child(4){animation-delay:.60s}
+.intro-tag{font-family:var(--serif);font-size:clamp(1.15rem,3.2vw,1.9rem);color:var(--parch);opacity:0;animation:introRise 1s .85s cubic-bezier(.16,1,.3,1) forwards}
+.intro-sub{font-family:var(--serif);font-size:clamp(.95rem,2vw,1.1rem);color:var(--muted);margin-top:.5em;opacity:0;animation:introRise 1s 1.05s cubic-bezier(.16,1,.3,1) forwards}
+.intro-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:2.2em;opacity:0;animation:introRise 1s 1.35s cubic-bezier(.16,1,.3,1) forwards}
+.intro-btn{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:15px 30px;border-radius:999px;cursor:pointer;border:1px solid var(--gold);
+  background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1206;font-weight:700;box-shadow:0 0 0 0 rgba(217,164,65,.5);animation:ctaPulse 2.6s 2s ease-in-out infinite}
+.intro-btn:hover{transform:translateY(-2px);box-shadow:0 10px 34px rgba(217,164,65,.4)}
+.intro-btn.ghost{background:transparent;color:var(--parch);border-color:rgba(233,220,192,.3);box-shadow:none;animation:none}
+.intro-btn.ghost:hover{border-color:var(--gold);color:var(--gold2)}
+.intro-hint{margin-top:1.6em;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;opacity:0;animation:introRise 1s 1.7s ease forwards}
+@keyframes markRise{to{transform:translateY(0)}}
+@keyframes introRise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ctaPulse{0%,100%{box-shadow:0 0 0 0 rgba(217,164,65,.45)}50%{box-shadow:0 0 0 14px rgba(217,164,65,0)}}
+
+/* ─── onboarding: pick your team ─── */
+.onboard{position:fixed;inset:0;z-index:99990;background:var(--ink);display:none;overflow-y:auto;opacity:0;transition:opacity .5s ease}
+.onboard.on{display:block;opacity:1}
+.onboard::before{content:"";position:fixed;inset:0;background:radial-gradient(circle at 70% -10%,rgba(217,164,65,.12),transparent 55%);pointer-events:none}
+.ob-wrap{position:relative;max-width:1000px;margin:0 auto;padding:clamp(40px,7vh,90px) 24px 60px;text-align:center}
+.ob-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--gold);text-transform:uppercase}
+.ob-h{font-family:var(--display);font-size:clamp(2rem,6vw,3.4rem);color:var(--parch);margin:.25em 0 .15em}
+.ob-sub{font-family:var(--serif);font-size:clamp(1rem,2.2vw,1.2rem);color:var(--muted);max-width:560px;margin:0 auto 1em}
+.ob-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin:30px 0}
+.ob-card{position:relative;text-align:left;display:flex;align-items:center;gap:13px;padding:15px;border-radius:16px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02);transition:border-color .18s,background .18s,transform .18s}
+.ob-card:hover{transform:translateY(-2px);border-color:rgba(217,164,65,.4)}
+.ob-card.sel{border-color:var(--gold);background:linear-gradient(180deg,rgba(217,164,65,.12),rgba(217,164,65,.03))}
+.ob-card img{width:46px;height:46px;border-radius:11px;object-fit:cover;flex-shrink:0}
+.ob-card .obn{font-family:var(--display);color:var(--gold);font-size:15px}
+.ob-card .obr{font-family:var(--serif);color:var(--muted);font-size:12.5px;line-height:1.25}
+.ob-check{position:absolute;top:11px;right:11px;width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);display:grid;place-items:center;color:#1a1206;font-size:12px;font-weight:800}
+.ob-card.sel .ob-check{background:var(--gold);border-color:var(--gold)}
+.ob-card.sel .ob-check::after{content:"✓"}
+.ob-locked{opacity:.85;cursor:default}
+.ob-locked .ob-check{background:var(--magic);border-color:var(--magic);color:#0a0b12}
+.ob-locked .ob-check::after{content:"★"}
+.ob-foot{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:8px}
+.ob-go{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:15px 34px;border-radius:999px;cursor:pointer;border:1px solid var(--gold);background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1206;font-weight:700}
+.ob-go:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(217,164,65,.35)}
+.ob-go.ghost{background:transparent;color:var(--parch);border-color:rgba(233,220,192,.3);font-weight:500}
+.ob-go.ghost:hover{border-color:var(--gold);color:var(--gold2);box-shadow:none}
+.ob-count{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em}
+/* settings: per-agent show-in-team toggle */
+.sw{position:relative;width:42px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);cursor:pointer;flex-shrink:0;transition:background .18s,border-color .18s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .18s,background .18s}
+.sw.on{background:rgba(86,217,138,.25);border-color:var(--green)}
+.sw.on::after{transform:translateX(18px);background:var(--green)}
+@media (prefers-reduced-motion:reduce){
+  .intro::before{animation:none}
+  .intro-kicker,.intro-tag,.intro-sub,.intro-cta,.intro-hint{animation:none;opacity:1}
+  .intro-mark span{animation:none;transform:none}
+  .intro-btn{animation:none}
+}
 </style>
 </head>
 <body>
 <div class="loading" id="loading">LOADING CONTROL ROOM…</div>
+
+<!-- cinematic intro (signed-out first impression) — DISABLED, kept for later reuse.
+     To re-enable: uncomment the block below AND restore showIntro() in maybeIntro() (see JS).
+<div class="intro" id="intro">
+  <div class="intro-inner">
+    <div class="intro-kicker">Your personal AI workforce</div>
+    <div class="intro-mark"><span>P</span><span>A</span><span>I</span><span>S</span></div>
+    <div class="intro-tag">A team of AI agents, built around you.</div>
+    <div class="intro-sub">Walk into your own control room. Brief, qualify, draft, apply, follow up — your agents do the work while you watch the screen.</div>
+    <div class="intro-cta">
+      <button class="intro-btn" onclick="introEnter()">Enter the control room →</button>
+      <button class="intro-btn ghost" onclick="paisSignIn()">Sign in with Google</button>
+    </div>
+    <div class="intro-hint">No sign-in needed to look around</div>
+  </div>
+</div>
+-->
+
+
+<!-- onboarding: pick your team -->
+<div class="onboard" id="onboard">
+  <div class="ob-wrap">
+    <div class="ob-kicker">Step 1 · Build your team</div>
+    <h2 class="ob-h">Which agents do you want?</h2>
+    <p class="ob-sub">Pick the ones you'll use. You can turn any of them on or off later in Settings. Chief of Staff and Settings are always with you.</p>
+    <div class="ob-grid" id="obGrid"></div>
+    <div class="ob-foot">
+      <span class="ob-count" id="obCount"></span>
+      <button class="ob-go" onclick="onboardDone()">Enter the room →</button>
+      <button class="ob-go ghost" onclick="paisSignIn()">Sign in with Google</button>
+    </div>
+  </div>
+</div>
 
 <header class="hud">
   <div class="me"><div class="av" id="meAv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg></div>
@@ -266,8 +367,7 @@ const DEFAULT_AGENTS=[
   {id:"briefing",name:"Briefing",role:"Daily Seer",say:"I am your Daily Seer. Shall I read the vault and bring word of the day?",steps:["Read the vault","Divine the digest","Post the omen"]},
   {id:"email",name:"Email",role:"Keeper of the Inbox",say:"The inbox never rests. Shall I sort the day's letters?",steps:["Gather letters","Sort by intent","Distill","Deliver"]},
   {id:"jobs",name:"Jobs",role:"Questgiver",say:"New roles await across the realms. Shall I scout and forge your applications?",steps:["Scout the realms","Mark the map","Forge application","Seek your seal"]},
-  {id:"outreach",name:"Outreach",role:"Envoy",say:"The Envoy stands ready. Send me to find leads and pen the missives?",steps:["Find leads","Pen the missive","Draft scrolls","Send"]},
-  {id:"sales",name:"Sales",role:"Hunter of Patrons",say:"I hunt patrons worth your time. Shall I search the territory?",steps:["Search territory","Weigh the worthy","Purge duplicates","Inscribe ledger"]},
+  {id:"sales",name:"Sales & Outreach",role:"Hunter of Patrons",say:"I hunt patrons worth your time, then pen the missives. Shall I search the territory?",steps:["Search territory","Weigh the worthy","Inscribe ledger","✉ Draft per patron"]},
   {id:"linkedin",name:"LinkedIn",role:"Networker",say:"I know the lords who hire. Say the word and I'll draft the pacts.",steps:["Find the lords","Draft the pact","Carry from ledger"]},
   {id:"code",name:"Code",role:"The Smith",say:"Point me at the forge and I'll seal the work, then send it forth.",steps:["Scan the forge","Ward the gates","Seal the commit","Send forth"]},
   {id:"reviewer",name:"Reviewer",role:"The Arbiter",say:"I read the day's deeds. Shall I judge the work and counsel you?",steps:["Read the day","Judge the work","Counsel changes"]},
@@ -276,6 +376,12 @@ const $=id=>document.getElementById(id);
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
 const state={ level:1, xp:40, streak:4, doneToday:0, done:{}, };
+// which agents are shown in the team room (UI visibility, toggled in Settings / onboarding).
+// null = not onboarded yet → all show. A Set = the chosen team.
+let teamUi=null; try{ const t=localStorage.getItem("pais_team_ui"); if(t) teamUi=new Set(JSON.parse(t)); }catch{ teamUi=null; }
+function teamUiSave(){ try{ if(teamUi) localStorage.setItem("pais_team_ui",JSON.stringify([...teamUi])); }catch{} }
+function agentVisible(id){ return !teamUi || teamUi.has(id); }
+function setAgentVisible(id,on){ if(!teamUi) teamUi=new Set(AGENTS.map(a=>a.id)); if(on) teamUi.add(id); else teamUi.delete(id); teamUiSave(); }
 try{ Object.assign(state,JSON.parse(localStorage.getItem("pais_state"))||{}); }catch{}
 function persist(){ localStorage.setItem("pais_agents",JSON.stringify(AGENTS)); localStorage.setItem("pais_state",JSON.stringify(state)); }
 
@@ -304,8 +410,15 @@ function applyIdentity(user){ const um=user.user_metadata||{}; const photo=um.av
   if($("meName")) $("meName").textContent=name;
   // occupation from the brain / profile (best-effort)
   api("/api/profile").then(p=>{ const occ=(p&&(p.occupation||p.title||p.headline||p.role||p.profession))||""; if(occ&&$("meOcc")) $("meOcc").textContent=occ; }).catch(()=>{}); }
-function onSess(s){ if(s&&OWNER_EMAILS.includes((s.user.email||"").toLowerCase())){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); } else setLive(false); }
+// Any signed-in Google account works now (was owner-only). OWNER_EMAILS still gates
+// owner-only backend features server-side; the room/onboarding work for everyone.
+function onSess(s){ if(s&&s.user){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); dismissIntro(); dismissOnboard(); } else { setLive(false); maybeIntro(); } }
+let introShown=false;
+// Intro disabled — go straight to team selection (onboarding) for signed-out users.
+// To re-enable the cinematic intro: replace the line below with `showIntro();` and uncomment the intro HTML.
+function maybeIntro(){ if(LIVE||introShown) return; introShown=true; if(!teamUi) showOnboard(); }
 if(sb){ sb.auth.getSession().then(({data})=>onSess(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSess(s)); }
+else { setTimeout(maybeIntro,300); }
 
 // ── audio juice ──
 let actx; function chime(kind){ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
@@ -341,7 +454,7 @@ function fxLoop(){ fxc.clearRect(0,0,fx.width,fx.height); parts=parts.filter(p=>
 
 // ── HUB ──
 function renderHub(){ const g=$("grid"); g.innerHTML="";
-  AGENTS.forEach((a,i)=>{ const c=document.createElement("button"); c.className="card"+(state.done[a.id]?" done":"");
+  AGENTS.filter(a=>agentVisible(a.id)).forEach((a,i)=>{ const c=document.createElement("button"); c.className="card"+(state.done[a.id]?" done":"");
     c.innerHTML=`<span class="badge">✦</span><div class="ic"><img src="av/av-${a.id}.webp" alt=""></div>
       <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
       <div class="st"><span class="dot"></span>${state.done[a.id]?"cleared today":"ready"}</div>`;
@@ -466,11 +579,10 @@ function enterAgent(a){ currentAgent=a;
 }
 function renderActs(){ const d=$("dActs"); d.innerHTML="";
   if(screenState.running) return;
-  const talk=el("button","btn ghost","💬 Talk"); talk.onclick=()=>{ closeCfg(); screenState.mode="ready"; setCam("stand"); drawScreen(); $("dSay").textContent=currentAgent.say; voiceLine(currentAgent.id,"greet"); };
   const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=openPipe;
   const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
   const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=openCfgScreen;
-  d.append(talk,pipe,run,cfg);
+  d.append(pipe,run,cfg);
 }
 function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
 function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show");
@@ -491,8 +603,11 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
       try{ const lr=await api("/api/agents/leads?agent="+a.id); const items=lr.items||[]; window.__leads={agent:a.id,items};
         if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
           const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+          let act="";
+          if(a.id==="jobs" && it.url){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac to review &amp; submit" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
+          else if(a.id==="sales"){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email for this business → Gmail Drafts" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
           return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0"><b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div></div>
-            <select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
+            ${act}<select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
         }).join(""); }catch(e){}
     }
     try{ const r=await api("/api/agents/messages?agent="+a.id); const msgs=r.messages||[]; const last=msgs[msgs.length-1];
@@ -572,14 +687,19 @@ function runTask(){ const a=currentAgent;
 }
 
 // ── settings ──
-async function openSettings(){ if(!LIVE||!token){ banner("SIGN IN FIRST","Sign in to configure your agents"); return; }
-  $("settings").classList.add("on"); const L=$("sList"); L.innerHTML="Loading…"; if(!schema||!cfg) await loadConfig();
-  L.innerHTML=AGENTS.map(a=>{ const ready=agentReady(a.id);
-    return `<button class="si" style="width:100%;text-align:left;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeSettings();openAgentSettings('${a.id}')">
-      <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover">
-      <div style="flex:1"><b style="font-family:var(--display);color:var(--gold)">${esc(a.name)}</b><div style="color:var(--muted);font-size:13px">${esc(a.role)}</div></div>
-      <span style="font-family:var(--mono);font-size:10px;color:${ready?'var(--green)':'#fb4'}">${ready?'✓ ready':'⚠ needs setup'}</span></button>`; }).join("");
+function openSettings(){ $("settings").classList.add("on"); renderSettingsList(); if(LIVE&&token&&(!schema||!cfg)) loadConfig().then(renderSettingsList); }
+function renderSettingsList(){ const L=$("sList"); if(!L) return;
+  L.innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.5;margin:0 0 10px">Flip an agent on/off to add or remove it from your team room. Tap a row to configure its keys, persona &amp; schedule. <b style="color:var(--gold)">Chief of Staff &amp; Settings always stay.</b></div>`+
+    AGENTS.map(a=>{ const ready=agentReady(a.id); const vis=agentVisible(a.id);
+    return `<div class="si" style="width:100%;display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover;${vis?'':'opacity:.4'}">
+      <button onclick="closeSettings();openAgentSettings('${a.id}')" style="flex:1;text-align:left;background:none;border:0;cursor:pointer;padding:0;color:inherit">
+        <b style="font-family:var(--display);color:var(--gold)">${esc(a.name)}</b>
+        <div style="color:var(--muted);font-size:13px">${esc(a.role)}${LIVE?` · <span style="color:${ready?'var(--green)':'#fb4'}">${ready?'configured':'needs setup'}</span>`:''}</div></button>
+      <div class="sw ${vis?'on':''}" role="switch" aria-checked="${vis}" title="${vis?'Shown in your team — tap to hide':'Hidden — tap to add'}" onclick="toggleAgentUi('${a.id}',this)"></div></div>`; }).join("");
   const sv=document.querySelector("#settings .btn"); if(sv) sv.style.display="none"; }
+function toggleAgentUi(id,elx){ const on=!elx.classList.contains("on"); setAgentVisible(id,on); elx.classList.toggle("on",on); elx.setAttribute("aria-checked",on);
+  const img=elx.parentElement.querySelector("img"); if(img) img.style.opacity=on?"1":".4"; renderHub(); }
 function saveSettings(){ closeSettings(); }
 function closeSettings(){ $("settings").classList.remove("on"); }
 
@@ -596,6 +716,26 @@ loop();
 addEventListener("resize",()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
 
 renderHub(); setTimeout(()=>$("loading").style.display="none",450);
+
+// ── intro (signed-out) + onboarding (pick your team) ──
+function showIntro(){ const el=$("intro"); if(el) el.classList.add("on"); }
+function dismissIntro(){ const el=$("intro"); if(!el||!el.classList.contains("on")) { if(el) el.classList.remove("on"); return; }
+  el.classList.add("leaving"); setTimeout(()=>{ el.classList.remove("on","leaving"); },720); }
+function introEnter(){ dismissIntro(); if(!teamUi) setTimeout(showOnboard,500); }   // not picked a team yet → onboarding
+function showOnboard(){ renderOnboard(); $("onboard").classList.add("on"); }
+function dismissOnboard(){ const el=$("onboard"); if(el) el.classList.remove("on"); }
+let obSel=null;
+function renderOnboard(){ obSel=new Set(teamUi||AGENTS.map(a=>a.id)); const g=$("obGrid");
+  g.innerHTML=AGENTS.map(a=>`<div class="ob-card ${obSel.has(a.id)?'sel':''}" data-id="${a.id}" onclick="obToggle('${a.id}',this)">
+      <span class="ob-check"></span><img src="av/av-${a.id}.webp" alt="">
+      <div><div class="obn">${esc(a.name)}</div><div class="obr">${esc(a.role)}</div></div></div>`).join("")
+    +`<div class="ob-card ob-locked"><span class="ob-check"></span><div class="ic" style="width:46px;height:46px;border-radius:11px;display:grid;place-items:center;font-size:22px;background:rgba(217,164,65,.12)">🎖</div>
+      <div><div class="obn">Chief of Staff</div><div class="obr">Always with you</div></div></div>`;
+  obCount(); }
+function obToggle(id,el){ if(obSel.has(id)) obSel.delete(id); else obSel.add(id); el.classList.toggle("sel",obSel.has(id)); obCount(); }
+function obCount(){ const c=$("obCount"); if(c) c.textContent=obSel.size+" of "+AGENTS.length+" agents on your team"; }
+function onboardDone(){ teamUi=new Set(obSel); teamUiSave(); renderHub(); dismissOnboard(); banner("YOUR TEAM IS SET",obSel.size+" agents ready"); chime("done"); }
+Object.assign(window,{introEnter,onboardDone,obToggle,toggleAgentUi,showOnboard}); // intro/onboarding hooks
 // ── feature modals: Chief of Staff, Connect, Usage, Brain ────────────────────
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function openModal(id){ document.getElementById(id).classList.add("on"); }
@@ -663,7 +803,25 @@ async function setLeadStatus(agent,idx,status){ const it=(window.__leads&&window
   const body= agent==="sales"?{business:it.business,status}: agent==="jobs"?{url:it.url,status}:{name:it.name,company:it.company,status};
   try{ await api("/api/agents/"+agent+"/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); banner("UPDATED",status); chime("done"); }
   catch(e){ alert("Couldn't update status."); } }
-Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings,openPipe,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,LIVE_force:()=>{}}); // debug hooks
+
+// Jobs pipeline → fill an application on the Mac (form opens for review; nothing auto-submitted)
+async function fillJob(btn,url){ if(!url) return; const orig=btn.textContent;
+  btn.disabled=true; btn.textContent="✎ Filling…"; btn.style.opacity="0.7";
+  try{ const r=await api("/api/agents/jobs/fill",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    btn.textContent="✓ Opening"; btn.style.borderColor="var(--green)";
+    alert((r&&r.message)||"Filling on your Mac — the form opens on your screen to review and submit. Nothing is submitted automatically.");
+  }catch(e){ btn.textContent=orig; btn.disabled=false; btn.style.opacity="1";
+    alert((e&&e.detail)?e.detail:"Couldn't start the fill — is your Mac awake and signed in?"); } }
+
+// Sales & Outreach pipeline → draft an outreach email per patron (saved to Gmail → Drafts; nothing sent)
+async function draftSales(btn,business,vertical){ if(!business) return; const orig=btn.textContent;
+  btn.disabled=true; btn.textContent="✉ Drafting…"; btn.style.opacity="0.7";
+  try{ const r=await api("/api/agents/sales/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({business,vertical:vertical||""})});
+    btn.textContent="✓ Drafting"; btn.style.borderColor="var(--green)";
+    alert((r&&r.message)||"Drafting on your Mac — I'll save it to Gmail → Drafts and post in the feed when ready. Nothing is sent.");
+  }catch(e){ btn.textContent=orig; btn.disabled=false; btn.style.opacity="1";
+    alert((e&&e.detail)?e.detail:"Couldn't start the draft — is your Mac awake?"); } }
+Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings,openPipe,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,fillJob,draftSales,LIVE_force:()=>{}}); // debug hooks
 </script>
 </body>
 </html>
