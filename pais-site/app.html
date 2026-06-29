@@ -427,7 +427,7 @@ function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; s
   const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
 // per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
 let curAudio=null;
-function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3?v=2"); curAudio.volume=0.95;
+function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3?v=3"); curAudio.volume=0.95;
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"Done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
