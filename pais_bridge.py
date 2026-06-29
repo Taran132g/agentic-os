@@ -490,6 +490,7 @@ class Handler(BaseHTTPRequestHandler):
                             if r["applied"]:
                                 note = (note + " · " if note else "") + f"applied {r['applied']}"
                             items.append({"title": r["company"], "sub": r["role"],
+                                          "role": r["role"], "match": r["match"],
                                           "url": r["url"], "status": st,
                                           "done": st in (job_sheet.APPLIED_STATUS, "📞 Interview", "🎯 Offer"),
                                           "note": note, "notes": r["notes"]})
@@ -498,6 +499,8 @@ class Handler(BaseHTTPRequestHandler):
                             d = json.load(f)
                         for j in (d if isinstance(d, list) else d.get("jobs", [])):
                             items.append({"title": j.get("company",""), "sub": j.get("role") or j.get("title",""),
+                                          "role": j.get("role") or j.get("title",""),
+                                          "match": str(j.get("match_score","")),
                                           "url": j.get("url",""), "done": False,
                                           "note": f"match {j.get('match_score','?')}"})
                 elif agent == "linkedin":

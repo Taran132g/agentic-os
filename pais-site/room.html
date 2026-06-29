@@ -349,7 +349,7 @@ button{font-family:inherit;cursor:pointer}
 <div class="modal-scrim" id="usagePanel"><div class="modal-box"><button class="x" onclick="closeModal('usagePanel')">✕</button>
   <h3>📊 Claude account &amp; usage</h3><div id="usageBody">Loading…</div></div></div>
 
-<!-- per-agent settings (secrets / connections / persona / schedule) -->
+<!-- per-agent settings (secrets / connections / persona) -->
 <div class="modal-scrim" id="agentCfg"><div class="modal-box"><button class="x" onclick="closeModal('agentCfg')">✕</button>
   <div id="agentCfgBody">Loading…</div></div></div>
 
@@ -600,13 +600,18 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
     try{ const c=await api("/api/agents/config"); const p=(c.agents&&c.agents[a.id]||{}).persona; if(p) $("ppPersona").textContent=p; }catch{}
     if(["sales","jobs","linkedin"].includes(a.id)){
       const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
-      try{ const lr=await api("/api/agents/leads?agent="+a.id); const items=lr.items||[]; window.__leads={agent:a.id,items};
+      try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
+        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>(((y.status||top)===top)?1:0)-(((x.status||top)===top)?1:0)); }  // To-apply first so you see what needs filling
+        window.__leads={agent:a.id,items};
         if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
           const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+          const nameBlock = a.id==="jobs"
+            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}`
+            : `<b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
           let act="";
           if(a.id==="jobs" && it.url){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac to review &amp; submit" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
           else if(a.id==="sales"){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email for this business → Gmail Drafts" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
-          return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0"><b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div></div>
+          return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
             ${act}<select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
         }).join(""); }catch(e){}
     }
@@ -616,10 +621,13 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
     }catch(e){ $("ppReport").innerHTML='<span style="color:var(--muted)">Couldn\'t load the report.</span>'; }
   } else { $("ppReport").innerHTML='<span style="color:var(--muted)">Sign in to see this agent\'s latest run report. (Demo mode shows the pipeline only.)</span>'; } }
 function closePipe(){ $("pipe").classList.remove("on"); }
-// ── real per-agent config (schema + secrets/connections/persona/schedule) ──
+// ── real per-agent config (schema + secrets/connections/persona) ──
 let schema=null, cfg=null;
-const CRON_PRESETS=[{v:"",l:"Manual only"},{v:"30 7 * * *",l:"Every day · 7:30 AM"},{v:"30 7 * * 1-5",l:"Weekdays · 7:30 AM"},{v:"0 18 * * 0",l:"Sunday · 6 PM"}];
-async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} }
+// brain status (vault/desktop) — used to prompt the user to connect when an agent or settings need it
+let brainConnected=null;
+async function refreshBrainStatus(){ if(!LIVE||!token){ brainConnected=false; return false; } try{ const s=await api("/api/brain/status"); brainConnected=!!s.connected; }catch(e){} return brainConnected; }
+function requireBrain(){ if(brainConnected) return true; banner("CONNECT YOUR BRAIN","Connect your desktop or upload your brain so your agents can use your knowledge"); openModal("brainPanel"); loadBrain(); return false; }
+async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} refreshBrainStatus(); }
 function agentReady(id){ if(!schema) return true; const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
 function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
 function openCfgScreen(){ openAgentSettings(currentAgent.id); }
@@ -634,26 +642,27 @@ async function openAgentSettings(id){
   const ip="width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:4px";
   body.innerHTML=`<div class="pp-head"><img src="av/av-${id}.webp"><div><h3 style="margin:0">${esc(a.name)}</h3><div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase">Configure · for you</div></div></div>
     <p style="color:var(--muted);font-size:13.5px;margin-top:0">Give ${esc(a.name)} what it needs to work for you — its instructions, details it should know, and any keys / passwords it needs. <b style="color:var(--green)">Secrets are encrypted and never shown again.</b></p>
+    ${!brainConnected?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:var(--parch)">🧠 <span style="flex:1;min-width:180px">${esc(a.name)} works best with your knowledge. Connect your desktop or build your brain to enable it.</span><button class="btn ghost" style="padding:6px 12px;font-size:11px" onclick="closeModal('agentCfg');openConnect()">Connect desktop</button><button class="btn ghost" style="padding:6px 12px;font-size:11px" onclick="closeModal('agentCfg');openBrain()">Brain</button></div>`:""}
     <label>Persona — how it should work</label><textarea id="cfPersona" rows="3" style="${ip}">${esc(ac.persona||sp.persona||"")}</textarea>
     ${(sp.fields||[]).length?`<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px"><span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">What it should know about you</span><button class="btn ghost" style="padding:5px 10px;font-size:10px" onclick="doPrefill('${id}',this)">✦ Prefill from my brain</button></div>
       ${sp.fields.map(f=>`<label>${esc(f.label)}</label><input data-f="${f.key}" style="${ip}" value="${esc((ac.fields||{})[f.key]||"")}">`).join("")}`:""}
     ${needed.length?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 4px">Keys & passwords it needs <span style="color:var(--green)">🔒 encrypted</span></div>
       ${needed.map(c=>`<label>${esc(c.label)}${c.secret?' 🔒':''}${conns[c.key]?' <span style="color:var(--green)">· saved</span>':''}</label><input data-k="${c.key}" type="${c.secret?'password':'text'}" style="${ip}" placeholder="${c.secret&&conns[c.key]?'•••••• saved — leave blank to keep':''}" value="${c.secret?'':esc(conns[c.key]||'')}">`).join("")}`:""}
-    <label style="margin-top:12px">Schedule</label><select id="cfCron" style="${ip}">${CRON_PRESETS.map(p=>`<option value="${p.v}" ${(((cfg&&cfg.routine)||{}).cron===p.v)?'selected':''}>${p.l}</option>`).join("")}</select>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — runs on your desktop & messages you here</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — can run live on your desktop when you ask</label>
     <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" onclick="saveAgentCfg('${id}')">Save</button><button class="btn ghost" onclick="closeModal('agentCfg')">Done</button><span id="cfMsg" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span></div>`;
 }
 async function saveAgentCfg(id){ const body=$("agentCfgBody"), msg=$("cfMsg"); if(msg)msg.textContent="Saving…";
   const connections={}, fields={};
   body.querySelectorAll("input[data-k]").forEach(i=>{ if(i.value.trim()) connections[i.dataset.k]=i.value.trim(); });
   body.querySelectorAll("input[data-f]").forEach(i=>{ fields[i.dataset.f]=i.value.trim(); });
-  const enabled=$("cfEnabled").checked, cron=$("cfCron").value;
+  const enabled=$("cfEnabled").checked;
   const order=[...(((cfg||{}).routine||{}).order||[])].filter(x=>x!==id); if(enabled) order.push(id);
-  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron, order } };
+  // scheduling disabled — always manual; cron forced empty so the runtime never auto-runs
+  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron:"", order } };
   try{ cfg=await api("/api/agents/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); }
   catch(e){ if(msg)msg.textContent="Save failed — try again."; return; }
   if(msg)msg.textContent="Saved ✓"; banner("AGENT CONFIGURED",(AGENTS.find(a=>a.id===id)||{}).name+" is set up"); chime("done"); }
-async function doPrefill(id,btn){ btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
+async function doPrefill(id,btn){ if(brainConnected===null) await refreshBrainStatus(); if(!requireBrain()) return; btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
   try{ const r=await api("/api/agents/prefill/"+id,{method:"POST"});
     if(r.fields) for(const [k,v] of Object.entries(r.fields)){ const i=$("agentCfgBody").querySelector(`input[data-f="${k}"]`); if(i&&v) i.value=v; }
     const pt=$("cfPersona"); if(pt&&r.persona) pt.value=r.persona; btn.textContent="✦ Prefilled"; }
@@ -689,7 +698,7 @@ function runTask(){ const a=currentAgent;
 // ── settings ──
 function openSettings(){ $("settings").classList.add("on"); renderSettingsList(); if(LIVE&&token&&(!schema||!cfg)) loadConfig().then(renderSettingsList); }
 function renderSettingsList(){ const L=$("sList"); if(!L) return;
-  L.innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.5;margin:0 0 10px">Flip an agent on/off to add or remove it from your team room. Tap a row to configure its keys, persona &amp; schedule. <b style="color:var(--gold)">Chief of Staff &amp; Settings always stay.</b></div>`+
+  L.innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.5;margin:0 0 10px">Flip an agent on/off to add or remove it from your team room. Tap a row to configure its keys &amp; persona. <b style="color:var(--gold)">Chief of Staff &amp; Settings always stay.</b></div>`+
     AGENTS.map(a=>{ const ready=agentReady(a.id); const vis=agentVisible(a.id);
     return `<div class="si" style="width:100%;display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover;${vis?'':'opacity:.4'}">
@@ -747,7 +756,7 @@ const chiefKey=()=>"pais_chief_"+(userId||"anon");
 let chiefConvos=[], chiefActive=null;
 function chiefLoadStore(){ try{ return JSON.parse(localStorage.getItem(chiefKey())||"[]"); }catch{ return []; } }
 function chiefSaveStore(){ try{ localStorage.setItem(chiefKey(),JSON.stringify(chiefConvos.slice(0,50))); }catch{} }
-function openChief(){ if(!requireLive())return; chiefConvos=chiefLoadStore();
+async function openChief(){ if(!requireLive())return; if(brainConnected===null) await refreshBrainStatus(); if(!requireBrain()) return; chiefConvos=chiefLoadStore();
   if(!chiefConvos.length) chiefNew(); else selectConvo(chiefConvos[0].id);
   $("chiefPage").classList.add("on"); setTimeout(()=>$("chiefInput").focus(),120); }
 function closeChief(){ $("chiefPage").classList.remove("on"); }
@@ -787,7 +796,7 @@ async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.firstChild.
 
 // Brain (vault upload + status)
 function openBrain(){ if(!requireLive())return; openModal("brainPanel"); loadBrain(); }
-async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status");
+async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status"); brainConnected=!!s.connected;
     b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.`
       : "Not connected. Upload your vault as a <b>.zip</b> of markdown notes to build your brain."; }
   catch{ b.innerHTML="Couldn't load brain status."; } }
