@@ -356,13 +356,13 @@ button{font-family:inherit;cursor:pointer}
 <script src="vendor/three.min.js"></script>
 <script>
 const DEFAULT_AGENTS=[
-  {id:"briefing",name:"Briefing",role:"Daily Seer",say:"I am your Daily Seer. Shall I read the vault and bring word of the day?",steps:["Read the vault","Divine the digest","Post the omen"]},
-  {id:"email",name:"Email",role:"Keeper of the Inbox",say:"The inbox never rests. Shall I sort the day's letters?",steps:["Gather letters","Sort by intent","Distill","Deliver"]},
-  {id:"jobs",name:"Jobs",role:"Questgiver",say:"New roles await across the realms. Shall I scout and forge your applications?",steps:["Scout the realms","Mark the map","Forge application","Seek your seal"]},
-  {id:"sales",name:"Sales & Outreach",role:"Hunter of Patrons",say:"I hunt patrons worth your time, then pen the missives. Shall I search the territory?",steps:["Search territory","Weigh the worthy","Inscribe ledger","✉ Draft per patron"]},
-  {id:"linkedin",name:"LinkedIn",role:"Networker",say:"I know the lords who hire. Say the word and I'll draft the pacts.",steps:["Find the lords","Draft the pact","Carry from ledger"]},
-  {id:"code",name:"Code",role:"The Smith",say:"Point me at the forge and I'll seal the work, then send it forth.",steps:["Scan the forge","Ward the gates","Seal the commit","Send forth"]},
-  {id:"reviewer",name:"Reviewer",role:"The Arbiter",say:"I read the day's deeds. Shall I judge the work and counsel you?",steps:["Read the day","Judge the work","Counsel changes"]},
+  {id:"briefing",name:"Briefing",role:"Daily briefing",say:"I read through your vault and notes and give you a short rundown of what matters today. Want me to put it together?",steps:["Read your notes","Summarize the day","Post the briefing"]},
+  {id:"email",name:"Email",role:"Inbox triage",say:"I go through your inbox and separate what needs you from what can wait. Want me to triage it?",steps:["Read new email","Sort by priority","Summarize","Post the digest"]},
+  {id:"jobs",name:"Jobs",role:"Job scout",say:"I find new internship postings that fit you and add them to your pipeline. Want me to scout for roles?",steps:["Search for roles","Check they're open","Score the fit","Add to pipeline"]},
+  {id:"sales",name:"Sales & Outreach",role:"Lead finder",say:"I find local businesses worth reaching out to and draft an outreach email for each. Want me to search?",steps:["Search the area","Pick the best leads","Save to pipeline","Draft an email each"]},
+  {id:"linkedin",name:"LinkedIn",role:"Networking",say:"I find people who are hiring and draft a connection note for each. Want me to find some?",steps:["Find people hiring","Draft a connection note","Add to pipeline"]},
+  {id:"code",name:"Code",role:"Code sync",say:"I check your repos, run safety checks, then commit and push the work. Want me to run it?",steps:["Scan the repos","Run checks","Commit","Push"]},
+  {id:"reviewer",name:"Reviewer",role:"Reviewer",say:"I look at what your agents have done since the last review and tell you how it went and what still needs you. Want me to review?",steps:["Read recent runs","Grade the work","Flag what needs you"]},
 ];
 const $=id=>document.getElementById(id);
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
@@ -428,7 +428,7 @@ function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; s
 // per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
 let curAudio=null;
 function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
-  curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
+  curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"Done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
 function renderHud(){}
@@ -675,7 +675,7 @@ function runTask(){ const a=currentAgent;
     .catch(e=>{ realResult={_err:e}; realDone=true; }); }
   const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
     if(ok){ state.done[a.id]=true; lastRun[a.id]=Date.now(); renderHub(); } persist();
-    busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"It is done. Posted to your feed.":"Run ended — check your feed.");
+    busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"Done. Posted to your feed.":"Run ended — check your feed.");
     voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished"); persist();} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
   const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
   const tick=()=>{ const e=performance.now()-t0; let pct=Math.min(1,e/total);
