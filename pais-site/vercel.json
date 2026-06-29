@@ -10,6 +10,9 @@
     { "source": "/app", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]},
+    { "source": "/room", "headers": [
+      { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
+    ]},
     { "source": "/", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]}

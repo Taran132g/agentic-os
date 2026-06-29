@@ -57,9 +57,26 @@ button{font-family:inherit;cursor:pointer}
 .card.settings{border-style:dashed;border-color:rgba(139,148,255,.3)}
 .card.settings .ic{display:grid;place-items:center;color:var(--magic)}
 
-/* ── OFFICE (3D) ── */
-#c{position:fixed;inset:0;z-index:5;display:block;opacity:0;transition:opacity .5s}
+/* ── OFFICE (3D) — retired in favor of a clean dashboard run view ── */
+#c{display:none!important}
 #c.show{opacity:1}
+/* clean run dashboard (replaces the 3D office screen) */
+.run-stage{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:24;width:min(580px,92vw);opacity:0;pointer-events:none;transition:opacity .4s}
+.run-stage.show{opacity:1}
+.rs-card{background:linear-gradient(180deg,#15161d,#0e0f15);border:1px solid rgba(201,161,74,.22);border-radius:18px;padding:22px 24px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.rs-head{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.rs-av{width:52px;height:52px;border-radius:13px;overflow:hidden;border:1px solid rgba(201,161,74,.4);flex:none}
+.rs-av img{width:100%;height:100%;object-fit:cover}
+.rs-name{font-size:20px;font-weight:700;color:var(--gold)}
+.rs-status{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;color:var(--muted)}
+.rs-steps{margin:16px 0 4px}
+.rs-step{display:flex;align-items:center;gap:11px;padding:8px 2px;font-size:15px;color:var(--muted)}
+.rs-step .rs-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--dim);display:grid;place-items:center;font-family:var(--mono);font-size:11px;flex:none}
+.rs-step.done{color:var(--parch)}.rs-step.done .rs-dot{border-color:var(--green);background:var(--green);color:#06160d}
+.rs-step.active{color:var(--parch)}.rs-step.active .rs-dot{border-color:var(--magic);color:var(--magic)}
+.rs-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
+.rs-fill{height:100%;width:0;background:linear-gradient(90deg,#b9842f,var(--gold2));border-radius:5px;transition:width .3s}
+.rs-eta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:5px;min-height:14px}
 .office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
 .office-ui.show{opacity:1}
 .backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
@@ -284,6 +301,14 @@ button{font-family:inherit;cursor:pointer}
 <!-- 3D office -->
 <canvas id="c"></canvas>
 <div class="office-ui" id="officeUI"></div>
+<!-- clean dashboard run view (replaces the 3D office screen) -->
+<div class="run-stage" id="runStage"><div class="rs-card">
+  <div class="rs-head"><div class="rs-av"><img id="rsImg" alt=""></div>
+    <div><div class="rs-name" id="rsName">—</div><div class="rs-status" id="rsStatus">Ready</div></div></div>
+  <div class="rs-steps" id="rsSteps"></div>
+  <div class="rs-bar"><div class="rs-fill" id="rsFill"></div></div>
+  <div class="rs-eta" id="rsEta"></div>
+</div></div>
 <button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
 <div class="dialogue" id="dialogue">
   <div class="row"><div class="por"><img id="dImg" alt=""></div>
@@ -538,7 +563,23 @@ const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4
 
 // ── screen drawing (faces you, no mirror) ──
 const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null,mode:"ready"};
-function drawScreen(){ const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
+function renderStage(){ const a=screenState.agent, stg=document.getElementById("runStage"); if(!a||!stg) return;
+  const st=screenState, m=st.mode||"ready";
+  document.getElementById("rsImg").src="av/av-"+a.id+".webp";
+  document.getElementById("rsName").textContent=a.name;
+  const se=document.getElementById("rsStatus");
+  if(m==="config"){ se.textContent="Configuring"; se.style.color="var(--magic)"; }
+  else if(m==="pipeline"){ se.textContent="Pipeline"; se.style.color="var(--gold)"; }
+  else if(st.done){ se.textContent="● Complete"; se.style.color="var(--green)"; }
+  else if(st.running){ se.textContent="● Running"; se.style.color="var(--magic)"; }
+  else { se.textContent="○ Ready"; se.style.color="var(--muted)"; }
+  document.getElementById("rsSteps").innerHTML=(a.steps||[]).map((step,i)=>{
+    const done=(m!=="pipeline")&&(st.done||i<st.stepIdx), active=(m!=="pipeline")&&!st.done&&i===st.stepIdx;
+    return `<div class="rs-step ${done?'done':active?'active':''}"><span class="rs-dot">${done?'✓':(i+1)}</span><span>${esc(step)}</span></div>`; }).join("");
+  document.getElementById("rsFill").style.width=(m==="pipeline"?0:Math.round((st.pct||0)*100))+"%";
+  document.getElementById("rsEta").textContent=(st.running&&!st.done&&st.eta)?("~"+st.eta+"s left"):"";
+}
+function drawScreen(){ try{renderStage();}catch(e){} const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
   x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
   const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
   x.strokeStyle="rgba(217,164,65,.55)"; x.lineWidth=4; x.strokeRect(8,8,W-16,H-16);
@@ -569,7 +610,7 @@ function enterAgent(a){ currentAgent=a;
   sign.material.map=signFor(a); sign.material.needsUpdate=true;
   screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; drawScreen();
   agent.rotation.y=0; agentWatch=0; screenState.mode="ready"; setCam("stand");   // stand, talking to the agent
-  $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("backbtn").style.display="block";
+  $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("runStage").classList.add("show"); $("backbtn").style.display="block";
   $("dImg").src="av/av-"+a.id+".webp"; $("dWho").textContent=a.name; $("dRole").textContent=a.role; $("dSay").textContent=a.say;
   renderActs(); $("dialogue").classList.add("on"); voiceLine(a.id,"greet");
 }
@@ -581,7 +622,7 @@ function renderActs(){ const d=$("dActs"); d.innerHTML="";
   d.append(pipe,run,cfg);
 }
 function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
-function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show");
+function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show"); $("runStage").classList.remove("show");
   $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe(); closeCfg(); setCam("stand");
   try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
 $("backbtn").onclick=backToHub;
