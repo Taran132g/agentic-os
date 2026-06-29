@@ -317,9 +317,9 @@ button{font-family:inherit;cursor:pointer}
 </div></div>
 <button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
 <div class="dialogue" id="dialogue">
-  <div class="row"><div class="por"><img id="dImg" alt=""></div>
-    <div style="flex:1"><div class="who" id="dWho">—</div><div class="role" id="dRole">—</div>
-      <div class="say" id="dSay">—</div><div class="acts" id="dActs"></div></div></div>
+  <div class="row"><div style="flex:1"><div class="who" id="dWho">—</div><div class="role" id="dRole">—</div>
+      <div class="say" id="dSay">—</div><div class="acts" id="dActs"></div></div>
+    <div class="por"><img id="dImg" alt=""></div></div>
 </div>
 <div class="pipe" id="pipe"><button class="x" onclick="closePipe()">✕</button>
   <h3 id="pName">—</h3><div class="pr" id="pRole">—</div><div id="pSteps"></div></div>
@@ -460,7 +460,7 @@ function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; s
   const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
 // per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
 let curAudio=null;
-function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3?v=3"); curAudio.volume=0.95;
+function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3?v=4"); curAudio.volume=0.95;
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"Done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
@@ -626,8 +626,7 @@ function renderActs(){ const d=$("dActs"); d.innerHTML="";
   if(screenState.running) return;
   const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=openPipe;
   const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
-  const cfg=el("button","btn ghost","⚙ Configure"); cfg.onclick=openCfgScreen;
-  d.append(pipe,run,cfg);
+  d.append(pipe,run);
 }
 function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
 function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show"); $("runStage").classList.remove("show");
