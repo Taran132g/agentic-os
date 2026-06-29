@@ -790,7 +790,7 @@ async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.firstChild.
 // Brain (vault upload + status)
 function openBrain(){ if(!requireLive())return; openModal("brainPanel"); loadBrain(); }
 async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status");
-    b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.`
+    b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.${s.updated?`<div style="margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--muted)">Last updated ${agoLabel(s.updated).replace(/^ran /,"")}</div>`:""}`
       : "Not connected. Upload your vault as a <b>.zip</b> of markdown notes to build your brain."; }
   catch{ b.innerHTML="Couldn't load brain status."; } }
 document.getElementById("vaultFile2").addEventListener("change",async ()=>{ const fi=document.getElementById("vaultFile2"); const f=fi.files[0]; fi.value=""; if(!f||!token) return;
