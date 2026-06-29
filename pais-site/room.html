@@ -413,6 +413,10 @@ const DEFAULT_AGENTS=[
   {id:"reviewer",name:"Reviewer",role:"Reviewer",say:"I look at what your agents have done since the last review and tell you how it went and what still needs you. Want me to review?",steps:["Read recent runs","Grade the work","Flag what needs you"]},
 ];
 const $=id=>document.getElementById(id);
+// Bump AGENTS_VER whenever DEFAULT_AGENTS text changes (name/role/say/steps) so a
+// stale saved copy in localStorage can't shadow the new defaults (the de-themed text).
+const AGENTS_VER="2026-06-29-plain";
+if(localStorage.getItem("pais_agents_v")!==AGENTS_VER){ try{localStorage.removeItem("pais_agents");}catch{} try{localStorage.setItem("pais_agents_v",AGENTS_VER);}catch{} }
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
 const state={ level:1, xp:40, done:{}, };
