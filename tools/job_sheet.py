@@ -37,8 +37,8 @@ DEFAULT_STATUS = STATUSES[0]
 APPLIED_STATUS = STATUSES[1]
 
 _HEADER = (
-    "| Status | Company | Role | Location | Match | Applied | Link | Notes |\n"
-    "|--------|---------|------|----------|-------|---------|------|-------|"
+    "| Status | Company | Role | Location | Match | Applied | Link | Notes | Posted |\n"
+    "|--------|---------|------|----------|-------|---------|------|-------|--------|"
 )
 
 _SCAFFOLD = f"""---
@@ -143,6 +143,7 @@ def rows() -> list[dict]:
             "applied": cols[5] if len(cols) > 5 else "",
             "url": url,
             "notes": cols[7] if len(cols) > 7 else "",
+            "posted": cols[8] if len(cols) > 8 else "",
         })
     return out
 
@@ -163,10 +164,11 @@ def append_jobs(jobs: list[dict]) -> int:
             continue
         have.add(_norm_url(url))
         match = j.get("match_score") or j.get("match") or ""
+        posted = j.get("posted") or j.get("posted_date") or j.get("date_posted") or ""
         link = f"[open]({url})"
         new_rows.append(
             f"| {DEFAULT_STATUS} | {_cell(j.get('company','?'))} | {_cell(j.get('role') or j.get('title',''))} "
-            f"| {_cell(j.get('location',''))} | {_cell(match)} |  | {link} | {_cell(j.get('why',''))} |"
+            f"| {_cell(j.get('location',''))} | {_cell(match)} |  | {link} | {_cell(j.get('why',''))} | {_cell(posted)} |"
         )
     if not new_rows:
         return 0

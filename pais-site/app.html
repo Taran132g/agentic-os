@@ -597,12 +597,12 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
     if(["sales","jobs","linkedin"].includes(a.id)){
       const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
       try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
-        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>(((y.status||top)===top)?1:0)-(((x.status||top)===top)?1:0)); }  // To-apply first so you see what needs filling
+        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.posted||"").localeCompare(String(x.posted||"")); }); }  // To-apply first, then most-recently-posted first
         window.__leads={agent:a.id,items};
         if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
           const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
           const nameBlock = a.id==="jobs"
-            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}`
+            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${it.posted?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}`
             : `<b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
           let act="";
           if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac to review &amp; submit" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }

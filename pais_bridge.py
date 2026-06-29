@@ -501,6 +501,7 @@ class Handler(BaseHTTPRequestHandler):
                                 note = (note + " · " if note else "") + f"applied {r['applied']}"
                             items.append({"title": r["company"], "sub": r["role"],
                                           "role": r["role"], "match": r["match"],
+                                          "posted": r.get("posted", ""),
                                           "url": r["url"], "status": st,
                                           "done": st in (job_sheet.APPLIED_STATUS, "📞 Interview", "🎯 Offer"),
                                           "note": note, "notes": r["notes"]})
