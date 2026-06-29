@@ -60,23 +60,30 @@ button{font-family:inherit;cursor:pointer}
 /* ── OFFICE (3D) — retired in favor of a clean dashboard run view ── */
 #c{display:none!important}
 #c.show{opacity:1}
-/* clean run dashboard (replaces the 3D office screen) */
-.run-stage{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);z-index:24;width:min(580px,92vw);opacity:0;pointer-events:none;transition:opacity .4s}
-.run-stage.show{opacity:1}
-.rs-card{background:linear-gradient(180deg,#15161d,#0e0f15);border:1px solid rgba(201,161,74,.22);border-radius:18px;padding:22px 24px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
-.rs-head{display:flex;align-items:center;gap:14px;margin-bottom:4px}
-.rs-av{width:52px;height:52px;border-radius:13px;overflow:hidden;border:1px solid rgba(201,161,74,.4);flex:none}
-.rs-av img{width:100%;height:100%;object-fit:cover}
-.rs-name{font-size:20px;font-weight:700;color:var(--gold)}
-.rs-status{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;color:var(--muted)}
-.rs-steps{margin:16px 0 4px}
-.rs-step{display:flex;align-items:center;gap:11px;padding:8px 2px;font-size:15px;color:var(--muted)}
+/* clean two-pane agent panel (steps/pipeline left · avatar right) */
+.run-stage{position:fixed;inset:0;z-index:24;opacity:0;pointer-events:none;transition:opacity .3s;overflow:auto}
+.run-stage.show{opacity:1;pointer-events:auto}
+.rs-card{min-height:100%;background:none;border:none;border-radius:0;box-shadow:none;padding:92px 7vw 56px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;justify-content:center}
+.rs-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.rs-name{font-size:21px;font-weight:700;color:var(--gold)}
+.rs-role{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.rs-name{font-size:28px}
+.rs-desc{font-size:16px;color:var(--parch);margin-top:11px;line-height:1.55;max-width:760px}
+.rs-actions{display:flex;gap:10px;flex-wrap:wrap}
+.rs-body{display:flex;gap:48px;margin-top:30px;align-items:flex-start}
+.rs-left{flex:1;min-width:0}
+.rs-right{flex:none}
+.rs-av-lg{width:190px;height:190px;border-radius:22px;overflow:hidden;border:1px solid rgba(201,161,74,.4)}
+.rs-av-lg img{width:100%;height:100%;object-fit:cover}
+.rs-status{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.rs-step{display:flex;align-items:center;gap:12px;padding:10px 2px;font-size:16px;color:var(--muted)}
 .rs-step .rs-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--dim);display:grid;place-items:center;font-family:var(--mono);font-size:11px;flex:none}
 .rs-step.done{color:var(--parch)}.rs-step.done .rs-dot{border-color:var(--green);background:var(--green);color:#06160d}
 .rs-step.active{color:var(--parch)}.rs-step.active .rs-dot{border-color:var(--magic);color:var(--magic)}
 .rs-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
 .rs-fill{height:100%;width:0;background:linear-gradient(90deg,#b9842f,var(--gold2));border-radius:5px;transition:width .3s}
 .rs-eta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:5px;min-height:14px}
+.rs-pipe{max-height:46vh;overflow:auto}
 .office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
 .office-ui.show{opacity:1}
 .backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
@@ -233,6 +240,8 @@ button{font-family:inherit;cursor:pointer}
 .ob-foot{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:8px}
 .ob-go{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;padding:15px 34px;border-radius:999px;cursor:pointer;border:1px solid var(--gold);background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1206;font-weight:700}
 .ob-go:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(217,164,65,.35)}
+.ob-go.ghost{background:transparent;color:var(--parch);border-color:rgba(233,220,192,.3);font-weight:500}
+.ob-go.ghost:hover{border-color:var(--gold);color:var(--gold2);box-shadow:none}
 .ob-count{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em}
 /* settings: per-agent show-in-team toggle */
 .sw{position:relative;width:42px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);cursor:pointer;flex-shrink:0;transition:background .18s,border-color .18s}
@@ -250,7 +259,8 @@ button{font-family:inherit;cursor:pointer}
 <body>
 <div class="loading" id="loading">LOADING CONTROL ROOM…</div>
 
-<!-- cinematic intro (signed-out first impression) -->
+<!-- cinematic intro (signed-out first impression) — DISABLED, kept for later reuse.
+     To re-enable: uncomment the block below AND restore showIntro() in maybeIntro() (see JS).
 <div class="intro" id="intro">
   <div class="intro-inner">
     <div class="intro-kicker">Your personal AI workforce</div>
@@ -264,6 +274,8 @@ button{font-family:inherit;cursor:pointer}
     <div class="intro-hint">No sign-in needed to look around</div>
   </div>
 </div>
+-->
+
 
 <!-- onboarding: pick your team -->
 <div class="onboard" id="onboard">
@@ -275,6 +287,7 @@ button{font-family:inherit;cursor:pointer}
     <div class="ob-foot">
       <span class="ob-count" id="obCount"></span>
       <button class="ob-go" onclick="onboardDone()">Enter the room →</button>
+      <button class="ob-go ghost" onclick="paisSignIn()">Sign in with Google</button>
     </div>
   </div>
 </div>
@@ -303,11 +316,21 @@ button{font-family:inherit;cursor:pointer}
 <div class="office-ui" id="officeUI"></div>
 <!-- clean dashboard run view (replaces the 3D office screen) -->
 <div class="run-stage" id="runStage"><div class="rs-card">
-  <div class="rs-head"><div class="rs-av"><img id="rsImg" alt=""></div>
-    <div><div class="rs-name" id="rsName">—</div><div class="rs-status" id="rsStatus">Ready</div></div></div>
-  <div class="rs-steps" id="rsSteps"></div>
-  <div class="rs-bar"><div class="rs-fill" id="rsFill"></div></div>
-  <div class="rs-eta" id="rsEta"></div>
+  <div class="rs-topbar">
+    <div><div class="rs-name" id="rsName">—</div><div class="rs-role" id="rsRole">—</div></div>
+    <div class="rs-actions" id="rsActions"></div>
+  </div>
+  <div class="rs-desc" id="rsDesc"></div>
+  <div class="rs-body">
+    <div class="rs-left">
+      <div class="rs-status" id="rsStatus">Ready</div>
+      <div id="rsSteps"></div>
+      <div class="rs-bar" id="rsBarWrap"><div class="rs-fill" id="rsFill"></div></div>
+      <div class="rs-eta" id="rsEta"></div>
+      <div class="rs-pipe" id="rsPipe" style="display:none"></div>
+    </div>
+    <div class="rs-right"><div class="rs-av-lg"><img id="rsImg" alt=""></div></div>
+  </div>
 </div></div>
 <button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
 <div class="dialogue" id="dialogue">
@@ -366,7 +389,7 @@ button{font-family:inherit;cursor:pointer}
 <div class="modal-scrim" id="usagePanel"><div class="modal-box"><button class="x" onclick="closeModal('usagePanel')">✕</button>
   <h3>📊 Claude account &amp; usage</h3><div id="usageBody">Loading…</div></div></div>
 
-<!-- per-agent settings (secrets / connections / persona / schedule) -->
+<!-- per-agent settings (secrets / connections / persona) -->
 <div class="modal-scrim" id="agentCfg"><div class="modal-box"><button class="x" onclick="closeModal('agentCfg')">✕</button>
   <div id="agentCfgBody">Loading…</div></div></div>
 
@@ -438,12 +461,14 @@ function applyIdentity(user){ const um=user.user_metadata||{}; const photo=um.av
 // owner-only backend features server-side; the room/onboarding work for everyone.
 function onSess(s){ if(s&&s.user){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); loadLastRuns(); dismissIntro(); dismissOnboard(); } else { setLive(false); maybeIntro(); } }
 let introShown=false;
-function maybeIntro(){ if(LIVE||introShown) return; introShown=true; showIntro(); }
+// Intro disabled — go straight to team selection (onboarding) for signed-out users.
+// To re-enable the cinematic intro: replace the line below with `showIntro();` and uncomment the intro HTML.
+function maybeIntro(){ if(LIVE||introShown) return; introShown=true; if(!teamUi) showOnboard(); }
 if(sb){ sb.auth.getSession().then(({data})=>onSess(data.session)); sb.auth.onAuthStateChange((_e,s)=>onSess(s)); }
 else { setTimeout(maybeIntro,300); }
 
 // ── audio juice ──
-let actx; function chime(kind){ return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+let actx; function chime(kind){ return; /* game sounds disabled */ try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
   const notes= kind==="level"?[523,659,784,1047]: kind==="done"?[659,880]:[440];
   notes.forEach((f,i)=>{ const o=actx.createOscillator(),g=actx.createGain(); o.type="triangle"; o.frequency.value=f;
     o.connect(g); g.connect(actx.destination); const t=actx.currentTime+i*0.09; g.gain.setValueAtTime(0.0001,t);
@@ -452,7 +477,7 @@ function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; s
   const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
 // per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
 let curAudio=null;
-function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices/"+id+"-"+tag+".mp3?v=4"); curAudio.volume=0.95;
+function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices2/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"Done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
@@ -464,7 +489,7 @@ let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textC
 // ── confetti ──
 const fx=$("fx"), fxc=fx.getContext("2d"); let parts=[];
 function resizeFx(){ fx.width=innerWidth; fx.height=innerHeight; } addEventListener("resize",resizeFx); resizeFx();
-function confetti(n){ return; for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.4,
+function confetti(n){ return; /* confetti disabled */ for(let i=0;i<n;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*0.4,
   vx:(Math.random()-.5)*9,vy:-6-Math.random()*9,g:0.28,r:Math.random()*6+3,
   c:["#d9a441","#f0c463","#8b94ff","#56d98a","#fff"][Math.floor(Math.random()*5)],a:1,rot:Math.random()*6}); }
 function fxLoop(){ fxc.clearRect(0,0,fx.width,fx.height); parts=parts.filter(p=>p.a>0);
@@ -563,22 +588,48 @@ const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4
 
 // ── screen drawing (faces you, no mirror) ──
 const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null,mode:"ready"};
-function renderStage(){ const a=screenState.agent, stg=document.getElementById("runStage"); if(!a||!stg) return;
-  const st=screenState, m=st.mode||"ready";
+function renderStage(){ const a=screenState.agent; if(!a||!document.getElementById("runStage")) return;
+  const st=screenState;
   document.getElementById("rsImg").src="av/av-"+a.id+".webp";
   document.getElementById("rsName").textContent=a.name;
+  document.getElementById("rsRole").textContent=a.role;
+  document.getElementById("rsDesc").textContent=a.say;
   const se=document.getElementById("rsStatus");
-  if(m==="config"){ se.textContent="Configuring"; se.style.color="var(--magic)"; }
-  else if(m==="pipeline"){ se.textContent="Pipeline"; se.style.color="var(--gold)"; }
-  else if(st.done){ se.textContent="● Complete"; se.style.color="var(--green)"; }
+  if(st.done){ se.textContent="● Complete"; se.style.color="var(--green)"; }
   else if(st.running){ se.textContent="● Running"; se.style.color="var(--magic)"; }
   else { se.textContent="○ Ready"; se.style.color="var(--muted)"; }
   document.getElementById("rsSteps").innerHTML=(a.steps||[]).map((step,i)=>{
-    const done=(m!=="pipeline")&&(st.done||i<st.stepIdx), active=(m!=="pipeline")&&!st.done&&i===st.stepIdx;
+    const done=st.done||i<st.stepIdx, active=!st.done&&i===st.stepIdx;
     return `<div class="rs-step ${done?'done':active?'active':''}"><span class="rs-dot">${done?'✓':(i+1)}</span><span>${esc(step)}</span></div>`; }).join("");
-  document.getElementById("rsFill").style.width=(m==="pipeline"?0:Math.round((st.pct||0)*100))+"%";
+  document.getElementById("rsFill").style.width=Math.round((st.pct||0)*100)+"%";
   document.getElementById("rsEta").textContent=(st.running&&!st.done&&st.eta)?("~"+st.eta+"s left"):"";
 }
+// ── left-pane view toggle: steps (default/run) ↔ pipeline (leads) ──
+const LEAD_STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]};
+function _stepsEls(){ return ["rsStatus","rsSteps","rsBarWrap","rsEta"].map(id=>document.getElementById(id)).filter(Boolean); }
+function showSteps(){ _stepsEls().forEach(e=>e.style.display=""); const p=document.getElementById("rsPipe"); if(p)p.style.display="none"; }
+function showPipe(){ if(!currentAgent)return; _stepsEls().forEach(e=>e.style.display="none"); const p=document.getElementById("rsPipe"); if(p)p.style.display=""; renderLeadsInto("rsPipe",currentAgent); }
+async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(targetId); if(!tgt)return; const STAT=LEAD_STAT[a.id];
+  if(!STAT){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">This agent has no pipeline — press Run to watch it work.</div>'; return; }
+  if(!(LIVE&&token)){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Sign in to view your pipeline.</div>'; return; }
+  tgt.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0">Loading pipeline…</div>';
+  try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
+    if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.posted||"").localeCompare(String(x.posted||"")); }); }
+    window.__leads={agent:a.id,items};
+    if(!items.length){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Nothing here yet — press Run to scout.</div>'; return; }
+    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
+      const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+      const nameBlock = a.id==="jobs"
+        ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${it.posted?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}`
+        : `<b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
+      let act="";
+      if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
+      else if(a.id==="sales" && !it.drafted){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email → Gmail Drafts" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
+      else if(a.id==="linkedin"){ const q=encodeURIComponent(((it.title||it.name||"")+" "+(it.company||"")).trim()); const href=it.linkedin||`https://www.linkedin.com/search/results/people/?keywords=${q}`; act=`<a href="${esc(href)}" target="_blank" rel="noopener" title="Open on LinkedIn" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap;text-decoration:none">in ↗</a>`; }
+      return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
+        ${act}<select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
+    }).join("");
+  }catch(e){ tgt.innerHTML='<div style="color:var(--muted);font-size:13px">Couldn\'t load the pipeline.</div>'; } }
 function drawScreen(){ try{renderStage();}catch(e){} const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
   x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
   const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
@@ -608,16 +659,14 @@ let currentAgent=null, busy=false, agentWatch=0;
 function enterAgent(a){ currentAgent=a;
   agentMat.map=loader.load("av/av-"+a.id+".webp"); agentMat.map.encoding=THREE.sRGBEncoding; agentMat.needsUpdate=true;
   sign.material.map=signFor(a); sign.material.needsUpdate=true;
-  screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; drawScreen();
-  agent.rotation.y=0; agentWatch=0; screenState.mode="ready"; setCam("stand");   // stand, talking to the agent
-  $("hub").classList.add("hide"); $("c").classList.add("show"); $("officeUI").classList.add("show"); $("runStage").classList.add("show"); $("backbtn").style.display="block";
-  $("dImg").src="av/av-"+a.id+".webp"; $("dWho").textContent=a.name; $("dRole").textContent=a.role; $("dSay").textContent=a.say;
-  renderActs(); $("dialogue").classList.add("on"); voiceLine(a.id,"greet");
+  screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; screenState.mode="ready"; drawScreen();
+  $("hub").classList.add("hide"); $("runStage").classList.add("show"); $("backbtn").style.display="block";
+  showSteps(); renderActs(); voiceLine(a.id,"greet");
 }
-function renderActs(){ const d=$("dActs"); d.innerHTML="";
-  if(screenState.running) return;
-  const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=openPipe;
-  const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=runTask;
+function renderActs(){ const d=$("rsActions"); if(!d) return; d.innerHTML="";
+  if(screenState.running){ const r=el("button","btn run","● Running…"); r.disabled=true; d.append(r); return; }
+  const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=showPipe;
+  const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=()=>{ showSteps(); runTask(); };
   d.append(pipe,run);
 }
 function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
@@ -658,10 +707,13 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
     }catch(e){ $("ppReport").innerHTML='<span style="color:var(--muted)">Couldn\'t load the report.</span>'; }
   } else { $("ppReport").innerHTML='<span style="color:var(--muted)">Sign in to see this agent\'s latest run report. (Demo mode shows the pipeline only.)</span>'; } }
 function closePipe(){ $("pipe").classList.remove("on"); }
-// ── real per-agent config (schema + secrets/connections/persona/schedule) ──
+// ── real per-agent config (schema + secrets/connections/persona) ──
 let schema=null, cfg=null;
-const CRON_PRESETS=[{v:"",l:"Manual only"},{v:"30 7 * * *",l:"Every day · 7:30 AM"},{v:"30 7 * * 1-5",l:"Weekdays · 7:30 AM"},{v:"0 18 * * 0",l:"Sunday · 6 PM"}];
-async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} }
+// brain status (vault/desktop) — used to prompt the user to connect when an agent or settings need it
+let brainConnected=null;
+async function refreshBrainStatus(){ if(!LIVE||!token){ brainConnected=false; return false; } try{ const s=await api("/api/brain/status"); brainConnected=!!s.connected; }catch(e){} return brainConnected; }
+function requireBrain(){ if(brainConnected) return true; banner("Connect your brain","Connect your desktop or upload your brain so your agents can use your knowledge"); openModal("brainPanel"); loadBrain(); return false; }
+async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} refreshBrainStatus(); }
 function agentReady(id){ if(!schema) return true; const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
 function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
 function openCfgScreen(){ openAgentSettings(currentAgent.id); }
@@ -676,26 +728,27 @@ async function openAgentSettings(id){
   const ip="width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 11px;font-family:var(--serif);font-size:14px;margin-bottom:4px";
   body.innerHTML=`<div class="pp-head"><img src="av/av-${id}.webp"><div><h3 style="margin:0">${esc(a.name)}</h3><div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase">Configure · for you</div></div></div>
     <p style="color:var(--muted);font-size:13.5px;margin-top:0">Give ${esc(a.name)} what it needs to work for you — its instructions, details it should know, and any keys / passwords it needs. <b style="color:var(--green)">Secrets are encrypted and never shown again.</b></p>
+    ${!brainConnected?`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-size:13px;color:var(--parch)">🧠 <span style="flex:1;min-width:180px">${esc(a.name)} works best with your knowledge. Connect your desktop or build your brain to enable it.</span><button class="btn ghost" style="padding:6px 12px;font-size:11px" onclick="closeModal('agentCfg');openConnect()">Connect desktop</button><button class="btn ghost" style="padding:6px 12px;font-size:11px" onclick="closeModal('agentCfg');openBrain()">Brain</button></div>`:""}
     <label>Persona — how it should work</label><textarea id="cfPersona" rows="3" style="${ip}">${esc(ac.persona||sp.persona||"")}</textarea>
     ${(sp.fields||[]).length?`<div style="display:flex;align-items:center;gap:10px;margin:12px 0 4px"><span style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">What it should know about you</span><button class="btn ghost" style="padding:5px 10px;font-size:10px" onclick="doPrefill('${id}',this)">Prefill from my brain</button></div>
       ${sp.fields.map(f=>`<label>${esc(f.label)}</label><input data-f="${f.key}" style="${ip}" value="${esc((ac.fields||{})[f.key]||"")}">`).join("")}`:""}
     ${needed.length?`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:14px 0 4px">Keys & passwords it needs <span style="color:var(--green)">🔒 encrypted</span></div>
       ${needed.map(c=>`<label>${esc(c.label)}${c.secret?' 🔒':''}${conns[c.key]?' <span style="color:var(--green)">· saved</span>':''}</label><input data-k="${c.key}" type="${c.secret?'password':'text'}" style="${ip}" placeholder="${c.secret&&conns[c.key]?'•••••• saved — leave blank to keep':''}" value="${c.secret?'':esc(conns[c.key]||'')}">`).join("")}`:""}
-    <label style="margin-top:12px">Schedule</label><select id="cfCron" style="${ip}">${CRON_PRESETS.map(p=>`<option value="${p.v}" ${(((cfg&&cfg.routine)||{}).cron===p.v)?'selected':''}>${p.l}</option>`).join("")}</select>
-    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — runs on your desktop & messages you here</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;text-transform:none;letter-spacing:0;font-family:var(--serif);font-size:14px;color:var(--parch)"><input type="checkbox" id="cfEnabled" ${ac.enabled?'checked':''}> Active — can run live on your desktop when you ask</label>
     <div style="display:flex;gap:10px;margin-top:16px;align-items:center"><button class="btn" onclick="saveAgentCfg('${id}')">Save</button><button class="btn ghost" onclick="closeModal('agentCfg')">Done</button><span id="cfMsg" style="font-family:var(--mono);font-size:11px;color:var(--muted)"></span></div>`;
 }
 async function saveAgentCfg(id){ const body=$("agentCfgBody"), msg=$("cfMsg"); if(msg)msg.textContent="Saving…";
   const connections={}, fields={};
   body.querySelectorAll("input[data-k]").forEach(i=>{ if(i.value.trim()) connections[i.dataset.k]=i.value.trim(); });
   body.querySelectorAll("input[data-f]").forEach(i=>{ fields[i.dataset.f]=i.value.trim(); });
-  const enabled=$("cfEnabled").checked, cron=$("cfCron").value;
+  const enabled=$("cfEnabled").checked;
   const order=[...(((cfg||{}).routine||{}).order||[])].filter(x=>x!==id); if(enabled) order.push(id);
-  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron, order } };
+  // scheduling disabled — always manual; cron forced empty so the runtime never auto-runs
+  const payload={ connections, agents:{ [id]:{ persona:$("cfPersona").value.trim(), fields, enabled } }, routine:{ cron:"", order } };
   try{ cfg=await api("/api/agents/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}); }
   catch(e){ if(msg)msg.textContent="Save failed — try again."; return; }
   if(msg)msg.textContent="Saved ✓"; banner("Saved",(AGENTS.find(a=>a.id===id)||{}).name+" is set up"); chime("done"); }
-async function doPrefill(id,btn){ btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
+async function doPrefill(id,btn){ if(brainConnected===null) await refreshBrainStatus(); if(!requireBrain()) return; btn.disabled=true; const o=btn.textContent; btn.textContent="Reading your brain…";
   try{ const r=await api("/api/agents/prefill/"+id,{method:"POST"});
     if(r.fields) for(const [k,v] of Object.entries(r.fields)){ const i=$("agentCfgBody").querySelector(`input[data-f="${k}"]`); if(i&&v) i.value=v; }
     const pt=$("cfPersona"); if(pt&&r.persona) pt.value=r.persona; btn.textContent="Prefilled"; }
@@ -731,7 +784,7 @@ function runTask(){ const a=currentAgent;
 // ── settings ──
 function openSettings(){ $("settings").classList.add("on"); renderSettingsList(); if(LIVE&&token&&(!schema||!cfg)) loadConfig().then(renderSettingsList); }
 function renderSettingsList(){ const L=$("sList"); if(!L) return;
-  L.innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.5;margin:0 0 10px">Flip an agent on/off to add or remove it from your team room. Tap a row to configure its keys, persona &amp; schedule. <b style="color:var(--gold)">Chief of Staff &amp; Settings always stay.</b></div>`+
+  L.innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;line-height:1.5;margin:0 0 10px">Flip an agent on/off to add or remove it from your team room. Tap a row to configure its keys &amp; persona. <b style="color:var(--gold)">Chief of Staff &amp; Settings always stay.</b></div>`+
     AGENTS.map(a=>{ const ready=agentReady(a.id); const vis=agentVisible(a.id);
     return `<div class="si" style="width:100%;display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">
       <img src="av/av-${a.id}.webp" style="width:38px;height:38px;border-radius:9px;object-fit:cover;${vis?'':'opacity:.4'}">
@@ -789,7 +842,7 @@ const chiefKey=()=>"pais_chief_"+(userId||"anon");
 let chiefConvos=[], chiefActive=null;
 function chiefLoadStore(){ try{ return JSON.parse(localStorage.getItem(chiefKey())||"[]"); }catch{ return []; } }
 function chiefSaveStore(){ try{ localStorage.setItem(chiefKey(),JSON.stringify(chiefConvos.slice(0,50))); }catch{} }
-function openChief(){ if(!requireLive())return; chiefConvos=chiefLoadStore();
+async function openChief(){ if(!requireLive())return; if(brainConnected===null) await refreshBrainStatus(); if(!requireBrain()) return; chiefConvos=chiefLoadStore();
   if(!chiefConvos.length) chiefNew(); else selectConvo(chiefConvos[0].id);
   $("chiefPage").classList.add("on"); setTimeout(()=>$("chiefInput").focus(),120); }
 function closeChief(){ $("chiefPage").classList.remove("on"); }
@@ -843,7 +896,7 @@ async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.textContent
 
 // Brain (vault upload + status)
 function openBrain(){ if(!requireLive())return; openModal("brainPanel"); loadBrain(); }
-async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status");
+async function loadBrain(){ const b=$("brainBody"); try{ const s=await api("/api/brain/status"); brainConnected=!!s.connected;
     b.innerHTML= s.connected? `🧠 Connected — <b style="color:var(--gold)">${(s.notes||0).toLocaleString()}</b> notes${s.source==='local'?' from your Mac vault':''}. Your team works from your own knowledge.${s.updated?`<div style="margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--muted)">Last updated ${agoLabel(s.updated).replace(/^ran /,"")}</div>`:""}`
       : "Not connected. Upload your vault as a <b>.zip</b> of markdown notes to build your brain."; }
   catch{ b.innerHTML="Couldn't load brain status."; } }

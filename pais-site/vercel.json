@@ -13,6 +13,9 @@
     { "source": "/room", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]},
+    { "source": "/voices2/(.*)", "headers": [
+      { "key": "Cache-Control", "value": "no-cache" }
+    ]},
     { "source": "/", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]}
