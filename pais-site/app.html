@@ -266,7 +266,6 @@ button{font-family:inherit;cursor:pointer}
   <div class="me"><div class="av" id="meAv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg></div>
     <div><h1 id="meName">OPERATOR</h1><div class="occ" id="meOcc"></div></div></div>
   <div class="spacer"></div>
-  <div class="chip streak">🔥 <b id="streak">4</b> day streak</div>
   <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
   <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE</div>
   <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 Connect</button>
@@ -368,7 +367,7 @@ const DEFAULT_AGENTS=[
 const $=id=>document.getElementById(id);
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
-const state={ level:1, xp:40, streak:4, done:{}, };
+const state={ level:1, xp:40, done:{}, };
 let lastRun = {};   // agentId -> last-run epoch ms (newest feed message per agent)
 function agoLabel(ts){ if(!ts) return "not run yet"; const s=Math.max(0,(Date.now()-ts)/1000);
   if(s<90) return "ran just now"; if(s<3600) return "ran "+Math.round(s/60)+"m ago";
@@ -432,7 +431,7 @@ function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Au
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
-function renderHud(){ $("streak").textContent=state.streak; }
+function renderHud(){}
 function gainXp(){ /* XP removed — completion still rewards via confetti + banner */ persist(); }
 let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textContent=small; $("banner").classList.add("on");
   clearTimeout(bt); bt=setTimeout(()=>$("banner").classList.remove("on"),1900); }
