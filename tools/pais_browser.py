@@ -573,6 +573,61 @@ def _fill_form(page, job: dict, results: dict) -> None:
 
 
 # ── public entry points ───────────────────────────────────────────────────────
+def _clear_stale_singleton(profile_dir: str) -> None:
+    """Chromium guards a profile with a SingletonLock symlink → 'HOST-PID'. If that
+    PID is DEAD (a crashed/killed prior browser), the lock is stale and every launch
+    fails with 'Failed to create a ProcessSingleton'. Clear stale locks so the fill
+    can proceed; a LIVE lock (a real browser still on this profile) is left alone."""
+    prof = Path(profile_dir)
+    try:
+        target = os.readlink(prof / "SingletonLock")
+    except OSError:
+        return                                  # no lock → nothing to clear
+    tail = target.rsplit("-", 1)[-1] if "-" in target else ""
+    pid = int(tail) if tail.isdigit() else None
+    if pid:
+        try:
+            os.kill(pid, 0)                      # signal 0 = liveness probe
+            return                               # alive → real browser, leave it
+        except ProcessLookupError:
+            pass                                 # dead → stale, clear below
+        except PermissionError:
+            return                               # exists, not ours → treat as live
+    for name in ("SingletonLock", "SingletonCookie", "SingletonSocket"):
+        try:
+            (prof / name).unlink()
+        except OSError:
+            pass
+    log.info("[pais_browser] cleared stale Chromium singleton (dead pid %s)", pid)
+
+
+def _fill_job_on_page(page, job: dict) -> dict:
+    """Navigate one job on the given page and fill its form. Returns one result dict
+    and NEVER raises — failures come back as {ok: False, ...} so a batch or queue
+    keeps moving to the next job instead of aborting the whole run."""
+    url = (job.get("url") or "").strip()
+    job_id = str(job.get("id", "job"))
+    results = {"filled": [], "skipped": [], "errors": []}
+    shot = str(SHOT_DIR / f"{job_id}_pw.png")
+    if not url.startswith("http"):
+        return {"ok": False, "status": "error", "error": "no URL", "url": url, **results}
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=45000)
+        page.wait_for_timeout(3500)
+        if len(page.query_selector_all("input, textarea, select")) == 0:
+            page.screenshot(path=shot, full_page=False)
+            return {"ok": False, "status": "no_form", "url": url,
+                    "error": "no form fields (login/multi-step ATS)",
+                    "screenshot": shot, **results}
+        _fill_form(page, job, results)
+        page.screenshot(path=shot, full_page=False)
+        return {"ok": bool(results["filled"]),
+                "status": "filled" if results["filled"] else "no_form",
+                "url": url, "screenshot": shot, **results}
+    except Exception as e:
+        return {"ok": False, "status": "error", "url": url, "error": str(e), **results}
+
+
 def browser_fill_pw(job: dict, headless: bool = False,
                     keep_open_seconds: int = 1800) -> dict:
     """Open the job URL in the persistent Chromium profile, fill the whole form via
@@ -589,6 +644,7 @@ def browser_fill_pw(job: dict, headless: bool = False,
     results = {"filled": [], "skipped": [], "errors": []}
     shot = str(SHOT_DIR / f"{job_id}_pw.png")
 
+    _clear_stale_singleton(PROFILE_DIR)
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
             PROFILE_DIR, headless=headless,
@@ -643,37 +699,15 @@ def browser_fill_pw_batch(jobs: list[dict], headless: bool = False,
     from playwright.sync_api import sync_playwright
 
     out: list[dict] = []
+    _clear_stale_singleton(PROFILE_DIR)
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
             PROFILE_DIR, headless=headless,
             viewport={"width": 1280, "height": 900},
             args=["--no-first-run", "--no-default-browser-check"])
         for i, job in enumerate(jobs):
-            url = (job.get("url") or "").strip()
-            job_id = str(job.get("id", f"job{i}"))
-            if not url.startswith("http"):
-                out.append({"ok": False, "status": "error", "error": "no URL", "url": url})
-                continue
             page = ctx.pages[0] if (i == 0 and ctx.pages) else ctx.new_page()
-            results = {"filled": [], "skipped": [], "errors": []}
-            shot = str(SHOT_DIR / f"{job_id}_pw.png")
-            try:
-                page.goto(url, wait_until="domcontentloaded", timeout=45000)
-                page.wait_for_timeout(3500)
-                if len(page.query_selector_all("input, textarea, select")) == 0:
-                    page.screenshot(path=shot, full_page=False)
-                    out.append({"ok": False, "status": "no_form", "url": url,
-                                "error": "no form fields (login/multi-step ATS)",
-                                "screenshot": shot, **results})
-                    continue
-                _fill_form(page, job, results)
-                page.screenshot(path=shot, full_page=False)
-                out.append({"ok": bool(results["filled"]),
-                            "status": "filled" if results["filled"] else "no_form",
-                            "url": url, "screenshot": shot, **results})
-            except Exception as e:
-                out.append({"ok": False, "status": "error", "url": url,
-                            "error": str(e), **results})
+            out.append(_fill_job_on_page(page, job))
         if after_fill:
             try:
                 after_fill(out)
@@ -697,6 +731,52 @@ def _stay_open(ctx, seconds: int) -> None:
             ctx.close()
         except Exception:
             pass
+
+
+def browser_fill_queue(pop_next, on_result, headless: bool = False,
+                       idle_review_seconds: int = 600, poll_seconds: float = 2.0) -> int:
+    """Drain a DYNAMIC job queue through ONE persistent browser.
+
+    `pop_next()` returns the next job dict (or None when the queue is momentarily
+    empty); `on_result(job, result)` is called after each fill. The browser opens
+    once (stale singleton cleared first), fills jobs as they arrive — so a second
+    'Fill' pressed while this runs is picked up in the SAME window rather than racing
+    a new Chromium (no ProcessSingleton) — and once the queue stays empty for
+    `idle_review_seconds` it closes. That idle window is the review/submit time; a job
+    queued during it resets the window. Returns the count of jobs filled."""
+    from playwright.sync_api import sync_playwright
+    _clear_stale_singleton(PROFILE_DIR)
+    filled = 0
+    with sync_playwright() as p:
+        ctx = p.chromium.launch_persistent_context(
+            PROFILE_DIR, headless=headless,
+            viewport={"width": 1280, "height": 900},
+            args=["--no-first-run", "--no-default-browser-check"])
+        first = True
+        idle_deadline = time.time() + max(0, idle_review_seconds)
+        try:
+            while True:
+                job = pop_next()
+                if job is None:
+                    if time.time() >= idle_deadline:
+                        break
+                    time.sleep(poll_seconds)
+                    continue
+                page = ctx.pages[0] if (first and ctx.pages) else ctx.new_page()
+                first = False
+                res = _fill_job_on_page(page, job)
+                filled += 1
+                try:
+                    on_result(job, res)
+                except Exception:
+                    log.exception("[pais_browser] on_result hook failed")
+                idle_deadline = time.time() + max(0, idle_review_seconds)
+        finally:
+            try:
+                ctx.close()
+            except Exception:
+                pass
+    return filled
 
 
 if __name__ == "__main__":
