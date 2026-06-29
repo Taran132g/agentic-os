@@ -273,7 +273,6 @@ button{font-family:inherit;cursor:pointer}
     <div><h1 id="meName">OPERATOR</h1><div class="occ" id="meOcc"></div></div></div>
   <div class="spacer"></div>
   <div class="chip streak">🔥 <b id="streak">4</b> day streak</div>
-  <div class="chip">Today <div class="ring" id="ring" style="--p:0"><i id="ringN">0</i></div></div>
   <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
   <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE</div>
   <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 Connect</button>
@@ -375,7 +374,14 @@ const DEFAULT_AGENTS=[
 const $=id=>document.getElementById(id);
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
-const state={ level:1, xp:40, streak:4, doneToday:0, done:{}, };
+const state={ level:1, xp:40, streak:4, done:{}, };
+let lastRun = {};   // agentId -> last-run epoch ms (newest feed message per agent)
+function agoLabel(ts){ if(!ts) return "not run yet"; const s=Math.max(0,(Date.now()-ts)/1000);
+  if(s<90) return "ran just now"; if(s<3600) return "ran "+Math.round(s/60)+"m ago";
+  if(s<86400) return "ran "+Math.round(s/3600)+"h ago";
+  const d=Math.round(s/86400); return "ran "+d+(d===1?" day":" days")+" ago"; }
+async function loadLastRuns(){ if(!LIVE||!token) return;
+  try{ const r=await api("/api/agents/messages"); (r.messages||[]).forEach(m=>{ if(m.agent&&m.ts) lastRun[m.agent]=Math.max(lastRun[m.agent]||0,m.ts); }); renderHub(); }catch(e){} }
 // which agents are shown in the team room (UI visibility, toggled in Settings / onboarding).
 // null = not onboarded yet → all show. A Set = the chosen team.
 let teamUi=null; try{ const t=localStorage.getItem("pais_team_ui"); if(t) teamUi=new Set(JSON.parse(t)); }catch{ teamUi=null; }
@@ -412,7 +418,7 @@ function applyIdentity(user){ const um=user.user_metadata||{}; const photo=um.av
   api("/api/profile").then(p=>{ const occ=(p&&(p.occupation||p.title||p.headline||p.role||p.profession))||""; if(occ&&$("meOcc")) $("meOcc").textContent=occ; }).catch(()=>{}); }
 // Any signed-in Google account works now (was owner-only). OWNER_EMAILS still gates
 // owner-only backend features server-side; the room/onboarding work for everyone.
-function onSess(s){ if(s&&s.user){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); dismissIntro(); dismissOnboard(); } else { setLive(false); maybeIntro(); } }
+function onSess(s){ if(s&&s.user){ token=s.access_token; userId=s.user.id; setLive(true,s.user.email); applyIdentity(s.user); loadConfig(); loadLastRuns(); dismissIntro(); dismissOnboard(); } else { setLive(false); maybeIntro(); } }
 let introShown=false;
 // Intro disabled — go straight to team selection (onboarding) for signed-out users.
 // To re-enable the cinematic intro: replace the line below with `showIntro();` and uncomment the intro HTML.
@@ -434,8 +440,7 @@ function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Au
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"It is done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
-function renderHud(){ $("streak").textContent=state.streak; const total=AGENTS.length; const p=Math.round(state.doneToday/total*100);
-  $("ring").style.setProperty("--p",p); $("ringN").textContent=state.doneToday; }
+function renderHud(){ $("streak").textContent=state.streak; }
 function gainXp(){ /* XP removed — completion still rewards via confetti + banner */ persist(); }
 let bt; function banner(big,small){ $("bBig").textContent=big; $("bSmall").textContent=small; $("banner").classList.add("on");
   clearTimeout(bt); bt=setTimeout(()=>$("banner").classList.remove("on"),1900); }
@@ -457,7 +462,7 @@ function renderHub(){ const g=$("grid"); g.innerHTML="";
   AGENTS.filter(a=>agentVisible(a.id)).forEach((a,i)=>{ const c=document.createElement("button"); c.className="card"+(state.done[a.id]?" done":"");
     c.innerHTML=`<span class="badge">✦</span><div class="ic"><img src="av/av-${a.id}.webp" alt=""></div>
       <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
-      <div class="st"><span class="dot"></span>${state.done[a.id]?"cleared today":"ready"}</div>`;
+      <div class="st"><span class="dot"></span>${agoLabel(lastRun[a.id])}</div>`;
     c.onclick=()=>enterAgent(a); g.appendChild(c); });
   const chief=document.createElement("button"); chief.className="card"; chief.style.borderColor="rgba(217,164,65,.4)";
   chief.innerHTML=`<div class="ic" style="display:grid;place-items:center;color:var(--gold);font-size:24px">🎖</div>
@@ -682,7 +687,7 @@ function runTask(){ const a=currentAgent;
   if(LIVE){ bgRun(a.id).then(q=> q && q.queued? waitRun(a.id) : q).then(r=>{ realResult=r||{}; realDone=true; })
     .catch(e=>{ realResult={_err:e}; realDone=true; }); }
   const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
-    if(ok && !state.done[a.id]){ state.done[a.id]=true; state.doneToday++; } persist();
+    if(ok){ state.done[a.id]=true; lastRun[a.id]=Date.now(); renderHub(); } persist();
     busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"It is done. Posted to your feed.":"Run ended — check your feed.");
     voiceLine(a.id,"done"); chime("done"); if(ok){ confetti(120); banner("TASK COMPLETE",a.name+" finished"); persist();} else banner("RUN ENDED",a.name+" — see your feed"); renderActs(); };
   const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
