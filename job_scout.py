@@ -109,35 +109,30 @@ def _research(n: int) -> list[dict]:
     prompt = f"""You are a job scout for a candidate. Today is {today}.
 
 Use WebSearch to find {n} RECENTLY-POSTED (within roughly the last 30 days)
-**Summer 2027** internships in **DATA ANALYTICS** — specifically Data Analyst,
-Business Intelligence (BI) Analyst, Data/Reporting Analyst, Analytics, Business
-Analyst, or Data Science (analyst-leaning, dashboards & reporting) roles.
+**Summer 2027** internships or co-ops in **AI/ML Engineering and Software
+Engineering** — Software Engineer, AI/ML Engineer, Machine Learning, ML/data
+infrastructure, and applied-AI intern roles.
 
-FOCUS (this is a deliberate shift):
-- Target roles centered on DATA ANALYSIS, DASHBOARDS, REPORTING, BI, SQL, and
-  business insights — NOT software engineering and NOT research-heavy roles.
-- Prefer **banks, fintech, and large mainstream companies** with big, relatively
-  ACCESSIBLE internship programs — e.g. Capital One, JPMorgan Chase, Bank of
-  America, Wells Fargo, Citi, PNC, Truist, American Express, Discover, Fidelity,
-  Vanguard, Nationwide, Progressive, plus large non-bank companies with data/BI
-  intern programs. These are easier to get into than elite/boutique shops.
-- **EXCLUDE quantitative researcher / quant trading roles** and elite quant/HFT
-  firms (Jane Street, Citadel, Two Sigma, D.E. Shaw, Point72, Aquatic, Voloridge,
-  Jump, Hudson River, etc.). Also exclude pure software-engineering roles.
+FOCUS:
+- Target SOFTWARE ENGINEERING and AI/ML ENGINEERING internships — building
+  software, models, and systems. NOT data-analyst / BI / reporting roles.
+- Internships & co-ops ONLY — exclude new-grad and full-time positions.
+- Prefer companies with real, currently-open Summer-2027 intern programs and a
+  DIRECT application URL.
 
 {persona_block()}
 Prefer Workday / Greenhouse / official career-page postings with a DIRECT
 application URL. Use WebFetch to verify each is a real, currently-open Summer-2027
-application page. Rank by best-fit AND accessibility (favor large programs).
+application page. Rank by best-fit.
 
-CANDIDATE RESUME (for relevance — they have Python, SQL, data, ML, and analytics
-experience; pitch the data-analyst angle):
+CANDIDATE RESUME (for relevance — Python, AWS, Firebase, React, ROS2, ML; pitch
+the software / AI-engineering angle):
 {resume}
 
 Output ONLY a JSON array of up to {n} objects (no prose, no code fences):
 [{{"company":"","role":"","url":"<verified application URL>","location":"",
 "posted":"<approx posting date>","match_score":<integer 0-100>,
-"why_fit":"<one concise sentence — why it fits a data-analyst-focused candidate>"}}]"""
+"why_fit":"<one concise sentence — why it fits a software / AI-engineering candidate>"}}]"""
     cmd = ["claude", "-p", prompt,
            "--allowedTools", "WebSearch,WebFetch",
            "--dangerously-skip-permissions"]
