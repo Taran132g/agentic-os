@@ -777,13 +777,27 @@ function openConnect(){ if(!requireLive())return; openModal("connectPanel");
 
 // Usage (Claude account + quota)
 function openUsage(){ if(!requireLive())return; openModal("usagePanel"); loadUsage(); }
-async function loadUsage(){ const b=$("usageBody"); b.innerHTML="Loading…"; let d;
-  try{ d=await api("/api/agents/claude-account"); }catch(e){ b.innerHTML="Couldn't load account ("+(e.detail||e.status||"error")+")."; return; }
-  const accts=d.accounts||[]; const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.active?'active':''}" ${a.active?'disabled':''} onclick="switchAcct('${a.name}',this)">${esc(a.name)}${a.active?' ✓':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
-  const q=d.quota||{}; const bar=(w,l)=>{ if(!w||w.utilization==null) return ""; const u=Math.round(w.utilization); const c=u>=90?'#f87':u>=70?'#fb4':'#6e9';
-    return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${l}</span><span style="color:${c};font-weight:600">${u}%</span></div><div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:4px"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:4px"></div></div></div>`; };
-  b.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${chips}</div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">Subscription quota</div>${bar(q.five_hour,'5-hour window')}${bar(q.seven_day,'Weekly limit')}`; }
-async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.firstChild.textContent="Switching…"; }
+let __acct=null, __selAcct=null;
+async function loadUsage(){ const b=$("usageBody"); b.innerHTML="Loading…";
+  try{ __acct=await api("/api/agents/claude-account"); }catch(e){ b.innerHTML="Couldn't load account ("+(e.detail||e.status||"error")+")."; return; }
+  const accts=__acct.accounts||[]; const active=accts.find(a=>a.active);
+  if(!__selAcct || !accts.some(a=>a.name===__selAcct)) __selAcct=(active||accts[0]||{}).name||null;
+  renderUsage(); }
+function _resetLabel(iso){ if(!iso) return "no active window"; const d=new Date(iso); if(isNaN(d)) return "—";
+  const diff=(d-Date.now())/1000; let rel=""; if(diff>0){ rel=diff<3600?Math.round(diff/60)+"m":diff<86400?Math.round(diff/3600)+"h":Math.round(diff/86400)+"d"; rel=" (in "+rel+")"; }
+  return d.toLocaleString([],{weekday:"short",hour:"numeric",minute:"2-digit"})+rel; }
+function _usageBar(w,l){ if(!w||w.utilization==null) return `<div style="margin:10px 0;font-size:12px;color:var(--muted)">${l}: no data</div>`;
+  const u=Math.round(w.utilization); const c=u>=90?'#f87':u>=70?'#fb4':'#6e9';
+  return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${l}</span><span style="color:${c};font-weight:600">${u}%</span></div><div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:4px"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:4px"></div></div><div style="font-size:11px;color:var(--muted);margin-top:3px">resets ${_resetLabel(w.resets_at)}</div></div>`; }
+function renderUsage(){ const b=$("usageBody"); const accts=(__acct&&__acct.accounts)||[];
+  const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.name===__selAcct?'active':''}" onclick="selUsage('${a.name}')">${esc(a.name)}${a.active?' ✓':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
+  const sel=accts.find(a=>a.name===__selAcct)||{}; const q=sel.quota||(sel.active?(__acct.quota||{}):{});
+  const sw=(sel.name&&!sel.active)?`<button class="btn" onclick="switchAcct('${sel.name}',this)" style="margin-top:14px">⇄ Switch to ${esc(sel.name)}</button>`:"";
+  b.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${chips}</div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">${esc(__selAcct||'')} quota${sel.active?' · active':' · viewing only — tap Switch to use'}</div>
+    ${_usageBar(q.five_hour,'5-hour window')}${_usageBar(q.seven_day,'Weekly limit')}${sw}`; }
+function selUsage(name){ __selAcct=name; renderUsage(); }   // SELECT only — never auto-switches
+async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.textContent="Switching…"; }
   try{ await api("/api/agents/claude-account/switch",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})}); }
   catch(e){ alert("Switch failed: "+(e.detail||e.status||"error")); } loadUsage(); }
 

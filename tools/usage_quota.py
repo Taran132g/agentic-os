@@ -18,19 +18,27 @@ _ENDPOINT = "https://api.anthropic.com/api/oauth/usage"
 _KEYCHAIN_SERVICE = "Claude Code-credentials"
 _TTL = 120  # throttle: a burst of finished tasks hits the API at most once / 2 min
 
-_cache: dict = {"data": None, "ts": 0.0}
+_cache: dict = {}   # keyed by account name ("_active" for the logged-in account)
 
 
-def _oauth_token() -> str | None:
+def _token_for(account: str | None) -> str | None:
+    """OAuth access token for an account: the live keychain entry for the active
+    login, or the saved per-profile entry ('Claude Code-account-<name>') for any
+    other account — so we can read a non-active account's quota WITHOUT switching."""
+    svc = _KEYCHAIN_SERVICE if not account else f"Claude Code-account-{account}"
     try:
         raw = subprocess.run(
-            ["security", "find-generic-password", "-s", _KEYCHAIN_SERVICE, "-w"],
+            ["security", "find-generic-password", "-s", svc, "-w"],
             capture_output=True, text=True, timeout=5,
         ).stdout.strip()
         return json.loads(raw)["claudeAiOauth"]["accessToken"]
     except Exception as e:
-        log.warning("usage_quota: cannot read OAuth token: %s", e)
+        log.warning("usage_quota: cannot read token for %s: %s", account or "active", e)
         return None
+
+
+def _oauth_token() -> str | None:        # back-compat alias
+    return _token_for(None)
 
 
 def _parse(raw: dict) -> dict:
@@ -56,18 +64,22 @@ def _parse(raw: dict) -> dict:
     }
 
 
-def fetch_quota(force: bool = False) -> dict | None:
-    """Return parsed subscription quota, or last-known value on failure.
+def fetch_quota(force: bool = False, account: str | None = None) -> dict | None:
+    """Return parsed subscription quota for an account (None = the active login),
+    or last-known value on failure. Passing `account` reads that profile's saved
+    token so the Control Room can show a non-active account's reset WITHOUT switching.
 
-    Throttled to one live request per _TTL seconds; call freely after each task.
+    Throttled to one live request per _TTL seconds per account.
     """
+    key = account or "_active"
+    cached = _cache.get(key)
     now = time.time()
-    if not force and _cache["data"] is not None and now - _cache["ts"] < _TTL:
-        return _cache["data"]
+    if not force and cached and cached["data"] is not None and now - cached["ts"] < _TTL:
+        return cached["data"]
 
-    token = _oauth_token()
+    token = _token_for(account)
     if not token:
-        return _cache["data"]
+        return cached["data"] if cached else None
 
     req = urllib.request.Request(_ENDPOINT, headers={
         "Authorization": f"Bearer {token}",
@@ -77,12 +89,12 @@ def fetch_quota(force: bool = False) -> dict | None:
         with urllib.request.urlopen(req, timeout=10) as resp:
             raw = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
-        log.warning("usage_quota: endpoint returned HTTP %s", e.code)
-        return _cache["data"]
+        log.warning("usage_quota: endpoint returned HTTP %s (acct=%s)", e.code, key)
+        return cached["data"] if cached else None
     except Exception as e:
-        log.warning("usage_quota: fetch failed: %s", e)
-        return _cache["data"]
+        log.warning("usage_quota: fetch failed (acct=%s): %s", key, e)
+        return cached["data"] if cached else None
 
-    _cache["data"] = _parse(raw)
-    _cache["ts"] = now
-    return _cache["data"]
+    parsed = _parse(raw)
+    _cache[key] = {"data": parsed, "ts": now}
+    return parsed

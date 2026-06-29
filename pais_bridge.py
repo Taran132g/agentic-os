@@ -655,7 +655,14 @@ class Handler(BaseHTTPRequestHandler):
                 info = {"accounts": [], "error": str(e)[:200]}
             try:
                 from tools.usage_quota import fetch_quota
-                info["quota"] = fetch_quota()
+                info["quota"] = fetch_quota()                       # active account (back-compat)
+                # Attach each account's own quota so the Control Room can show a
+                # non-active account's reset times WITHOUT switching to it.
+                for a in info.get("accounts", []):
+                    try:
+                        a["quota"] = fetch_quota(account=None if a.get("active") else a.get("name"))
+                    except Exception:
+                        a["quota"] = None
             except Exception:
                 info["quota"] = None
             return self._send(200, info)
