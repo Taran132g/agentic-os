@@ -284,6 +284,15 @@ def _sales_rows() -> list:
     """Parse the pipeline table (between the markers) into row dicts."""
     if not SALES_SHEET.exists():
         return []
+    # businesses that already have a saved Gmail draft (✉ Draft button) — used to
+    # hide the button so we don't re-draft the same place.
+    drafted = set()
+    try:
+        _df = Path.home() / ".pais" / "sales_drafted.json"
+        if _df.exists():
+            drafted = set(json.loads(_df.read_text()).keys())
+    except Exception:
+        drafted = set()
     rows = []
     in_p = False
     for line in icloud_read.read_text(SALES_SHEET).splitlines():
@@ -306,6 +315,7 @@ def _sales_rows() -> list:
             "window": cols[4] if len(cols) > 4 else "",
             "workflow": cols[5] if len(cols) > 5 else "",
             "notes": cols[7] if len(cols) > 7 else "",
+            "drafted": cols[1].strip().lower() in drafted,
         })
     return rows
 
@@ -525,7 +535,8 @@ class Handler(BaseHTTPRequestHandler):
                         st = r["status"]
                         items.append({"title": r["business"], "sub": r["vertical"],
                                       "phone": r["phone"], "status": st, "done": "WON" in st,
-                                      "note": r["workflow"] or r["window"], "notes": r["notes"]})
+                                      "note": r["workflow"] or r["window"], "notes": r["notes"],
+                                      "drafted": r.get("drafted", False)})
                 statuses = None
                 if agent == "sales":
                     statuses = SALES_STATUSES
