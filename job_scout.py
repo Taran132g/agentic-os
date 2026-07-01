@@ -165,6 +165,16 @@ def main() -> int:
 
     # keep only entries with a real URL, rank by match_score desc
     jobs = [j for j in jobs if str(j.get("url", "")).startswith("http")]
+    # Deterministic HTTP gate: the LLM's "URL-verified" claim is unreliable (dead/
+    # expired req IDs slip through and surface as "site not found"). Actually GET
+    # each URL and drop dead/closed postings before caching + enqueueing.
+    try:
+        from tools.url_verify import filter_open
+        jobs, dropped = filter_open(jobs)
+        for j in dropped:
+            print(f"[scout] dropped dead/closed URL: {j.get('company','?')} — {j.get('url','')}")
+    except Exception as e:
+        print("(url verify skipped:", str(e)[:120], ")")
     jobs.sort(key=lambda j: -(j.get("match_score") or 0))
     jobs = jobs[:n]
 
