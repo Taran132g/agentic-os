@@ -66,7 +66,7 @@ button{font-family:inherit;cursor:pointer}
 /* clean two-pane agent panel (steps/pipeline left · avatar right) */
 .run-stage{position:fixed;inset:0;z-index:24;opacity:0;pointer-events:none;transition:opacity .3s;overflow:auto}
 .run-stage.show{opacity:1;pointer-events:auto}
-.rs-card{min-height:100%;background:none;border:none;border-radius:0;box-shadow:none;padding:92px 7vw 56px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;justify-content:center}
+.rs-card{min-height:100%;background:none;border:none;border-radius:0;box-shadow:none;padding:92px 7vw 56px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;justify-content:safe center}
 .rs-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .rs-name{font-size:21px;font-weight:700;color:var(--gold)}
 .rs-role{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px}
@@ -86,7 +86,7 @@ button{font-family:inherit;cursor:pointer}
 .rs-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
 .rs-fill{height:100%;width:0;background:linear-gradient(90deg,#b9842f,var(--gold2));border-radius:5px;transition:width .3s}
 .rs-eta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:5px;min-height:14px}
-.rs-pipe{max-height:46vh;overflow:auto}
+.rs-pipe{max-height:min(62vh,620px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:4px}
 .office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
 .office-ui.show{opacity:1}
 .backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
@@ -621,14 +621,15 @@ async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(ta
   if(!(LIVE&&token)){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Sign in to view your pipeline.</div>'; return; }
   tgt.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0">Loading pipeline…</div>';
   try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
-    if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.posted||"").localeCompare(String(x.posted||"")); }); }
+    if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }
     window.__leads={agent:a.id,items};
     if(!items.length){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Nothing here yet — press Run to scout.</div>'; return; }
-    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
+    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,120).map((it,i)=>{
       const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+      const addedB = (it.added&&it.added!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· added ${esc(it.added)}</span>`:"";
       const nameBlock = a.id==="jobs"
-        ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${it.posted?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}`
-        : `<b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
+        ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
+        : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
       let act="";
       if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
       else if(a.id==="sales" && !it.drafted){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email → Gmail Drafts" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
@@ -693,13 +694,14 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
     if(["sales","jobs","linkedin"].includes(a.id)){
       const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
       try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
-        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.posted||"").localeCompare(String(x.posted||"")); }); }  // To-apply first, then most-recently-posted first
+        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }  // To-apply first, then most-recently-posted first
         window.__leads={agent:a.id,items};
         if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
           const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
+          const addedB = (it.added&&it.added!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· added ${esc(it.added)}</span>`:"";
           const nameBlock = a.id==="jobs"
-            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${it.posted?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}`
-            : `<b>${title}</b><div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
+            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
+            : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
           let act="";
           if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac to review &amp; submit" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
           else if(a.id==="sales" && !it.drafted){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email for this business → Gmail Drafts" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
