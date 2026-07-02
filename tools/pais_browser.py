@@ -366,7 +366,7 @@ def _claude_answers(unknowns: list[dict]) -> dict:
     )
     try:
         proc = subprocess.run(["claude", "-p", prompt],
-                              capture_output=True, text=True, timeout=180)
+                              capture_output=True, text=True, timeout=60)
         raw = (proc.stdout or "").strip()
         raw = re.sub(r"```(?:json)?|```", "", raw)
         m = re.search(r"\{.*\}", raw, re.S)
@@ -419,7 +419,7 @@ def _claude_fill_cover(txt: str, company: str, role: str) -> str:
     )
     try:
         proc = subprocess.run(["claude", "-p", prompt],
-                              capture_output=True, text=True, timeout=180)
+                              capture_output=True, text=True, timeout=60)
         out = (proc.stdout or "").strip()
         return out if proc.returncode == 0 and out else ""
     except Exception as e:
