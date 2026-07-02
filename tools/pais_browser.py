@@ -601,6 +601,45 @@ def _clear_stale_singleton(profile_dir: str) -> None:
     log.info("[pais_browser] cleared stale Chromium singleton (dead pid %s)", pid)
 
 
+def _click_apply(page):
+    """Some postings show a job DESCRIPTION with an 'Apply' button that reveals the
+    form inline, navigates to it, or opens it in a new tab. When no form is present
+    yet, click the first visible Apply control and wait for the form to appear.
+
+    Returns the page to fill on — the same page, or the new tab if Apply opened one.
+    Best-effort and never raises; ordered specific→generic so 'Apply for this job'
+    wins over a bare 'Apply' that might be a menu link."""
+    selectors = (
+        "a:has-text('Apply for this job')", "button:has-text('Apply for this job')",
+        "a:has-text('Apply now')", "button:has-text('Apply now')",
+        "a:has-text('Apply')", "button:has-text('Apply')",
+        "text=/^\\s*apply\\b/i",
+    )
+    ctx = getattr(page, "context", None)
+    for sel in selectors:
+        try:
+            btn = page.query_selector(sel)
+            if not (btn and btn.is_visible()):
+                continue
+            before = len(ctx.pages) if ctx else 0
+            btn.click(timeout=CLICK_MS, force=True)
+            page.wait_for_timeout(1500)
+            if ctx and len(ctx.pages) > before:          # Apply opened a new tab
+                page = ctx.pages[-1]
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=8000)
+                except Exception:
+                    pass
+            try:                                         # let the form render / load
+                page.wait_for_selector("input, textarea, select", timeout=6000)
+            except Exception:
+                page.wait_for_timeout(1500)
+            return page
+        except Exception:
+            continue
+    return page
+
+
 def _fill_job_on_page(page, job: dict) -> dict:
     """Navigate one job on the given page and fill its form. Returns one result dict
     and NEVER raises — failures come back as {ok: False, ...} so a batch or queue
@@ -614,6 +653,10 @@ def _fill_job_on_page(page, job: dict) -> dict:
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=45000)
         page.wait_for_timeout(3500)
+        # Description page with an 'Apply' button instead of a form? Click through
+        # to the form (may reveal inline, navigate, or open a new tab → fill there).
+        if len(page.query_selector_all("input, textarea, select")) == 0:
+            page = _click_apply(page)
         if len(page.query_selector_all("input, textarea, select")) == 0:
             page.screenshot(path=shot, full_page=False)
             return {"ok": False, "status": "no_form", "url": url,
@@ -658,13 +701,9 @@ def browser_fill_pw(job: dict, headless: bool = False,
             return {"ok": False, "status": "error", "error": f"navigation failed: {e}", "url": url}
         page.wait_for_timeout(3500)
 
-        for sel in ("text=/^apply/i", "a:has-text('Apply')", "button:has-text('Apply')"):
-            try:
-                btn = page.query_selector(sel)
-                if btn and btn.is_visible():
-                    btn.click(); page.wait_for_timeout(2500); break
-            except Exception:
-                pass
+        # Description page with an 'Apply' button instead of a form? Click through.
+        if len(page.query_selector_all("input, textarea, select")) == 0:
+            page = _click_apply(page)
 
         if len(page.query_selector_all("input, textarea, select")) == 0:
             page.screenshot(path=shot, full_page=False)
