@@ -616,6 +616,41 @@ const LEAD_STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 W
 function _stepsEls(){ return ["rsStatus","rsSteps","rsBarWrap","rsEta"].map(id=>document.getElementById(id)).filter(Boolean); }
 function showSteps(){ _stepsEls().forEach(e=>e.style.display=""); const p=document.getElementById("rsPipe"); if(p)p.style.display="none"; }
 function showPipe(){ if(!currentAgent)return; _stepsEls().forEach(e=>e.style.display="none"); const p=document.getElementById("rsPipe"); if(p)p.style.display=""; renderLeadsInto("rsPipe",currentAgent); }
+// Shared lead-row renderer — ONE source of truth for the run-stage pipeline and
+// the Pipeline modal (they used to carry near-identical copies that drifted).
+// Rows carry data-* only, never interpolated JS, so a business name with an
+// apostrophe or a hostile scouted URL can't break the markup or inject script
+// the way inline onclick="…'${value}'…" did.
+function escAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function leadRowHTML(a,it,i,STAT){
+  const title=esc(it.business||it.name||it.title||it.company||"item");
+  const sub=esc(it.sub||it.vertical||it.company||it.phone||it.url||"");
+  const cur=it.status||STAT[0];
+  const addedB=(it.added&&it.added!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· added ${esc(it.added)}</span>`:"";
+  const nameBlock = a.id==="jobs"
+    ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
+    : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
+  const btnBase="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap";
+  let act="";
+  if(a.id==="jobs" && it.url && cur===STAT[0]){
+    act=`<button data-act="fill" data-url="${escAttr(it.url)}" title="Fill this application on your Mac to review &amp; submit" style="${btnBase};border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green)">✎ Fill</button>`;
+  } else if(a.id==="sales" && !it.drafted){
+    act=`<button data-act="draft" data-biz="${escAttr(it.business||it.title||"")}" data-vert="${escAttr(it.sub||it.vertical||"")}" title="Draft an outreach email → Gmail Drafts" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff">✉ Draft</button>`;
+  } else if(a.id==="linkedin"){
+    const q=encodeURIComponent(((it.title||it.name||"")+" "+(it.company||"")).trim());
+    const raw=String(it.linkedin||""); const href=/^https?:\/\//i.test(raw)?raw:`https://www.linkedin.com/search/results/people/?keywords=${q}`;
+    act=`<a href="${escAttr(href)}" target="_blank" rel="noopener" title="Open on LinkedIn" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;text-decoration:none">in ↗</a>`;
+  }
+  return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
+    ${act}<select data-act="status" data-agent="${a.id}" data-idx="${i}" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join("")}</select></div>`;
+}
+// Delegated handlers for the lead rows (registered once). Rows expose data-* only,
+// so values are read back safely via dataset — no JS injected from lead content.
+document.addEventListener("click",e=>{ const b=e.target.closest("button[data-act]"); if(!b) return;
+  if(b.dataset.act==="fill") fillJob(b,b.dataset.url||"");
+  else if(b.dataset.act==="draft") draftSales(b,b.dataset.biz||"",b.dataset.vert||""); });
+document.addEventListener("change",e=>{ const s=e.target.closest("select[data-act='status']"); if(!s) return;
+  setLeadStatus(s.dataset.agent, parseInt(s.dataset.idx,10), s.value); });
 async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(targetId); if(!tgt)return; const STAT=LEAD_STAT[a.id];
   if(!STAT){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">This agent has no pipeline — press Run to watch it work.</div>'; return; }
   if(!(LIVE&&token)){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Sign in to view your pipeline.</div>'; return; }
@@ -624,19 +659,7 @@ async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(ta
     if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }
     window.__leads={agent:a.id,items};
     if(!items.length){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Nothing here yet — press Run to scout.</div>'; return; }
-    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,120).map((it,i)=>{
-      const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
-      const addedB = (it.added&&it.added!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· added ${esc(it.added)}</span>`:"";
-      const nameBlock = a.id==="jobs"
-        ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
-        : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
-      let act="";
-      if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
-      else if(a.id==="sales" && !it.drafted){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email → Gmail Drafts" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
-      else if(a.id==="linkedin"){ const q=encodeURIComponent(((it.title||it.name||"")+" "+(it.company||"")).trim()); const href=it.linkedin||`https://www.linkedin.com/search/results/people/?keywords=${q}`; act=`<a href="${esc(href)}" target="_blank" rel="noopener" title="Open on LinkedIn" style="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap;text-decoration:none">in ↗</a>`; }
-      return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
-        ${act}<select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
-    }).join("");
+    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,120).map((it,i)=>leadRowHTML(a,it,i,STAT)).join("");
   }catch(e){ tgt.innerHTML='<div style="color:var(--muted);font-size:13px">Couldn\'t load the pipeline.</div>'; } }
 function drawScreen(){ try{renderStage();}catch(e){} const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
   x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
@@ -696,19 +719,7 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
       try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
         if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }  // To-apply first, then most-recently-posted first
         window.__leads={agent:a.id,items};
-        if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>{
-          const title=esc(it.business||it.name||it.title||it.company||"item"); const sub=esc(it.vertical||it.company||it.phone||it.url||""); const cur=it.status||STAT[0];
-          const addedB = (it.added&&it.added!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· added ${esc(it.added)}</span>`:"";
-          const nameBlock = a.id==="jobs"
-            ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
-            : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
-          let act="";
-          if(a.id==="jobs" && it.url && cur===STAT[0]){ act=`<button onclick="fillJob(this,'${esc(it.url)}')" title="Fill this application on your Mac to review &amp; submit" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green);cursor:pointer;white-space:nowrap">✎ Fill</button>`; }
-          else if(a.id==="sales" && !it.drafted){ act=`<button onclick="draftSales(this,'${esc(it.business||title)}','${esc(it.vertical||sub)}')" title="Draft an outreach email for this business → Gmail Drafts" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap">✉ Draft</button>`; }
-          else if(a.id==="linkedin"){ const q=encodeURIComponent(((it.title||it.name||"")+" "+(it.company||"")).trim()); const href=it.linkedin||`https://www.linkedin.com/search/results/people/?keywords=${q}`; act=`<a href="${esc(href)}" target="_blank" rel="noopener" title="Open ${esc(it.title||it.name||"this person")} on LinkedIn to connect" style="font-family:var(--font-mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;cursor:pointer;white-space:nowrap;text-decoration:none">in ↗</a>`; }
-          return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
-            ${act}<select onchange="setLeadStatus('${a.id}',${i},this.value)" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${s}</option>`).join("")}</select></div>`;
-        }).join(""); }catch(e){}
+        if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>leadRowHTML(a,it,i,STAT)).join(""); }catch(e){}
     }
     try{ const r=await api("/api/agents/messages?agent="+a.id); const msgs=r.messages||[]; const last=msgs[msgs.length-1];
       if(last) $("ppReport").innerHTML=`<div class="report-head">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div><div class="report-body">${esc(last.text)}</div>`;
@@ -932,7 +943,7 @@ document.getElementById("vaultFile2").addEventListener("change",async ()=>{ cons
   }catch{ $("brainBody").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.textContent=prev; } });
 
 async function setLeadStatus(agent,idx,status){ const it=(window.__leads&&window.__leads.items[idx])||{};
-  const body= agent==="sales"?{business:it.business,status}: agent==="jobs"?{url:it.url,status}:{name:it.name,company:it.company,status};
+  const body= agent==="sales"?{business:it.business||it.title,status}: agent==="jobs"?{url:it.url,status}:{name:it.name||it.title,company:it.company||"",status};
   try{ await api("/api/agents/"+agent+"/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); banner("Updated",status); chime("done"); }
   catch(e){ alert("Couldn't update status."); } }
 

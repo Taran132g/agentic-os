@@ -37,8 +37,8 @@ DEFAULT_STATUS = STATUSES[0]
 APPLIED_STATUS = STATUSES[1]
 
 _HEADER = (
-    "| Status | Company | Role | Location | Match | Applied | Link | Notes | Posted |\n"
-    "|--------|---------|------|----------|-------|---------|------|-------|--------|"
+    "| Status | Company | Role | Location | Match | Applied | Link | Notes | Added | Posted |\n"
+    "|--------|---------|------|----------|-------|---------|------|-------|-------|--------|"
 )
 
 _SCAFFOLD = f"""---
@@ -143,7 +143,8 @@ def rows() -> list[dict]:
             "applied": cols[5] if len(cols) > 5 else "",
             "url": url,
             "notes": cols[7] if len(cols) > 7 else "",
-            "posted": cols[8] if len(cols) > 8 else "",
+            "added": cols[8] if len(cols) > 8 else "",
+            "posted": cols[9] if len(cols) > 9 else "",
         })
     return out
 
@@ -157,6 +158,7 @@ def append_jobs(jobs: list[dict]) -> int:
     in the sheet. Never rewrites an existing row. Returns how many were added."""
     ensure_sheet()
     have = existing_urls()
+    today = datetime.now().strftime("%Y-%m-%d")
     new_rows = []
     for j in jobs:
         url = (j.get("url") or "").strip()
@@ -168,7 +170,7 @@ def append_jobs(jobs: list[dict]) -> int:
         link = f"[open]({url})"
         new_rows.append(
             f"| {DEFAULT_STATUS} | {_cell(j.get('company','?'))} | {_cell(j.get('role') or j.get('title',''))} "
-            f"| {_cell(j.get('location',''))} | {_cell(match)} |  | {link} | {_cell(j.get('why',''))} | {_cell(posted)} |"
+            f"| {_cell(j.get('location',''))} | {_cell(match)} |  | {link} | {_cell(j.get('why',''))} | {today} | {_cell(posted)} |"
         )
     if not new_rows:
         return 0

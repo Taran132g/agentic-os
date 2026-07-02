@@ -33,8 +33,8 @@ DEFAULT_STATUS = STATUSES[0]
 SENT_STATUS = STATUSES[1]
 
 _HEADER = (
-    "| Status | Name | Role | Company | Why | Sent | Connect note |\n"
-    "|--------|------|------|---------|-----|------|--------------|"
+    "| Status | Name | Role | Company | Why | Sent | Connect note | Added |\n"
+    "|--------|------|------|---------|-----|------|--------------|-------|"
 )
 
 _SCAFFOLD = f"""---
@@ -125,6 +125,7 @@ def rows() -> list[dict]:
             "why": cols[4] if len(cols) > 4 else "",
             "sent": cols[5] if len(cols) > 5 else "",
             "connect": cols[6] if len(cols) > 6 else "",
+            "added": cols[7] if len(cols) > 7 else "",
         })
     return out
 
@@ -138,6 +139,7 @@ def append_people(people: list[dict]) -> int:
     in the sheet. Never rewrites an existing row. Returns how many were added."""
     ensure_sheet()
     have = _existing_keys()
+    today = datetime.now().strftime("%Y-%m-%d")
     new_rows = []
     for p in people:
         name, company = (p.get("name") or "").strip(), (p.get("company") or "").strip()
@@ -146,7 +148,7 @@ def append_people(people: list[dict]) -> int:
         have.add((_norm(name), _norm(company)))
         new_rows.append(
             f"| {DEFAULT_STATUS} | {_cell(name)} | {_cell(p.get('role',''))} | {_cell(company)} "
-            f"| {_cell(p.get('why',''))} |  | {_cell(p.get('connect',''))} |"
+            f"| {_cell(p.get('why',''))} |  | {_cell(p.get('connect',''))} | {today} |"
         )
     if not new_rows:
         return 0

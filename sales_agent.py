@@ -25,6 +25,7 @@ import re
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from shutil import which
 
@@ -218,9 +219,10 @@ def _row(lead: dict) -> str:
     verify = _cell(lead.get("verify", ""))
     if verify:
         notes = f"{notes} ⚠ {verify}".strip()
+    today = datetime.now().strftime("%Y-%m-%d")
     return (f"| 🟣 To call | {_cell(lead.get('business'))} | {_cell(lead.get('vertical'))} "
             f"| {_cell(lead.get('phone')) or 'verify on Google'} | {_cell(lead.get('best_window')) or '—'} "
-            f"| {_cell(lead.get('lead_workflow')) or 'Reactivation + Missed-call'} | — | {notes} |")
+            f"| {_cell(lead.get('lead_workflow')) or 'Reactivation + Missed-call'} | — | {notes} | {today} |")
 
 
 def _append_rows(rows: list[str]) -> None:

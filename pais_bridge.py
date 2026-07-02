@@ -315,6 +315,7 @@ def _sales_rows() -> list:
             "window": cols[4] if len(cols) > 4 else "",
             "workflow": cols[5] if len(cols) > 5 else "",
             "notes": cols[7] if len(cols) > 7 else "",
+            "added": cols[8] if len(cols) > 8 else "",
             "drafted": cols[1].strip().lower() in drafted,
         })
     return rows
@@ -407,9 +408,23 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         if agent == "apply":
                             text = pais_agents.run_apply({}, fields, persona)
-                        else:
-                            res = pais_agents.run_jobs({}, fields, persona)
-                            text = res.get("text", "") if isinstance(res, dict) else str(res)
+                            return self._send(200, {"text": text})
+                        # SCOUT is slow (~6-7 min: WebSearch + WebFetch + live-URL
+                        # gate). Run it DETACHED so this request returns immediately
+                        # instead of the UI timing out and looking failed. The worker
+                        # appends new roles to the pipeline and posts the result to
+                        # the feed when it finishes.
+                        sp = pais_agents._spawn_scout(fields, persona)
+                        if sp.get("ok"):
+                            return self._send(200, {"text":
+                                "🔍 Scouting fresh roles now — this runs in the "
+                                "background (about a few minutes), so it won't time "
+                                "out. New matches will appear in your Job Pipeline and "
+                                "I'll post the results to your feed the moment it's "
+                                "done. You can keep using the app meanwhile."})
+                        # spawn failed → fall back to the old synchronous run
+                        res = pais_agents.run_jobs({}, fields, persona)
+                        text = res.get("text", "") if isinstance(res, dict) else str(res)
                         return self._send(200, {"text": text})
                     except subprocess.TimeoutExpired:
                         return self._send(504, {"error": "jobs agent timed out"})
@@ -501,7 +516,7 @@ class Handler(BaseHTTPRequestHandler):
                                 note = (note + " · " if note else "") + f"applied {r['applied']}"
                             items.append({"title": r["company"], "sub": r["role"],
                                           "role": r["role"], "match": r["match"],
-                                          "posted": r.get("posted", ""),
+                                          "posted": r.get("posted", ""), "added": r.get("added", ""),
                                           "url": r["url"], "status": st,
                                           "done": st in (job_sheet.APPLIED_STATUS, "📞 Interview", "🎯 Offer"),
                                           "note": note, "notes": r["notes"]})
@@ -522,7 +537,7 @@ class Handler(BaseHTTPRequestHandler):
                             if r["sent"]:
                                 note = (note + " · " if note else "") + f"sent {r['sent']}"
                             items.append({"title": r["name"], "sub": f"{r['role']} · {r['company']}",
-                                          "status": st,
+                                          "status": st, "added": r.get("added", ""),
                                           "done": st in ("🤝 Connected", "💬 Replied"),
                                           "note": note, "company": r["company"], "connect": r["connect"]})
                     else:                            # legacy fallback: raw queue json
@@ -536,6 +551,7 @@ class Handler(BaseHTTPRequestHandler):
                         st = r["status"]
                         items.append({"title": r["business"], "sub": r["vertical"],
                                       "phone": r["phone"], "status": st, "done": "WON" in st,
+                                      "added": r.get("added", ""),
                                       "note": r["workflow"] or r["window"], "notes": r["notes"],
                                       "drafted": r.get("drafted", False)})
                 statuses = None
