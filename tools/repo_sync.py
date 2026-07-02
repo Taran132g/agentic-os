@@ -53,6 +53,14 @@ DENY_NAMES = re.compile(
     r"brainscan_creators\.json|linkedin_targets\.json|applications\.json|"
     r"job_queue\.json|scout_jobs\.json|"   # real names/emails/app history (PII)
     r"id_rsa.*|.*\.p12|.*\.pfx)$", re.I)
+# Filename-guard exceptions — files matching DENY_NAMES that are known-safe.
+# These still go through the content scan below, so a real key landing in one
+# is still caught; only the blanket filename block is waived.
+# quant-os-ui/.env.production holds ONLY VITE_* vars (public build config Vite
+# bakes into the client bundle — inherently non-secret).
+NAME_EXCEPTIONS = {
+    "quant-os-ui/.env.production",
+}
 # Secret guard — content patterns (high-signal API key / token shapes)
 DENY_CONTENT = re.compile(
     r"(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{30,}|xox[baprs]-[0-9A-Za-z\-]{10,}|"
@@ -86,7 +94,7 @@ def _secret_guard(repo: Path, status: list[tuple[str, str]]) -> list[str]:
     for code, f in status:
         if code.startswith("D"):
             continue  # deletions can't leak content or files
-        if DENY_NAMES.search(f):
+        if DENY_NAMES.search(f) and f not in NAME_EXCEPTIONS:
             bad.append(f"filename:{f}")
             continue
         # scan ADDED lines of this staged file for real secret shapes
