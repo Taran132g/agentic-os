@@ -128,17 +128,34 @@ def add_trade(
     signal_text: str = "",
     source: str = "dr_profit",
     status: str = "active",
+    risk_usd: Optional[float] = None,
+    asset_class: str = "crypto",
+    extra: Optional[dict] = None,
+    units: Optional[float] = None,
 ) -> dict:
-    """Add a trade. status='waiting_entry' for pending signals, 'active' once filled."""
+    """
+    Add a trade. status='waiting_entry' for pending signals, 'active' once filled.
+    risk_usd (fixed-dollar risk, e.g. live_signal's $60) overrides risk_pct;
+    when given, risk_pct is back-computed for display.
+    """
     data = _load()
     bankroll = data["bankroll"]
 
-    risk_usd = round(bankroll * risk_pct / 100, 2)
+    if risk_usd is not None:
+        risk_usd = round(risk_usd, 2)
+        risk_pct = round(risk_usd / bankroll * 100, 2) if bankroll > 0 else 0.0
+    else:
+        risk_usd = round(bankroll * risk_pct / 100, 2)
 
     # Position sizing: if SL known, size = risk / (entry - sl) * leverage
     position_size = 0.0
     notional = 0.0
-    if stop_loss and entry_price:
+    if units is not None:
+        # Caller (position_sizer) already computed exact units: loss at SL
+        # equals risk_usd regardless of leverage. Leverage only affects margin.
+        position_size = round(units, 8)
+        notional = round(units * entry_price, 2)
+    elif stop_loss and entry_price:
         sl_distance = abs(entry_price - stop_loss)
         if sl_distance > 0:
             # Units we can buy so that if SL is hit, we lose exactly risk_usd
@@ -153,6 +170,7 @@ def add_trade(
     trade: dict = {
         "id":           str(uuid.uuid4())[:8],
         "asset":        asset.upper(),
+        "asset_class":  asset_class,
         "direction":    direction.upper(),
         "entry_price":  entry_price,
         "stop_loss":    stop_loss,
@@ -171,6 +189,8 @@ def add_trade(
         "closed_at":    None,
         "notes":        "",
     }
+    if extra:
+        trade["extra"] = extra
 
     data["active_trades"].append(trade)
     _save(data)

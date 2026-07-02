@@ -135,6 +135,41 @@ body::after{content:'';position:fixed;inset:0;
 .signal-sizing{margin-top:6px;padding:6px 8px;background:rgba(0,0,0,.3);border-radius:3px;
   font-size:9px;color:var(--dim);}
 
+/* LIVE TRADING */
+.sig-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:14px 16px;margin-bottom:14px;}
+.sig-textarea{width:100%;min-height:64px;background:rgba(0,0,0,.45);border:1px solid var(--border);border-radius:4px;
+  color:var(--bright);font-family:var(--mono);font-size:11px;padding:8px 10px;outline:none;resize:vertical;transition:.15s;}
+.sig-textarea:focus{border-color:var(--c);box-shadow:0 0 12px rgba(0,210,255,.12);}
+.sig-actions{display:flex;gap:10px;align-items:center;margin-top:8px;}
+.sig-status{font-size:9.5px;color:var(--dim);letter-spacing:.05em;}
+.sig-status.working{color:var(--c);animation:blink 1.4s infinite;}
+.sig-status.err{color:var(--r);animation:none;}
+.sig-result{margin-top:10px;padding:10px 12px;background:rgba(0,255,127,.04);border:1px solid rgba(0,255,127,.18);
+  border-radius:5px;font-size:10px;line-height:1.7;display:none;}
+.sig-result.err{background:rgba(255,77,77,.05);border-color:rgba(255,77,77,.25);}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;margin-bottom:14px;}
+.chip{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:8px 10px;text-align:center;}
+.chip-label{font-size:7.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;margin-bottom:3px;}
+.chip-value{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--bright);}
+.chip-sub{font-size:8px;color:var(--dim);margin-top:2px;}
+.eq-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:14px;}
+.eq-title{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+#eqCanvas{width:100%;height:110px;display:block;}
+.class-chip{display:inline-block;padding:1px 5px;margin-left:5px;border-radius:3px;font-size:7.5px;
+  letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--border);color:var(--dim);vertical-align:middle;}
+.class-chip.stock{border-color:rgba(176,110,255,.4);color:var(--p);}
+.rbar{position:relative;height:5px;background:rgba(255,255,255,.06);border-radius:3px;min-width:110px;overflow:visible;}
+.rbar .zone-sl{position:absolute;left:0;top:0;bottom:0;background:rgba(255,77,77,.22);border-radius:3px 0 0 3px;}
+.rbar .zone-tp{position:absolute;right:0;top:0;bottom:0;background:rgba(0,255,127,.22);border-radius:0 3px 3px 0;}
+.rbar .mark-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
+  background:var(--c);box-shadow:0 0 8px var(--c);transition:left .6s ease;}
+.rbar-labels{display:flex;justify-content:space-between;font-size:7.5px;color:var(--dim);margin-top:3px;}
+.mark-price{font-family:var(--mono);color:var(--bright);}
+.mark-stale{color:var(--dim);}
+.section-label{font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--dim);margin:4px 0 8px;}
+.refresh-note{font-size:8.5px;color:var(--dim);margin-left:auto;}
+
 /* SCROLLBAR */
 .content::-webkit-scrollbar{width:4px;}
 .content::-webkit-scrollbar-track{background:transparent;}
@@ -179,9 +214,10 @@ body::after{content:'';position:fixed;inset:0;
 
 <!-- Tabs -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('active')">Active Trades</div>
-  <div class="tab" onclick="switchTab('closed')">Closed</div>
-  <div class="tab" onclick="switchTab('signals')">Signal Log</div>
+  <div class="tab active" data-tab="live" onclick="switchTab('live')">⚡ Live Trading</div>
+  <div class="tab" data-tab="active" onclick="switchTab('active')">Active Trades</div>
+  <div class="tab" data-tab="closed" onclick="switchTab('closed')">Closed</div>
+  <div class="tab" data-tab="signals" onclick="switchTab('signals')">Signal Log</div>
   <button class="btn green" onclick="toggleAddForm()">+ Add Trade</button>
 </div>
 
@@ -243,8 +279,38 @@ body::after{content:'';position:fixed;inset:0;
     </div>
   </div>
 
+  <!-- Live trading tab -->
+  <div class="tab-panel active" id="tab-live">
+
+    <div class="sig-box">
+      <div class="form-title">Enter Dr. Profit Signal — crypto or stock · fixed $60 risk</div>
+      <textarea class="sig-textarea" id="sigText"
+        placeholder="Paste the signal exactly as he sent it… e.g. 'BTC long, entry 61k, SL 58.5k, targets 64k / 67k, 5x' or 'NVDA looking strong here, grab shares under 195'"></textarea>
+      <div class="sig-actions">
+        <button class="btn green" id="sigBtn" onclick="submitSignal()" style="margin-left:0;">⚡ Size &amp; Enter</button>
+        <div class="sig-status" id="sigStatus">PAIS parses the signal, pulls live price + volatility, and sizes so a stop-out costs exactly $60.</div>
+      </div>
+      <div class="sig-result" id="sigResult"></div>
+    </div>
+
+    <div class="chips" id="liveChips"></div>
+
+    <div class="eq-panel">
+      <div class="eq-title">Equity Curve — realized P&amp;L per closed trade</div>
+      <canvas id="eqCanvas"></canvas>
+    </div>
+
+    <div style="display:flex;align-items:center;margin-bottom:4px;">
+      <div class="section-label" style="margin:0;">Open Positions — marked to live prices</div>
+      <div class="refresh-note" id="liveRefreshNote"></div>
+      <button class="btn" style="margin-left:10px;" onclick="pollLive(true)">↻ Refresh</button>
+    </div>
+    <div id="livePositionsBody"></div>
+
+  </div>
+
   <!-- Active trades tab -->
-  <div class="tab-panel active" id="tab-active">
+  <div class="tab-panel" id="tab-active">
     <div id="activeTradesBody"></div>
   </div>
 
@@ -263,11 +329,15 @@ body::after{content:'';position:fixed;inset:0;
 <script>
 const API = '';
 let _data = null;
+let _live = {};          // trade id → {mark, pnl, pnl_pct, r_multiple}
+let _lastPoll = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   await loadTrades();
+  await pollLive();
   setInterval(loadTrades, 15000);
+  setInterval(pollLive, 30000);
 }
 
 async function loadTrades() {
@@ -277,6 +347,7 @@ async function loadTrades() {
     renderBankroll(_data.bankroll_summary);
     renderActive(_data.active);
     renderClosed(_data.closed);
+    renderLiveAll();
     await loadSignalLog();
   } catch(e) {
     console.error('Load error:', e);
@@ -458,14 +529,237 @@ function clearForm() {
   document.getElementById('fLev').value = '1';
 }
 
+// ── Live trading ──────────────────────────────────────────────────────────────
+async function submitSignal() {
+  const text = document.getElementById('sigText').value.trim();
+  const btn = document.getElementById('sigBtn');
+  const status = document.getElementById('sigStatus');
+  const result = document.getElementById('sigResult');
+  if (!text) { status.textContent = 'Paste a signal first.'; return; }
+
+  btn.disabled = true;
+  status.className = 'sig-status working';
+  status.textContent = '⚡ PAIS live-trader agent parsing signal + pulling price & volatility… (~30s)';
+  result.style.display = 'none';
+
+  try {
+    const r = await fetch(`${API}/api/live/signal`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({text})
+    });
+    const d = await r.json();
+    if (!d.ok) {
+      status.className = 'sig-status err';
+      status.textContent = '✕ ' + (d.error || 'Could not enter trade.');
+      btn.disabled = false;
+      return;
+    }
+    const s = d.sizing, p = d.parsed, t = d.trade;
+    status.className = 'sig-status';
+    status.textContent = '✓ Trade entered.';
+    result.className = 'sig-result';
+    result.style.display = 'block';
+    const warn = (s.warnings||[]).map(w => `<div style="color:var(--o);">⚠ ${esc(w)}</div>`).join('');
+    result.innerHTML =
+      `<b class="${p.direction==='LONG'?'pnl-pos':'pnl-neg'}">${p.asset} ${p.direction}</b>` +
+      `<span class="class-chip ${p.asset_class}">${p.asset_class}</span> &nbsp; ` +
+      `Entry <b>${fmt$(s.entry)}</b> · Stop <b>${fmt$(s.stop_loss)}</b> (${s.stop_pct}% away, ${esc(s.stop_source)})` +
+      (s.rr_to_tp1 ? ` · R:R 1:${s.rr_to_tp1}` : '') + `<br>` +
+      `Size <b>${s.units} ${p.asset}</b> ≈ ${fmt$(s.notional)} notional` +
+      (s.leverage>1 ? ` @ ${s.leverage}x (margin ${fmt$(s.margin)})` : '') +
+      ` · risk fixed at <b>${fmt$(s.risk_usd)}</b><br>` +
+      (s.annual_vol ? `Vol ${(s.annual_vol*100).toFixed(1)}% ann. (${esc(s.vol_source||'')}) · expected ${s.hold_days}d move ±${s.expected_move_pct}%<br>` : '') +
+      (p.note ? `<span class="dim">Agent: ${esc(p.note)}</span>` : '') + warn;
+    document.getElementById('sigText').value = '';
+    await loadTrades();
+    await pollLive();
+  } catch(e) {
+    status.className = 'sig-status err';
+    status.textContent = '✕ Request failed: ' + e;
+  }
+  btn.disabled = false;
+}
+
+async function pollLive(manual) {
+  try {
+    const r = await fetch(`${API}/api/live/prices`);
+    const d = await r.json();
+    _live = {};
+    for (const p of (d.positions||[])) _live[p.id] = p;
+    _lastPoll = new Date();
+    if (d.bankroll) renderBankroll(d.bankroll);
+    renderLiveAll();
+  } catch(e) { console.error('Live poll error:', e); }
+}
+
+function renderLiveAll() {
+  if (!_data) return;
+  renderLivePositions();
+  renderLiveChips();
+  drawEquity();
+  const note = document.getElementById('liveRefreshNote');
+  if (note && _lastPoll) note.textContent = 'prices as of ' + _lastPoll.toLocaleTimeString();
+}
+
+function renderLivePositions() {
+  const el = document.getElementById('livePositionsBody');
+  const trades = (_data.active||[]);
+  if (!trades.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-title">No Open Positions</div><div>Paste a Dr. Profit signal above to enter one at $60 risk.</div></div>';
+    return;
+  }
+  let html = `<table class="trades-table"><thead><tr>
+    <th>Asset</th><th>Dir</th><th>Entry</th><th>Mark</th><th>SL → TP</th>
+    <th>Live P&L</th><th>R</th><th>Size</th><th>Actions</th></tr></thead><tbody>`;
+  for (const t of trades) {
+    const lv = _live[t.id] || {};
+    const mark = lv.mark;
+    const pnl = lv.pnl !== undefined && lv.pnl !== null ? lv.pnl : t.pnl;
+    const tp1 = (t.take_profit||[])[0];
+    const ex = t.extra || {};
+    html += `<tr>
+      <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span><span class="class-chip ${t.asset_class||'crypto'}">${t.asset_class||'crypto'}</span></td>
+      <td class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}${t.leverage>1?' '+t.leverage+'x':''}</td>
+      <td class="price">${fmt$(t.entry_price)}</td>
+      <td class="${mark?'mark-price':'mark-stale'}">${mark?fmt$(mark):'—'}</td>
+      <td>${rbar(t, mark, tp1)}</td>
+      <td class="${pnlClass2(pnl)}">${fmtPnl(pnl)}${lv.pnl_pct!=null?`<br><span style="font-size:8.5px;" class="dim">${lv.pnl_pct>=0?'+':''}${lv.pnl_pct}% notional</span>`:''}</td>
+      <td class="${pnlClass2(pnl)}">${lv.r_multiple!=null?(lv.r_multiple>=0?'+':'')+lv.r_multiple+'R':'—'}</td>
+      <td class="dim">${t.position_size} <span style="font-size:8.5px;">≈${fmt$(t.notional)}</span>${ex.stop_source&&ex.stop_source!=='signal'?`<br><span style="font-size:8px;color:var(--o);">vol stop</span>`:''}</td>
+      <td><div class="action-btns">
+        <button class="action-btn close" onclick="closeLive('${t.id}', ${pnl!=null?pnl:0}, ${mark||'null'})">Close</button>
+        <button class="action-btn cancel" onclick="cancelTrade('${t.id}')">✕</button>
+      </div></td>
+    </tr>`;
+  }
+  el.innerHTML = html + '</tbody></table>';
+}
+
+function rbar(t, mark, tp1) {
+  const sl = t.stop_loss, entry = t.entry_price;
+  if (!sl || !entry) return '<span class="dim">—</span>';
+  const tp = tp1 || (entry + (entry - sl) * 2);   // default view range: 2R
+  const span = tp - sl;
+  if (!span) return '<span class="dim">—</span>';
+  const pct = v => Math.max(2, Math.min(98, (v - sl) / span * 100));
+  const entryPct = pct(entry);
+  const markPct = mark ? pct(mark) : entryPct;
+  return `<div class="rbar">
+      <div class="zone-sl" style="width:${entryPct}%;"></div>
+      <div class="zone-tp" style="width:${100-entryPct}%;"></div>
+      <div class="mark-dot" style="left:${markPct}%;"></div>
+    </div>
+    <div class="rbar-labels"><span>${fmtShort(sl)}</span><span>${tp1?fmtShort(tp1):'2R'}</span></div>`;
+}
+
+async function closeLive(id, pnl, mark) {
+  const val = prompt(`Close at live P&L? Edit if your fill differed:`, pnl.toFixed(2));
+  if (val === null) return;
+  const p = parseFloat(val);
+  if (isNaN(p)) return;
+  await fetch(`${API}/api/trades/${id}/close`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({pnl: p, exit_price: mark})
+  });
+  await loadTrades(); await pollLive();
+}
+
+function renderLiveChips() {
+  const el = document.getElementById('liveChips');
+  const s = _data.bankroll_summary || {};
+  const settled = (_data.closed||[]).filter(t => t.status !== 'cancelled');
+  const wins = settled.filter(t => (t.pnl||0) > 0);
+  const losses = settled.filter(t => (t.pnl||0) <= 0);
+  const grossW = wins.reduce((a,t)=>a+(t.pnl||0),0);
+  const grossL = Math.abs(losses.reduce((a,t)=>a+(t.pnl||0),0));
+  const pf = grossL > 0 ? (grossW/grossL).toFixed(2) : (grossW>0?'∞':'—');
+  const rVals = settled.filter(t=>t.risk_usd>0).map(t=>(t.pnl||0)/t.risk_usd);
+  const avgR = rVals.length ? (rVals.reduce((a,b)=>a+b,0)/rVals.length).toFixed(2) : null;
+  const expct = settled.length ? (settled.reduce((a,t)=>a+(t.pnl||0),0)/settled.length) : null;
+  const liveOpen = Object.values(_live).reduce((a,p)=>a+(p.pnl||0),0);
+  const best = settled.length ? Math.max(...settled.map(t=>t.pnl||0)) : null;
+  const worst = settled.length ? Math.min(...settled.map(t=>t.pnl||0)) : null;
+
+  const chip = (label, val, cls, sub) =>
+    `<div class="chip"><div class="chip-label">${label}</div>
+     <div class="chip-value ${cls||''}">${val}</div>${sub?`<div class="chip-sub">${sub}</div>`:''}</div>`;
+  el.innerHTML =
+    chip('Open P&L (live)', fmtPnl(liveOpen), pnlClass(liveOpen), `${(_data.active||[]).length} position${(_data.active||[]).length===1?'':'s'}`) +
+    chip('Realized P&L', fmtPnl(s.realized_pnl), pnlClass(s.realized_pnl), `${settled.length} closed`) +
+    chip('Win Rate', (s.win_rate!=null?s.win_rate:'—')+'%', '', `${s.wins||0}W / ${s.losses||0}L`) +
+    chip('Profit Factor', pf, pf!=='—'&&parseFloat(pf)>=1?'pos':(pf==='—'?'':'neg'), 'gross win ÷ loss') +
+    chip('Avg R', avgR!=null?(avgR>=0?'+':'')+avgR+'R':'—', avgR>0?'pos':(avgR<0?'neg':''), '$60 = 1R') +
+    chip('Expectancy', expct!=null?fmtPnl(expct):'—', pnlClass(expct), 'per trade') +
+    chip('Best / Worst', best!=null?`${fmtShort(best)} / ${fmtShort(worst)}`:'—', '', 'closed trades');
+}
+
+function drawEquity() {
+  const canvas = document.getElementById('eqCanvas');
+  if (!canvas) return;
+  const settled = (_data.closed||[]).filter(t => t.status !== 'cancelled');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth || canvas.parentElement.clientWidth - 28;
+  const H = 110;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pts = [0];
+  let cum = 0;
+  for (const t of settled) { cum += (t.pnl||0); pts.push(cum); }
+  const liveOpen = Object.values(_live).reduce((a,p)=>a+(p.pnl||0),0);
+  const hasOpen = (_data.active||[]).length > 0;
+  const all = hasOpen ? [...pts, cum + liveOpen] : pts;
+
+  if (all.length < 2) {
+    ctx.fillStyle = 'rgba(122,171,191,.5)';
+    ctx.font = '10px "Share Tech Mono"';
+    ctx.textAlign = 'center';
+    ctx.fillText('Equity curve appears after your first closed trade', W/2, H/2);
+    return;
+  }
+  const min = Math.min(...all, 0), max = Math.max(...all, 0);
+  const pad = (max - min) * 0.15 || 10;
+  const y = v => H - 8 - ((v - (min - pad)) / ((max + pad) - (min - pad))) * (H - 16);
+  const x = i => 8 + i / (all.length - 1) * (W - 16);
+
+  // zero line
+  ctx.strokeStyle = 'rgba(122,171,191,.25)'; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(8, y(0)); ctx.lineTo(W-8, y(0)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // realized line + fill
+  const last = pts.length - 1;
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(0,212,255,.22)'); grad.addColorStop(1, 'rgba(0,212,255,0)');
+  ctx.beginPath(); ctx.moveTo(x(0), y(pts[0]));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(x(i), y(pts[i]));
+  ctx.strokeStyle = '#00d4ff'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.lineTo(x(last), H-8); ctx.lineTo(x(0), H-8); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // open-pnl projection (dashed)
+  if (hasOpen) {
+    ctx.beginPath(); ctx.setLineDash([4,4]);
+    ctx.moveTo(x(last), y(cum)); ctx.lineTo(x(all.length-1), y(cum+liveOpen));
+    ctx.strokeStyle = liveOpen >= 0 ? '#00ff7f' : '#ff4d4d'; ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(x(all.length-1), y(cum+liveOpen), 3, 0, 7);
+    ctx.fillStyle = liveOpen >= 0 ? '#00ff7f' : '#ff4d4d'; ctx.fill();
+  }
+  // last realized dot
+  ctx.beginPath(); ctx.arc(x(last), y(cum), 2.5, 0, 7);
+  ctx.fillStyle = '#00d4ff'; ctx.fill();
+}
+
 // ── UI helpers ────────────────────────────────────────────────────────────────
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const tabs = ['active','closed','signals'];
-    t.classList.toggle('active', tabs[i]===name);
-  });
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'live') drawEquity();
 }
 
 function toggleAddForm() {
@@ -484,6 +778,19 @@ function fmtPnl(n) {
 function pnlClass(n) {
   if (n === null || n === undefined) return '';
   return n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+}
+function pnlClass2(n) {
+  if (n === null || n === undefined) return 'pnl-null';
+  return n > 0 ? 'pnl-pos' : n < 0 ? 'pnl-neg' : 'pnl-null';
+}
+function fmtShort(n) {
+  if (n === null || n === undefined) return '—';
+  const abs = Math.abs(n);
+  const s = abs >= 10000 ? (n/1000).toFixed(1)+'k' : abs >= 100 ? n.toFixed(0) : n.toFixed(2);
+  return '$' + s;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 init();

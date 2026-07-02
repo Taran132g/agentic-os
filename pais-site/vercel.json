@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/room", "destination": "/app", "permanent": true }
+  ],
   "headers": [
     { "source": "/(.*)", "headers": [
       { "key": "X-Content-Type-Options", "value": "nosniff" },
@@ -8,9 +11,6 @@
       { "key": "X-Frame-Options", "value": "DENY" }
     ]},
     { "source": "/app", "headers": [
-      { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
-    ]},
-    { "source": "/room", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]},
     { "source": "/voices2/(.*)", "headers": [

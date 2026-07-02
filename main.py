@@ -1331,6 +1331,63 @@ async def api_signal_log():
         return JSONResponse({"entries": [], "error": str(e)})
 
 
+# ── Live trading (fixed $60 risk, Claude-parsed signals) ─────────────────────
+
+@api.post("/api/live/signal")
+async def api_live_signal(body: dict):
+    """Paste a raw Dr. Profit signal (crypto or stock) → Claude subprocess
+    parses it, position is sized at fixed $60 risk, entry is created."""
+    from live_signal_workflow import process_signal
+    text = (body.get("text") or "").strip()
+    if not text:
+        return JSONResponse({"ok": False, "error": "Signal text required."}, status_code=400)
+    try:
+        result = await process_signal(text, broadcast=broadcast)
+    except Exception as e:
+        log.exception("[live_signal] pipeline failed")
+        return JSONResponse({"ok": False, "error": f"Pipeline error: {e}"}, status_code=500)
+    if not result.get("ok"):
+        return JSONResponse(result, status_code=422)
+    await broadcast({"type": "trade_added", "trade": result["trade"]})
+    return JSONResponse(result)
+
+
+@api.get("/api/live/prices")
+async def api_live_prices():
+    """Poll live prices for all active trades and return marked-to-market PnL.
+    Persists the live PnL so bankroll open-PnL stays current."""
+    from tools.market_prices import get_prices
+    from tools.trade_tracker import get_active_trades, update_trade_pnl, get_bankroll
+
+    active = get_active_trades()
+    if not active:
+        return JSONResponse({"positions": [], "bankroll": get_bankroll()})
+
+    prices = await get_prices(
+        [(t["asset"], t.get("asset_class", "crypto")) for t in active])
+
+    positions = []
+    for t in active:
+        mark = prices.get(t["asset"])
+        row = {"id": t["id"], "asset": t["asset"], "mark": mark,
+               "pnl": t.get("pnl"), "pnl_pct": None, "r_multiple": None}
+        if mark and t.get("entry_price") and t.get("position_size"):
+            sign = 1 if t["direction"] == "LONG" else -1
+            pnl = round((mark - t["entry_price"]) * t["position_size"] * sign, 2)
+            row["pnl"] = pnl
+            if t.get("notional"):
+                row["pnl_pct"] = round(pnl / t["notional"] * 100, 2)
+            if t.get("risk_usd"):
+                row["r_multiple"] = round(pnl / t["risk_usd"], 2)
+            try:
+                update_trade_pnl(t["id"], pnl, exit_price=None)
+            except Exception:
+                pass
+        positions.append(row)
+
+    return JSONResponse({"positions": positions, "bankroll": get_bankroll()})
+
+
 # ── File uploads ─────────────────────────────────────────────────────────────
 
 import mimetypes

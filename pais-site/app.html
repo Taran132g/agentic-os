@@ -14,7 +14,8 @@
   --display:'Inter',system-ui,sans-serif;--serif:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%);color:var(--parch);font-family:var(--serif);overflow:hidden;user-select:none}
-button{font-family:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation}
+a,select{touch-action:manipulation}
 
 /* ── HUD ── */
 .hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;padding:14px 26px;
@@ -29,8 +30,8 @@ button{font-family:inherit;cursor:pointer}
 .xpfill{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#b9842f,var(--gold2));transition:width .6s cubic-bezier(.2,.8,.2,1)}
 .xptxt{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.1em;margin-top:4px}
 .hud .spacer{flex:1}
-.chip{font-family:var(--mono);display:flex;align-items:center;gap:7px;font-size:12px;color:var(--parch);
-  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:6px 13px}
+.chip{font-family:var(--mono);display:flex;align-items:center;gap:7px;font-size:12px;color:var(--parch);min-height:40px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:9px 16px}
 .chip b{color:var(--gold)}.chip .ring{--p:0;width:26px;height:26px;border-radius:50%;
   background:conic-gradient(var(--green) calc(var(--p)*1%),rgba(255,255,255,.08) 0);display:grid;place-items:center}
 .chip .ring i{width:18px;height:18px;border-radius:50%;background:var(--panel);display:grid;place-items:center;font-style:normal;font-size:9px;color:var(--green)}
@@ -45,8 +46,11 @@ button{font-family:inherit;cursor:pointer}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;width:min(1000px,94vw)}
 .card{position:relative;background:linear-gradient(180deg,rgba(26,24,36,.85),rgba(15,14,22,.9));border:1px solid rgba(217,164,65,.18);
   border-radius:16px;padding:18px;text-align:left;color:inherit;overflow:hidden;transition:transform .14s,border-color .25s,box-shadow .25s}
-.card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 14px 40px -14px rgba(217,164,65,.5)}
-.card:active{transform:translateY(-1px)}
+/* hover lift uses scale (grows the hitbox) instead of pure translate — a 4px
+   translate moved the card off the cursor at its bottom edge, causing hover
+   flicker and missed clicks right where you'd aimed */
+.card:hover{transform:translateY(-2px) scale(1.02);border-color:var(--gold);box-shadow:0 14px 40px -14px rgba(217,164,65,.5)}
+.card:active{transform:scale(1.01)}
 .card .ic{width:46px;height:46px;border-radius:12px;overflow:hidden;border:1px solid rgba(217,164,65,.3);margin-bottom:12px;background:#17131f}
 .card .ic img{width:100%;height:100%;object-fit:cover}
 .card .nm{font-family:var(--display);font-size:15px;letter-spacing:.06em}
@@ -90,12 +94,12 @@ button{font-family:inherit;cursor:pointer}
 .office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
 .office-ui.show{opacity:1}
 .backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
-  color:var(--gold);background:rgba(10,12,20,.7);border:1px solid rgba(217,164,65,.3);border-radius:9px;padding:8px 14px}
+  color:var(--gold);background:rgba(10,12,20,.7);border:1px solid rgba(217,164,65,.3);border-radius:10px;padding:12px 18px;min-height:42px}
 .backbtn:hover{border-color:var(--gold)}
-.dialogue{position:fixed;left:50%;bottom:30px;transform:translate(-50%,140%);z-index:26;width:min(700px,94vw);pointer-events:auto;
+.dialogue{position:fixed;left:50%;bottom:30px;transform:translate(-50%,140%);z-index:26;width:min(700px,94vw);pointer-events:none;
   transition:transform .5s cubic-bezier(.16,1,.3,1);background:linear-gradient(180deg,#15131c,#0d0c12);border:1px solid var(--gold);
   border-radius:16px;box-shadow:0 -10px 50px rgba(0,0,0,.7),0 0 40px -12px rgba(217,164,65,.35);padding:18px 22px}
-.dialogue.on{transform:translate(-50%,0)}
+.dialogue.on{transform:translate(-50%,0);pointer-events:auto}
 .dialogue .row{display:flex;gap:16px;align-items:flex-start}
 .dialogue .por{width:62px;height:62px;border-radius:12px;overflow:hidden;border:1px solid var(--gold);flex:none;box-shadow:0 0 18px -6px var(--gold)}
 .dialogue .por img{width:100%;height:100%;object-fit:cover}
@@ -109,16 +113,17 @@ button{font-family:inherit;cursor:pointer}
 .btn.ghost{background:none;color:var(--gold)}
 .btn.run{border-color:var(--green);background:linear-gradient(180deg,#6ee29b,#2f9d5e);color:#06160d;box-shadow:0 6px 18px -6px var(--green)}
 .acts .spacer{flex:1}
-/* pipeline panel */
-.pipe{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:27;width:min(520px,92vw);pointer-events:auto;
+/* pipeline panel — pointer-events:none while hidden: an invisible fixed panel at
+   screen center was silently swallowing clicks on the hub cards beneath it */
+.pipe{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:27;width:min(520px,92vw);pointer-events:none;
   opacity:0;transition:opacity .3s,transform .3s;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;
   box-shadow:0 24px 70px rgba(0,0,0,.7)}
-.pipe.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pipe.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
 .pipe h3{font-family:var(--display);font-size:20px;color:var(--gold);margin:0 0 2px}
 .pipe .pr{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
 .pipe .step{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
 .pipe .step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
-.pipe .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+.pipe .x{position:absolute;top:12px;right:14px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:40px;height:40px;border-radius:10px;font-size:16px}
 
 /* settings */
 .settings-panel{position:fixed;inset:0;z-index:35;display:none;place-items:center;background:rgba(5,6,10,.7);backdrop-filter:blur(4px)}
@@ -139,9 +144,9 @@ button{font-family:inherit;cursor:pointer}
 .banner .small{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--parch);text-transform:uppercase;margin-top:6px}
 #fx{position:fixed;inset:0;z-index:39;pointer-events:none}
 .loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-family:var(--mono);color:var(--gold);letter-spacing:.2em;font-size:12px}
-.cfg-overlay{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.96);z-index:27;width:min(440px,90vw);pointer-events:auto;opacity:0;transition:opacity .3s,transform .3s;
+.cfg-overlay{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.96);z-index:27;width:min(440px,90vw);pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;
   background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--magic);border-radius:14px;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
-.cfg-overlay.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.cfg-overlay.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
 .cfg-overlay label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:8px 0 4px}
 .cfg-overlay input{width:100%;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:8px 10px;font-family:var(--serif);font-size:14px}
 /* feature modals (chief / connect / usage / brain) */
@@ -149,7 +154,7 @@ button{font-family:inherit;cursor:pointer}
 .modal-scrim.on{display:grid}
 .modal-box{position:relative;width:min(560px,94vw);max-height:85vh;overflow:auto;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;box-shadow:0 24px 70px rgba(0,0,0,.7)}
 .modal-box h3{font-family:var(--display);color:var(--gold);margin:0 0 12px;font-size:20px}
-.modal-box .x{position:absolute;top:14px;right:16px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:14px}
+.modal-box .x{position:absolute;top:12px;right:14px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:40px;height:40px;border-radius:10px;font-size:16px}
 .modal-box label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;display:block;margin:10px 0 4px}
 .chat-thread{height:min(46vh,320px);overflow:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .cm{padding:9px 13px;border-radius:11px;font-size:14px;line-height:1.5;max-width:86%}
@@ -173,7 +178,7 @@ button{font-family:inherit;cursor:pointer}
 /* chief of staff full page (ChatGPT-style) */
 .chief-page{position:fixed;inset:0;z-index:42;display:none;background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%)}
 .chief-page.on{display:flex}
-.chief-close{position:fixed;top:16px;right:20px;z-index:43;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);width:34px;height:34px;border-radius:9px;font-size:15px;cursor:pointer}
+.chief-close{position:fixed;top:16px;right:20px;z-index:43;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:var(--muted);width:42px;height:42px;border-radius:10px;font-size:16px;cursor:pointer}
 .chief-sidebar{width:264px;flex:none;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;padding:18px 12px;gap:12px;background:rgba(0,0,0,.25)}
 .chief-brand{font-family:var(--display);color:var(--gold);font-size:14px;letter-spacing:.08em;padding:2px 8px}
 .chief-sidebar .newchat{font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--gold);background:none;border:1px solid var(--gold);border-radius:10px;padding:11px;cursor:pointer}
@@ -186,6 +191,95 @@ button{font-family:inherit;cursor:pointer}
 .chief-thread .cm{max-width:100%}
 .chief-composer{display:flex;gap:10px;padding:12px 0 28px;width:100%;max-width:760px;margin:0 auto}
 .chief-composer #chiefInput{flex:1;background:#0f0e16;border:1px solid rgba(255,255,255,.14);color:var(--parch);border-radius:12px;padding:13px 15px;font-family:var(--serif);font-size:15px}
+/* ─── Trader desk — full-page terminal (PAIS palette, terminal soul) ─── */
+.trader-page{position:fixed;inset:0;z-index:42;display:none;overflow-y:auto;overscroll-behavior:contain;background:#07080c}
+.trader-page.on{display:block}
+.trader-page::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(90% 55% at 50% -10%,rgba(201,161,74,.10),transparent 60%),
+    radial-gradient(60% 40% at 100% 100%,rgba(62,207,142,.05),transparent 55%),
+    repeating-linear-gradient(0deg,transparent 0 47px,rgba(255,255,255,.022) 47px 48px),
+    repeating-linear-gradient(90deg,transparent 0 47px,rgba(255,255,255,.022) 47px 48px)}
+.trader-page::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.06) 0 1px,transparent 1px 3px)}
+.td-wrap{position:relative;max-width:1080px;margin:0 auto;padding:24px 22px 70px;z-index:1}
+.td-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.td-mark{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.3em;color:var(--gold);text-transform:uppercase}
+.td-mark small{display:block;font-size:9px;letter-spacing:.22em;color:var(--muted);font-weight:400;margin-top:3px}
+.td-livechip{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--green);
+  border:1px solid rgba(62,207,142,.35);border-radius:999px;padding:7px 14px;text-transform:uppercase}
+.td-livedot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:tdPulse 1.6s infinite}
+@keyframes tdPulse{0%,100%{opacity:1}50%{opacity:.25}}
+.td-asof{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;margin-left:auto}
+.td-close{width:42px;height:42px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:var(--muted);font-size:16px}
+.td-close:hover{border-color:var(--gold);color:var(--gold)}
+.td-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:10px}
+.td-chip{position:relative;background:linear-gradient(180deg,rgba(26,24,34,.75),rgba(12,12,18,.9));border:1px solid rgba(255,255,255,.07);
+  border-radius:13px;padding:13px 15px;overflow:hidden}
+.td-chip::before{content:"";position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,161,74,.55),transparent)}
+.td-chip .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.td-chip .v{font-family:var(--mono);font-size:21px;font-weight:700;color:var(--parch);margin-top:5px;letter-spacing:-.01em}
+.td-chip .s{font-family:var(--mono);font-size:9.5px;color:var(--dim);margin-top:3px}
+.td-panel{position:relative;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(22,20,30,.55),rgba(9,9,14,.85));
+  border-radius:15px;padding:16px 18px;margin-top:12px}
+.td-sec{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.td-sec .rule{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,161,74,.35),transparent)}
+#tdCanvas{width:100%;height:132px;display:block;margin-top:10px}
+.td-signal textarea{width:100%;min-height:58px;background:rgba(5,6,9,.8);border:1px solid rgba(255,255,255,.1);color:var(--parch);
+  border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:13px;resize:vertical;transition:border-color .15s,box-shadow .15s;margin-top:10px}
+.td-signal textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 22px -6px rgba(201,161,74,.45)}
+.td-sigrow{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.td-status{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.td-status.working{color:var(--gold);animation:tdPulse 1.5s infinite}
+.td-status.err{color:#ff7a7a;animation:none}
+.td-status.ok{color:var(--green);animation:none}
+.td-result{display:none;margin-top:10px;padding:11px 13px;border:1px solid rgba(62,207,142,.25);background:rgba(62,207,142,.05);
+  border-radius:10px;font-family:var(--mono);font-size:11.5px;line-height:1.75}
+.td-row{display:grid;grid-template-columns:minmax(96px,1.1fr) minmax(150px,1.6fr) minmax(150px,1.8fr) minmax(120px,1.2fr);
+  gap:14px;align-items:center;padding:13px 15px;border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-top:8px;
+  background:rgba(255,255,255,.018);transition:border-color .15s,background .15s}
+.td-row:hover{border-color:rgba(201,161,74,.4);background:rgba(201,161,74,.03)}
+.td-a{font-family:var(--mono)}
+.td-a .sym{font-size:15px;font-weight:700;color:var(--parch)}
+.td-a .cls{font-size:8px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+.td-a .dir{font-size:11px;font-weight:700;letter-spacing:.08em;margin-top:3px}
+.td-a .dir.long{color:var(--green)}.td-a .dir.short{color:#ff7a7a}
+.td-px{font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.6}
+.td-px b{color:var(--parch);font-weight:600}
+.td-rbar{position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,.06);margin:7px 0 5px}
+.td-rbar .zsl{position:absolute;left:0;top:0;bottom:0;background:rgba(255,122,122,.3);border-radius:3px 0 0 3px}
+.td-rbar .ztp{position:absolute;right:0;top:0;bottom:0;background:rgba(62,207,142,.3);border-radius:0 3px 3px 0}
+.td-rbar .dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);
+  background:var(--gold2);box-shadow:0 0 9px var(--gold);transition:left .6s ease}
+.td-lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8.5px;color:var(--dim)}
+.td-pnl{text-align:right;font-family:var(--mono)}
+.td-pnl .big{font-size:16px;font-weight:700}
+.td-pnl .sub{font-size:10px;color:var(--muted);margin-top:2px}
+.td-empty{font-family:var(--mono);font-size:12px;color:var(--muted);padding:14px 4px}
+.td-closed{display:flex;gap:12px;align-items:center;font-family:var(--mono);font-size:11.5px;padding:8px 6px;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.05)}
+.td-closed b{color:var(--parch)}
+@media (max-width:760px){ .td-row{grid-template-columns:1fr 1fr;row-gap:10px} .td-pnl{text-align:left} }
+/* generalized agent workspace — same terminal chrome, sits BELOW modals (z40)
+   so per-agent Settings can open on top of it */
+#agentPage{z-index:38}
+.ap-av{width:52px;height:52px;border-radius:13px;object-fit:cover;border:1px solid rgba(201,161,74,.45);box-shadow:0 0 22px -8px var(--gold)}
+.ap-name{font-family:var(--display);font-size:19px;font-weight:700;color:var(--parch);letter-spacing:.02em}
+.ap-role{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.ap-say{font-size:14.5px;color:var(--muted);line-height:1.6;margin-top:10px;font-style:italic}
+.ap-steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+.ap-runrow{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.ap-bar{flex:1;min-width:160px;height:7px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden;display:none}
+.ap-bar .f{height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#b9842f,var(--gold2));transition:width .25s}
+.td-report{font-family:var(--mono);font-size:12px;line-height:1.75;color:var(--parch);white-space:pre-wrap;
+  max-height:44vh;overflow:auto;overscroll-behavior:contain;margin-top:10px;padding:12px 14px;
+  border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(5,6,9,.55)}
+.td-report::-webkit-scrollbar{width:5px}.td-report::-webkit-scrollbar-thumb{background:rgba(201,161,74,.3);border-radius:3px}
+.ap-prev{font-family:var(--mono);font-size:11.5px;color:var(--muted);padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex;gap:12px;cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;align-items:baseline}
+.ap-prev:hover{color:var(--parch)}
+.ap-prev b{color:var(--gold2);white-space:nowrap}
+.ap-prev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
 /* HUD identity (google avatar + name + occupation) */
 .hud .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .hud .occ{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
@@ -363,6 +457,83 @@ button{font-family:inherit;cursor:pointer}
   <div id="ppReport"></div>
 </div></div>
 
+<!-- trader — full page terminal desk -->
+<div class="trader-page" id="traderPage">
+  <div class="td-wrap">
+    <div class="td-head">
+      <div class="td-mark">⚡ Trading Desk<small>fixed $60 risk · runs on your Mac</small></div>
+      <div class="td-livechip"><span class="td-livedot"></span>Live prices</div>
+      <span class="td-asof" id="tdAsof"></span>
+      <button class="td-close" onclick="closeTraderPage()">✕</button>
+    </div>
+    <div class="td-chips" id="tdChips"></div>
+    <div class="td-panel td-signal">
+      <div class="td-sec">New trade — paste the signal<span class="rule"></span></div>
+      <textarea id="tdSignal" rows="2" placeholder="> paste Dr. Profit's signal — crypto or stock, any format…"></textarea>
+      <div class="td-sigrow">
+        <button class="btn" id="tdEnterBtn" onclick="tdEnter()">⚡ Size &amp; enter</button>
+        <span class="td-status" id="tdStatus">Parsed on your Mac · sized so a stop-out costs exactly $60</span>
+      </div>
+      <div class="td-result" id="tdResult"></div>
+    </div>
+    <div class="td-panel">
+      <div class="td-sec">Equity curve — realized P&amp;L<span class="rule"></span></div>
+      <canvas id="tdCanvas"></canvas>
+    </div>
+    <div class="td-panel">
+      <div class="td-sec">Open positions · <span id="tdPosCount">0</span>
+        <span class="rule"></span>
+        <button class="btn ghost" style="padding:8px 14px;font-size:11px" onclick="tdRefresh(true)">↻ Refresh</button>
+      </div>
+      <div id="tdRows"></div>
+    </div>
+    <div class="td-panel" id="tdClosedPanel" style="display:none">
+      <div class="td-sec">Recently closed<span class="rule"></span></div>
+      <div id="tdClosed"></div>
+    </div>
+  </div>
+</div>
+
+<!-- generalized agent workspace — full page terminal, tailored per agent -->
+<div class="trader-page" id="agentPage">
+  <div class="td-wrap">
+    <div class="td-head">
+      <img class="ap-av" id="apAv" alt="">
+      <div><div class="ap-name" id="apName">—</div><div class="ap-role" id="apRole">—</div></div>
+      <div class="td-livechip" id="apLive" style="display:none"><span class="td-livedot"></span>Live</div>
+      <span class="td-asof" id="apAsof"></span>
+      <button class="td-close" title="Settings" style="font-size:17px" onclick="openAgentSettings(apId)">⚙</button>
+      <button class="td-close" onclick="closeAgentPage()">✕</button>
+    </div>
+    <div class="td-chips" id="apChips"></div>
+    <div class="td-panel">
+      <div class="td-sec">Mission<span class="rule"></span></div>
+      <div class="ap-say" id="apSay"></div>
+      <div class="ap-steps" id="apSteps"></div>
+      <div class="ap-runrow">
+        <button class="btn run" id="apRunBtn" onclick="apRun()">▶ Run</button>
+        <div class="ap-bar" id="apBar"><div class="f" id="apFill"></div></div>
+        <span class="td-status" id="apStatus"></span>
+      </div>
+    </div>
+    <div class="td-panel" id="apPipePanel" style="display:none">
+      <div class="td-sec"><span id="apPipeTitle">Pipeline</span> · <span id="apPipeCount">0</span>
+        <span class="rule"></span>
+        <button class="btn ghost" style="padding:8px 14px;font-size:11px" onclick="apRefresh(true)">↻ Refresh</button>
+      </div>
+      <div id="apPipe" style="max-height:52vh;overflow-y:auto;overscroll-behavior:contain;padding-right:4px"></div>
+    </div>
+    <div class="td-panel">
+      <div class="td-sec">Latest report<span class="rule"></span></div>
+      <div class="td-report" id="apReport">—</div>
+    </div>
+    <div class="td-panel" id="apPrevPanel" style="display:none">
+      <div class="td-sec">Earlier runs<span class="rule"></span></div>
+      <div id="apPrev"></div>
+    </div>
+  </div>
+</div>
+
 <!-- chief of staff — full page (ChatGPT-style sidebar + chat) -->
 <div class="chief-page" id="chiefPage">
   <button class="chief-close" onclick="closeChief()">✕</button>
@@ -414,11 +585,12 @@ const DEFAULT_AGENTS=[
   {id:"linkedin",name:"LinkedIn",role:"Networking",say:"I find people who are hiring and draft a connection note for each. Want me to find some?",steps:["Find people hiring","Draft a connection note","Add to pipeline"]},
   {id:"code",name:"Code",role:"Code sync",say:"I check your repos, run safety checks, then commit and push the work. Want me to run it?",steps:["Scan the repos","Run checks","Commit","Push"]},
   {id:"reviewer",name:"Reviewer",role:"Reviewer",say:"I look at what your agents have done since the last review and tell you how it went and what still needs you. Want me to review?",steps:["Read recent runs","Grade the work","Flag what needs you"]},
+  {id:"trader",name:"Trader",role:"Live trading",say:"Paste a trade signal — crypto or stock — and I'll size it so a stop-out costs you exactly $60, then track the live P&L. Want to open the desk?",steps:["Parse the signal","Pull live price + volatility","Size at $60 fixed risk","Track live P&L"]},
 ];
 const $=id=>document.getElementById(id);
 // Bump AGENTS_VER whenever DEFAULT_AGENTS text changes (name/role/say/steps) so a
 // stale saved copy in localStorage can't shadow the new defaults (the de-themed text).
-const AGENTS_VER="2026-06-29-plain";
+const AGENTS_VER="2026-07-02-trader";
 if(localStorage.getItem("pais_agents_v")!==AGENTS_VER){ try{localStorage.removeItem("pais_agents");}catch{} try{localStorage.setItem("pais_agents_v",AGENTS_VER);}catch{} }
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
@@ -436,6 +608,14 @@ let teamUi=null; try{ const t=localStorage.getItem("pais_team_ui"); if(t) teamUi
 function teamUiSave(){ try{ if(teamUi) localStorage.setItem("pais_team_ui",JSON.stringify([...teamUi])); }catch{} }
 function agentVisible(id){ return !teamUi || teamUi.has(id); }
 function setAgentVisible(id,on){ if(!teamUi) teamUi=new Set(AGENTS.map(a=>a.id)); if(on) teamUi.add(id); else teamUi.delete(id); teamUiSave(); }
+// A returning user who already picked a team (teamUi is a "shown" set) would never
+// see an agent added to DEFAULT_AGENTS later — it's neither in their set nor does
+// onboarding reappear. Track which ids they've already seen and auto-show only the
+// genuinely new ones, leaving their hidden choices untouched.
+try{ const known=new Set(JSON.parse(localStorage.getItem("pais_known_agents")||"[]"));
+  if(teamUi && known.size){ AGENTS.forEach(a=>{ if(!known.has(a.id)) teamUi.add(a.id); }); teamUiSave(); }
+  localStorage.setItem("pais_known_agents",JSON.stringify(AGENTS.map(a=>a.id)));
+}catch{}
 try{ Object.assign(state,JSON.parse(localStorage.getItem("pais_state"))||{}); }catch{}
 function persist(){ localStorage.setItem("pais_agents",JSON.stringify(AGENTS)); localStorage.setItem("pais_state",JSON.stringify(state)); }
 
@@ -503,7 +683,7 @@ function fxLoop(){ fxc.clearRect(0,0,fx.width,fx.height); parts=parts.filter(p=>
   parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.a-=0.012; p.rot+=0.2;
     fxc.save(); fxc.globalAlpha=Math.max(0,p.a); fxc.translate(p.x,p.y); fxc.rotate(p.rot);
     fxc.fillStyle=p.c; fxc.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.5); fxc.restore(); });
-  requestAnimationFrame(fxLoop); } fxLoop();
+  if(parts.length) requestAnimationFrame(fxLoop); }   // idle → stop instead of spinning every frame. If confetti is re-enabled, call fxLoop() after pushing parts.
 
 // ── HUB ──
 function renderHub(){ const g=$("grid"); g.innerHTML="";
@@ -511,7 +691,7 @@ function renderHub(){ const g=$("grid"); g.innerHTML="";
     c.innerHTML=`<div class="ic"><img src="av/av-${a.id}.webp" alt=""></div>
       <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
       <div class="st"><span class="dot"></span>${agoLabel(lastRun[a.id])}</div>`;
-    c.onclick=()=>enterAgent(a); g.appendChild(c); });
+    c.onclick=()=> a.id==="trader"? openTraderPage() : openAgentPage(a); g.appendChild(c); });
   const chief=document.createElement("button"); chief.className="card"; chief.style.borderColor="rgba(217,164,65,.4)";
   chief.innerHTML=`<div class="ic" style="display:grid;place-items:center;color:var(--gold);font-size:24px">🎖</div>
     <div class="nm">Chief of Staff</div><div class="rl">Ask your brain anything</div><div class="st"><span class="dot" style="background:var(--gold)"></span>chat</div>`;
@@ -630,7 +810,7 @@ function leadRowHTML(a,it,i,STAT){
   const nameBlock = a.id==="jobs"
     ? `<b>${title}</b>${it.sub?` <span style="color:var(--muted);font-weight:400">— ${esc(it.sub)}</span>`:""}${it.match?` <span style="color:var(--gold);font-weight:600;font-size:12px;white-space:nowrap">· ${esc(String(it.match).replace("%",""))}% match</span>`:""}${(it.posted&&it.posted!=="—")?` <span style="color:var(--muted);font-size:11px;white-space:nowrap">· posted ${esc(it.posted)}</span>`:""}${addedB}`
     : `<b>${title}</b>${addedB}<div style="color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis">${sub}</div>`;
-  const btnBase="font-family:var(--mono);font-size:11px;font-weight:600;padding:5px 11px;border-radius:8px;cursor:pointer;white-space:nowrap";
+  const btnBase="font-family:var(--mono);font-size:12px;font-weight:600;padding:9px 15px;min-height:38px;border-radius:9px;cursor:pointer;white-space:nowrap";
   let act="";
   if(a.id==="jobs" && it.url && cur===STAT[0]){
     act=`<button data-act="fill" data-url="${escAttr(it.url)}" title="Fill this application on your Mac to review &amp; submit" style="${btnBase};border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green)">✎ Fill</button>`;
@@ -642,7 +822,7 @@ function leadRowHTML(a,it,i,STAT){
     act=`<a href="${escAttr(href)}" target="_blank" rel="noopener" title="Open on LinkedIn" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;text-decoration:none">in ↗</a>`;
   }
   return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
-    ${act}<select data-act="status" data-agent="${a.id}" data-idx="${i}" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:7px;padding:5px 8px;font-size:12px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join("")}</select></div>`;
+    ${act}<select data-act="status" data-agent="${a.id}" data-idx="${i}" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 10px;min-height:38px;font-size:12.5px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join("")}</select></div>`;
 }
 // Delegated handlers for the lead rows (registered once). Rows expose data-* only,
 // so values are read back safely via dataset — no JS injected from lead content.
@@ -651,7 +831,258 @@ document.addEventListener("click",e=>{ const b=e.target.closest("button[data-act
   else if(b.dataset.act==="draft") draftSales(b,b.dataset.biz||"",b.dataset.vert||""); });
 document.addEventListener("change",e=>{ const s=e.target.closest("select[data-act='status']"); if(!s) return;
   setLeadStatus(s.dataset.agent, parseInt(s.dataset.idx,10), s.value); });
+
+// ── Trader desk — full-page terminal (owner-only, data lives on the Mac) ──────
+function fmtUsd(n,plus){ if(n===null||n===undefined) return "—";
+  const s="$"+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?"-":plus&&n>0?"+":"")+s; }
+function pnlColor(n){ return n>0?"var(--green)":n<0?"#ff7a7a":"var(--muted)"; }
+let tdTimer=null, tdData=null;
+function openTraderPage(){ $("traderPage").classList.add("on"); tdRefresh();
+  clearInterval(tdTimer); tdTimer=setInterval(tdRefresh,30000); }
+function closeTraderPage(){ $("traderPage").classList.remove("on"); clearInterval(tdTimer); tdTimer=null; }
+async function tdRefresh(manual){
+  const rows=$("tdRows");
+  if(!(LIVE&&token)){ rows.innerHTML='<div class="td-empty">Sign in with Google to open your desk.</div>'; $("tdChips").innerHTML=""; return; }
+  if(manual||!tdData) rows.innerHTML='<div class="td-empty">Pulling live prices from your Mac…</div>';
+  try{ tdData=await api("/api/agents/trader/positions"); }
+  catch(e){ rows.innerHTML='<div class="td-empty">Couldn\'t reach your Mac — the desk needs your desktop online.</div>'; return; }
+  renderTd();
+}
+function renderTd(){
+  const d=tdData||{}, br=d.bankroll||{}, pos=d.positions||[], closed=d.recent_closed||[];
+  const openPnl=pos.reduce((a,p)=>a+(p.pnl||0),0);
+  $("tdAsof").textContent="as of "+new Date().toLocaleTimeString();
+  // analytics chips
+  const wins=closed.filter(t=>(t.pnl||0)>0), losses=closed.filter(t=>(t.pnl||0)<=0);
+  const gW=wins.reduce((a,t)=>a+(t.pnl||0),0), gL=Math.abs(losses.reduce((a,t)=>a+(t.pnl||0),0));
+  const pf=gL>0?(gW/gL).toFixed(2):(gW>0?"∞":"—");
+  const rV=closed.filter(t=>t.risk_usd>0).map(t=>(t.pnl||0)/t.risk_usd);
+  const avgR=rV.length?(rV.reduce((a,b)=>a+b,0)/rV.length):null;
+  const exp=closed.length?closed.reduce((a,t)=>a+(t.pnl||0),0)/closed.length:null;
+  const chip=(l,v,c,s)=>`<div class="td-chip"><div class="l">${l}</div><div class="v" style="color:${c||"var(--parch)"}">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  $("tdChips").innerHTML=
+    chip("Bankroll",fmtUsd(br.bankroll),"var(--gold2)")+
+    chip("Open P&L",fmtUsd(openPnl,true),pnlColor(openPnl),pos.length+" position"+(pos.length===1?"":"s"))+
+    chip("Realized",fmtUsd(br.realized_pnl,true),pnlColor(br.realized_pnl),(closed.length||0)+" closed")+
+    chip("Win rate",(br.win_rate??"—")+"%","",(br.wins||0)+"W / "+(br.losses||0)+"L")+
+    chip("Profit factor",pf,pf!=="—"&&pf!=="∞"&&parseFloat(pf)<1?"#ff7a7a":"var(--parch)","gross win ÷ loss")+
+    chip("Avg R",avgR!=null?(avgR>=0?"+":"")+avgR.toFixed(2)+"R":"—",avgR>0?"var(--green)":avgR<0?"#ff7a7a":"","$60 = 1R")+
+    chip("Expectancy",exp!=null?fmtUsd(exp,true):"—",pnlColor(exp),"per trade");
+  // positions
+  $("tdPosCount").textContent=pos.length;
+  $("tdRows").innerHTML=pos.map(p=>{
+    const lev=p.leverage>1?" · "+p.leverage+"x":"";
+    return `<div class="td-row">
+      <div class="td-a"><span class="sym">${esc(p.asset)}</span><span class="cls">${esc(p.asset_class||"crypto")}</span>
+        <div class="dir ${p.direction==="LONG"?"long":"short"}">${esc(p.direction)}${lev}</div></div>
+      <div class="td-px">entry <b>${fmtUsd(p.entry)}</b><br>mark&nbsp; <b style="color:var(--gold2)">${p.mark?fmtUsd(p.mark):"—"}</b></div>
+      <div>${tdRbar(p)}</div>
+      <div class="td-pnl"><div class="big" style="color:${pnlColor(p.pnl)}">${fmtUsd(p.pnl,true)}</div>
+        <div class="sub">${p.r_multiple!=null?`<b style="color:${pnlColor(p.pnl)}">${p.r_multiple>0?"+":""}${p.r_multiple}R</b> · `:""}${p.units??"—"} u · ${fmtUsd(p.notional)}</div></div>
+    </div>`;
+  }).join("")||'<div class="td-empty">No open positions — paste a signal above.</div>';
+  // recently closed
+  const cp=$("tdClosedPanel");
+  if(closed.length){ cp.style.display="";
+    $("tdClosed").innerHTML=closed.slice(-8).reverse().map(t=>
+      `<div class="td-closed"><b style="min-width:64px">${esc(t.asset)}</b><span>${esc(t.direction||"")}</span>
+       <span style="flex:1">${esc(t.closed_at||"")}</span><b style="color:${pnlColor(t.pnl)}">${fmtUsd(t.pnl,true)}</b></div>`).join("");
+  } else cp.style.display="none";
+  tdCurve(closed,openPnl,pos.length>0);
+}
+function tdRbar(p){
+  const sl=p.stop_loss, entry=p.entry, tp1=(p.take_profit||[])[0];
+  if(!sl||!entry) return '<div class="td-lbl" style="justify-content:center;padding:8px 0">no stop set</div>';
+  const tp=tp1||(entry+(entry-sl)*2), span=tp-sl;
+  if(!span) return "";
+  const pct=v=>Math.max(2,Math.min(98,(v-sl)/span*100));
+  const e=pct(entry), m=p.mark?pct(p.mark):e;
+  const f=v=>Math.abs(v)>=10000?"$"+(v/1000).toFixed(1)+"k":"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:Math.abs(v)<10?4:0});
+  return `<div class="td-rbar"><div class="zsl" style="width:${e}%"></div><div class="ztp" style="width:${100-e}%"></div>
+      <div class="dot" style="left:${m}%"></div></div>
+    <div class="td-lbl"><span>SL ${f(sl)}</span><span>${tp1?"TP "+f(tp1):"2R"}</span></div>`;
+}
+function tdCurve(closed,openPnl,hasOpen){
+  const cv=$("tdCanvas"); if(!cv) return;
+  const dpr=devicePixelRatio||1, W=cv.clientWidth||600, H=132;
+  cv.width=W*dpr; cv.height=H*dpr;
+  const x2=cv.getContext("2d"); x2.scale(dpr,dpr); x2.clearRect(0,0,W,H);
+  const pts=[0]; let cum=0;
+  closed.forEach(t=>{ cum+=(t.pnl||0); pts.push(cum); });
+  const all=hasOpen?[...pts,cum+openPnl]:pts;
+  if(all.length<2){ x2.fillStyle="rgba(154,160,173,.6)"; x2.font="11px 'JetBrains Mono'"; x2.textAlign="center";
+    x2.fillText("Equity curve appears after your first closed trade",W/2,H/2); return; }
+  const mn=Math.min(...all,0), mx=Math.max(...all,0), pad=(mx-mn)*.15||10;
+  const Y=v=>H-10-((v-(mn-pad))/((mx+pad)-(mn-pad)))*(H-20);
+  const X=i=>10+i/(all.length-1)*(W-20);
+  x2.strokeStyle="rgba(154,160,173,.25)"; x2.setLineDash([3,4]);
+  x2.beginPath(); x2.moveTo(10,Y(0)); x2.lineTo(W-10,Y(0)); x2.stroke(); x2.setLineDash([]);
+  const last=pts.length-1;
+  const g=x2.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(201,161,74,.28)"); g.addColorStop(1,"rgba(201,161,74,0)");
+  x2.beginPath(); x2.moveTo(X(0),Y(pts[0]));
+  for(let i=1;i<pts.length;i++) x2.lineTo(X(i),Y(pts[i]));
+  x2.strokeStyle="#e0bd6e"; x2.lineWidth=1.8; x2.stroke();
+  x2.lineTo(X(last),H-10); x2.lineTo(X(0),H-10); x2.closePath(); x2.fillStyle=g; x2.fill();
+  if(hasOpen){ const c=openPnl>=0?"#3ecf8e":"#ff7a7a";
+    x2.beginPath(); x2.setLineDash([4,4]); x2.moveTo(X(last),Y(cum)); x2.lineTo(X(all.length-1),Y(cum+openPnl));
+    x2.strokeStyle=c; x2.stroke(); x2.setLineDash([]);
+    x2.beginPath(); x2.arc(X(all.length-1),Y(cum+openPnl),3.5,0,7); x2.fillStyle=c; x2.fill(); }
+  x2.beginPath(); x2.arc(X(last),Y(cum),3,0,7); x2.fillStyle="#e0bd6e"; x2.fill();
+}
+async function tdEnter(){
+  const ta=$("tdSignal"), btn=$("tdEnterBtn"), st=$("tdStatus"), res=$("tdResult");
+  const text=(ta&&ta.value||"").trim();
+  if(!text){ st.className="td-status err"; st.textContent="Paste a signal first."; return; }
+  if(!(LIVE&&token)){ st.className="td-status err"; st.textContent="Sign in first."; return; }
+  btn.disabled=true; st.className="td-status working";
+  st.textContent="⚡ Parsing on your Mac + pulling live price & volatility… (~30-60s)";
+  res.style.display="none";
+  try{
+    const d=await api("/api/agents/trader/signal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
+    if(!d.ok){ st.className="td-status err"; st.textContent="✕ "+(d.error||"Couldn't enter that."); btn.disabled=false; return; }
+    const s=d.sizing,p=d.parsed;
+    st.className="td-status ok"; st.textContent="✓ Entered.";
+    res.style.display="block";
+    res.innerHTML=`<b style="color:${p.direction==="LONG"?"var(--green)":"#ff7a7a"}">${esc(p.asset)} ${esc(p.direction)}</b>
+      · entry ${fmtUsd(s.entry)} · stop ${fmtUsd(s.stop_loss)} (${s.stop_pct}% away${s.stop_source!=="signal"?", from volatility":""})
+      · <b>${s.units} ${esc(p.asset)}</b> ≈ ${fmtUsd(s.notional)}${s.leverage>1?` @ ${s.leverage}x`:""}
+      ${s.expected_move_pct?`<br><span style="color:var(--muted)">vol ${(s.annual_vol*100).toFixed(1)}% ann (${esc(s.vol_source||"")}) · expected ${s.hold_days}d move ±${s.expected_move_pct}%</span>`:""}
+      ${(s.warnings||[]).map(w=>`<br><span style="color:var(--gold)">⚠ ${esc(w)}</span>`).join("")}`;
+    ta.value="";
+    banner("Trade entered",p.asset+" "+p.direction+" · $60 risk"); chime("done");
+    setTimeout(tdRefresh,2500);
+  }catch(e){ st.className="td-status err"; st.textContent="✕ "+(e.detail||e.message||"Request failed — is your Mac awake?"); }
+  btn.disabled=false;
+}
+// ── generalized agent workspace (same terminal format as the trader desk) ─────
+let apId=null, apBusy=false, apMsgs=[], apItems=null;
+const AP_PIPE_LABEL={jobs:"Job pipeline",sales:"Sales pipeline",linkedin:"LinkedIn pipeline"};
+function openAgentPage(a){ apId=a.id; currentAgent=a;
+  $("apAv").src="av/av-"+a.id+".webp"; $("apName").textContent=a.name; $("apRole").textContent=a.role;
+  $("apSay").textContent=a.say;
+  $("apSteps").innerHTML=a.steps.map((s,i)=>`<span class="step-pill">${i+1}. ${esc(s)}</span>`).join('<span style="color:var(--dim)">→</span>');
+  $("apStatus").className="td-status"; $("apStatus").textContent= LIVE? "" : "Demo mode — sign in to run for real.";
+  $("apReport").textContent="Loading…"; $("apChips").innerHTML=""; $("apPrevPanel").style.display="none";
+  const hasPipe=!!LEAD_STAT[a.id];
+  $("apPipePanel").style.display=hasPipe?"":"none";
+  if(hasPipe){ $("apPipeTitle").textContent=AP_PIPE_LABEL[a.id]||"Pipeline"; $("apPipe").innerHTML=""; }
+  $("apLive").style.display=LIVE?"flex":"none";
+  $("agentPage").classList.add("on");
+  voiceLine(a.id,"greet");
+  apRefresh();
+}
+function closeAgentPage(){ $("agentPage").classList.remove("on"); apId=null;
+  try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
+async function apRefresh(manual){
+  const id=apId; if(!id) return;
+  if(!(LIVE&&token)){
+    $("apChips").innerHTML=apChipsHtml(id,[],null);
+    $("apReport").textContent="Sign in with Google to see this agent's real reports and pipeline.";
+    if(LEAD_STAT[id]) $("apPipe").innerHTML='<div class="td-empty">Sign in to view your pipeline.</div>';
+    return;
+  }
+  if(manual&&LEAD_STAT[id]) $("apPipe").innerHTML='<div class="td-empty">Refreshing…</div>';
+  const reqs=[ api("/api/agents/messages?agent="+id).catch(()=>({messages:[]})) ];
+  if(LEAD_STAT[id]) reqs.push(api("/api/agents/leads?agent="+id).catch(()=>({items:[]})));
+  const [mr,lr]=await Promise.all(reqs);
+  if(apId!==id) return;                       // closed / switched while loading
+  apMsgs=(mr&&mr.messages)||[];
+  apItems=lr?(lr.items||[]):null;
+  apMsgs.forEach(m=>{ if(m.ts) lastRun[id]=Math.max(lastRun[id]||0,m.ts); });
+  renderAp(id);
+}
+function renderAp(id){
+  const STAT=LEAD_STAT[id];
+  let items=apItems||[];
+  if(id==="jobs"&&STAT){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }
+  $("apChips").innerHTML=apChipsHtml(id,apMsgs,STAT?items:null);
+  $("apAsof").textContent="as of "+new Date().toLocaleTimeString();
+  if(STAT){
+    window.__leads={agent:id,items};
+    $("apPipeCount").textContent=items.length;
+    $("apPipe").innerHTML= items.length
+      ? items.slice(0,120).map((it,i)=>leadRowHTML(AGENTS.find(x=>x.id===id),it,i,STAT)).join("")
+      : '<div class="td-empty">Nothing here yet — press Run to scout.</div>';
+  }
+  const last=apMsgs[apMsgs.length-1];
+  $("apReport").textContent= last? last.text : "No report yet — press Run to generate one.";
+  const prev=apMsgs.slice(0,-1).slice(-4).reverse();
+  $("apPrevPanel").style.display=prev.length?"":"none";
+  $("apPrev").innerHTML=prev.map((m,i)=>`<button class="ap-prev" onclick="apShowPrev(${apMsgs.length-2-i})"><b>${new Date(m.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</b><span>${esc((m.text||"").slice(0,110))}</span></button>`).join("");
+}
+function apShowPrev(idx){ const m=apMsgs[idx]; if(m){ $("apReport").textContent=m.text; $("apReport").scrollTop=0; } }
+function apChipsHtml(id,msgs,items){
+  const chip=(l,v,c,s)=>`<div class="td-chip"><div class="l">${l}</div><div class="v" style="color:${c||"var(--parch)"}">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
+  const lastTs=msgs.length? msgs[msgs.length-1].ts : lastRun[id];
+  const last=lastTs? agoLabel(lastTs).replace(/^ran /,"") : "never";
+  const ready=!LIVE||agentReady(id);
+  const base= chip("Last run",last,"var(--gold2)")
+    + chip("Reports",msgs.length||"0","","on your feed")
+    + chip("Setup",ready?"ready":"needs keys",ready?"var(--green)":"#fb4",ready?"configured":"tap ⚙ above");
+  if(!items){
+    const words=msgs.length? String(msgs[msgs.length-1].text||"").split(/\s+/).length : 0;
+    return base + (words?chip("Latest report",words+" words","","full text below"):"");
+  }
+  const STAT=LEAD_STAT[id];
+  const cnt=s=>items.filter(it=>(it.status||STAT[0])===s).length;
+  if(id==="jobs"){
+    const best=items.reduce((m,it)=>Math.max(m,parseInt(it.match)||0),0);
+    return chip("Roles",items.length,"var(--gold2)")
+      + chip("To apply",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
+      + chip("Applied",cnt(STAT[1]))
+      + chip("Interviews",cnt(STAT[2])+cnt(STAT[3]),(cnt(STAT[2])+cnt(STAT[3]))?"var(--green)":"","incl. offers")
+      + (best?chip("Best match",best+"%","var(--gold2)"):"") + base;
+  }
+  if(id==="sales"){
+    return chip("Leads",items.length,"var(--gold2)")
+      + chip("To call",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
+      + chip("Demo sent",cnt(STAT[1]))
+      + chip("Won",cnt(STAT[3]),cnt(STAT[3])?"var(--green)":"")
+      + chip("Drafted",items.filter(it=>it.drafted).length,"","emails ready") + base;
+  }
+  return chip("Targets",items.length,"var(--gold2)")
+    + chip("To send",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
+    + chip("Invites sent",cnt(STAT[1]))
+    + chip("Connected",cnt(STAT[2]),cnt(STAT[2])?"var(--green)":"")
+    + chip("Replied",cnt(STAT[3]),cnt(STAT[3])?"var(--green)":"") + base;
+}
+async function apRun(){
+  const id=apId, a=AGENTS.find(x=>x.id===id); if(!a||apBusy) return;
+  if(LIVE && !agentReady(id)){ banner("Setup needed",a.name+" needs configuring"); openAgentSettings(id); return; }
+  apBusy=true;
+  const btn=$("apRunBtn"), st=$("apStatus"), bar=$("apBar"), fill=$("apFill");
+  btn.disabled=true; bar.style.display="block"; fill.style.width="0%";
+  st.className="td-status working"; st.textContent=LIVE?"Running for real on your Mac…":"Working…";
+  voiceLine(id,"working");
+  let realDone=false, realResult=null;
+  if(LIVE){ bgRun(id).then(q=> q&&q.queued? waitRun(id):q).then(r=>{ realResult=r||{}; realDone=true; })
+    .catch(e=>{ realResult={_err:e}; realDone=true; }); }
+  const per=LIVE?11000:1400, total=per*a.steps.length, t0=performance.now();
+  const finish=(ok,text)=>{ apBusy=false; btn.disabled=false; fill.style.width="100%";
+    setTimeout(()=>{ bar.style.display="none"; },900);
+    st.className="td-status "+(ok?"ok":"err");
+    st.textContent=(ok?"✓ ":"✕ ")+(text||(ok?"Done — report below.":"Run ended — see your feed."));
+    if(ok){ state.done[id]=true; lastRun[id]=Date.now(); persist(); banner("Done",a.name+" finished"); chime("done"); voiceLine(id,"done"); }
+    if(LIVE&&apId===id) apRefresh(); };
+  const tick=()=>{ if(apId!==id){ apBusy=false; btn.disabled=false; bar.style.display="none"; return; }
+    const e2=performance.now()-t0; let pct=Math.min(1,e2/total);
+    if(LIVE) pct=Math.min(realDone?1:0.94,e2/total);
+    fill.style.width=Math.round(pct*100)+"%";
+    st.textContent="● "+a.steps[Math.min(a.steps.length-1,Math.floor(pct*a.steps.length))]+"…";
+    if(LIVE){ if(realDone){ const r=realResult||{}; const ok=!!r.ran&&!r._err&&!r._lost;
+        const msg=r._timeout?"Still running — the report will land here when it's done."
+          : r._err?("Couldn't run — "+((r._err.detail||("error "+(r._err.status||""))).trim()))
+          : r._lost?"The run didn't start — try again."
+          : (r.message||null);
+        finish(ok,msg); }
+      else requestAnimationFrame(tick); }
+    else { if(pct<1) requestAnimationFrame(tick); else finish(true,"Demo complete — sign in with Google to run this for real."); } };
+  requestAnimationFrame(tick);
+}
+
 async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(targetId); if(!tgt)return; const STAT=LEAD_STAT[a.id];
+  if(a.id==="trader"){ tgt.innerHTML='<div class="td-empty">The desk opens full-screen.</div>'; openTraderPage(); return; }
   if(!STAT){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">This agent has no pipeline — press Run to watch it work.</div>'; return; }
   if(!(LIVE&&token)){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Sign in to view your pipeline.</div>'; return; }
   tgt.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0">Loading pipeline…</div>';
@@ -695,6 +1126,10 @@ function enterAgent(a){ currentAgent=a;
   showSteps(); renderActs(); voiceLine(a.id,"greet");
 }
 function renderActs(){ const d=$("rsActions"); if(!d) return; d.innerHTML="";
+  if(currentAgent && currentAgent.id==="trader"){
+    // Trader never "runs" a routine — the desk IS the agent (enter signals, watch P&L).
+    const desk=el("button","btn run","📈 Open the desk"); desk.onclick=openTraderPage; d.append(desk); return;
+  }
   if(screenState.running){ const r=el("button","btn run","● Running…"); r.disabled=true; d.append(r); return; }
   const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=showPipe;
   const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=()=>{ showSteps(); runTask(); };
@@ -715,7 +1150,7 @@ async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="p
   if(LIVE && token){
     try{ const c=await api("/api/agents/config"); const p=(c.agents&&c.agents[a.id]||{}).persona; if(p) $("ppPersona").textContent=p; }catch{}
     if(["sales","jobs","linkedin"].includes(a.id)){
-      const STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]}[a.id];
+      const STAT=LEAD_STAT[a.id];
       try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
         if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }  // To-apply first, then most-recently-posted first
         window.__leads={agent:a.id,items};
@@ -734,7 +1169,8 @@ let brainConnected=null;
 async function refreshBrainStatus(){ if(!LIVE||!token){ brainConnected=false; return false; } try{ const s=await api("/api/brain/status"); brainConnected=!!s.connected; }catch(e){} return brainConnected; }
 function requireBrain(){ if(brainConnected) return true; banner("Connect your brain","Connect your desktop or upload your brain so your agents can use your knowledge"); openModal("brainPanel"); loadBrain(); return false; }
 async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/api/agents/schema"); cfg=await api("/api/agents/config"); }catch(e){} refreshBrainStatus(); }
-function agentReady(id){ if(!schema) return true; const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
+function agentReady(id){ if(!schema) return true; if(cfg&&cfg.owner) return true;   // owner runs read keys from the Mac's own .env — the backend ignores web-stored `needs`, so don't gate the Run button on them
+  const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
 function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
 function openCfgScreen(){ openAgentSettings(currentAgent.id); }
 async function openAgentSettings(id){
@@ -795,7 +1231,11 @@ function runTask(){ const a=currentAgent;
     if(LIVE) pct=Math.min(realDone?1:0.94, e/total);
     screenState.pct=pct; screenState.eta=Math.max(0,Math.round((total-e)/1000)); screenState.stepIdx=Math.min(a.steps.length-1,Math.floor(pct*a.steps.length)); drawScreen();
     if(LIVE){ if(realDone){ const r=realResult||{}; const ok=!!r.ran && !r._err && !r._lost;
-        finish(ok, r._timeout? "Still running — its report will land in your feed." : (r.message||(r.text? null : null))); }
+        const msg = r._timeout ? "Still running — its report will land in your feed."
+          : r._err ? ("Couldn't run — "+((r._err.detail||("error "+(r._err.status||""))).trim()))
+          : r._lost ? "The run didn't start — try again."
+          : (r.message||null);
+        finish(ok, msg); }
       else requestAnimationFrame(tick); }
     else { if(pct<1) requestAnimationFrame(tick); else finish(true); } };
   requestAnimationFrame(tick);
@@ -830,7 +1270,12 @@ function _sceneCovered(){
   return !!document.querySelector(".settings-panel.on, .modal-scrim.on");  // any modal
 }
 let _lastFrame=0;
+// The 3D office is retired (#c is display:none!important) — rendering the scene
+// into a hidden canvas burned GPU every frame ON THE HUB and made clicks/hover
+// feel janky. Skip all WebGL work unless the canvas is actually shown again.
+const OFFICE_RETIRED=true;
 function loop(ts){ requestAnimationFrame(loop);
+  if(OFFICE_RETIRED) return;                                         // no hidden-canvas rendering
   if(_sceneCovered()) return;                                        // office hidden → skip
   if(ts && ts-_lastFrame < 32) return;                               // ~30fps cap (was ~60)
   _lastFrame=ts||0;
@@ -890,8 +1335,9 @@ async function chiefSend(){ const v=$("chiefInput").value.trim(); if(!v||!token)
   chiefMsg("user",esc(v)); c.msgs.push({role:"user",content:v}); if(c.title==="New chat") c.title=v.slice(0,42); chiefSaveStore(); chiefRenderList();
   const t=chiefMsg("bot","…");
   try{ const r=await fetch(PAIS_API+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({message:v,agent:"assistant",history:c.msgs.slice(-12)})});
-    if(!r.ok){ t.innerHTML="<span style='color:#f99'>"+(r.status===401?"Session expired — sign in again.":"Couldn't reach your Chief of Staff.")+"</span>"; return; }
+      body:JSON.stringify({message:v,agent:"assistant",history:c.msgs.slice(0,-1).slice(-12)})});
+    if(!r.ok){ let detail=""; try{ detail=(await r.json()).detail||""; }catch{}
+      t.innerHTML="<span style='color:#f99'>"+esc(r.status===401?"Session expired — sign in again.":(detail||"Couldn't reach your Chief of Staff."))+"</span>"; return; }
     const d=await r.json(); t.innerHTML=esc(d.reply||"").replace(/\n/g,"<br>"); c.msgs.push({role:"assistant",content:d.reply||""}); chiefSaveStore();
   }catch(e){ t.innerHTML="<span style='color:#f99'>Couldn't reach your Chief of Staff.</span>"; } }
 

@@ -58,6 +58,22 @@ def _run_claude_tools(prompt: str, model: str, tools: str) -> str:
 # Relevance threshold for vault chunks (cosine distance; lower = closer).
 SEARCH_MAX_DISTANCE = float(os.environ.get("BRIDGE_SEARCH_MAX_DISTANCE", "0.55"))
 
+# Local PAIS dashboard server (main.py) — hosts the live-trading endpoints.
+PAIS_LOCAL_URL = os.environ.get("PAIS_LOCAL_URL",
+                                f"http://localhost:{os.environ.get('DASHBOARD_PORT', '8000')}")
+
+
+def _local_pais(path: str, method: str = "POST", payload: dict | None = None,
+                timeout: int = 30) -> dict:
+    """Call the local PAIS server (main.py). Raises on transport errors."""
+    import urllib.request
+    body = json.dumps(payload or {}).encode() if method == "POST" else None
+    req = urllib.request.Request(
+        PAIS_LOCAL_URL + path, data=body, method=method,
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode())
+
 # Local n8n webhook that runs fill_scouted.py (opens browser windows on this
 # Mac and fills scouted applications — the user reviews + submits each one).
 N8N_APPLY_WEBHOOK = os.environ.get("N8N_APPLY_WEBHOOK", "http://localhost:5678/webhook/apply")
@@ -369,7 +385,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/sales-draft", "/job-status", "/job-fill", "/linkedin-status", "/account", "/account-switch"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/sales-draft", "/job-status", "/job-fill", "/linkedin-status", "/account", "/account-switch", "/trader-signal", "/trader-positions"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -641,6 +657,61 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": linkedin_sheet.set_status(name, company, status)})
             except Exception as e:
                 return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/trader-signal":
+            # Owner pastes a Dr. Profit signal in the Control Room → local PAIS
+            # server parses it (Claude subprocess) + sizes at fixed $60 risk and
+            # creates the trade entry. Slow (~30-90s: one claude -p run).
+            text = (data.get("text") or "").strip()
+            if not text:
+                return self._send(400, {"error": "signal text required"})
+            try:
+                return self._send(200, _local_pais(
+                    "/api/live/signal", payload={"text": text}, timeout=180))
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:300]})
+
+        if self.path == "/trader-positions":
+            # Open positions marked to live prices + bankroll analytics for the
+            # Control Room trader view. Read-mostly; prices are TTL-cached locally.
+            try:
+                live = _local_pais("/api/live/prices", method="GET", timeout=30)
+                trades = _local_pais("/api/trades", method="GET", timeout=10)
+                marks = {p["id"]: p for p in live.get("positions", [])}
+                items = []
+                for t in trades.get("active", []):
+                    m = marks.get(t["id"], {})
+                    items.append({
+                        "id":          t["id"],
+                        "asset":       t.get("asset"),
+                        "asset_class": t.get("asset_class", "crypto"),
+                        "direction":   t.get("direction"),
+                        "entry":       t.get("entry_price"),
+                        "stop_loss":   t.get("stop_loss"),
+                        "take_profit": t.get("take_profit") or [],
+                        "leverage":    t.get("leverage", 1),
+                        "units":       t.get("position_size"),
+                        "notional":    t.get("notional"),
+                        "risk_usd":    t.get("risk_usd"),
+                        "mark":        m.get("mark"),
+                        "pnl":         m.get("pnl", t.get("pnl")),
+                        "pnl_pct":     m.get("pnl_pct"),
+                        "r_multiple":  m.get("r_multiple"),
+                        "opened_at":   (t.get("opened_at") or "")[:10],
+                    })
+                closed = [t for t in trades.get("closed", [])
+                          if t.get("status") != "cancelled"]
+                return self._send(200, {
+                    "positions": items,
+                    "bankroll":  live.get("bankroll") or trades.get("bankroll_summary"),
+                    "recent_closed": [{
+                        "asset": t.get("asset"), "direction": t.get("direction"),
+                        "pnl": t.get("pnl"), "risk_usd": t.get("risk_usd"),
+                        "closed_at": (t.get("closed_at") or "")[:10],
+                    } for t in closed[-50:]],
+                })
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:300]})
 
         if self.path == "/stats":
             try:
