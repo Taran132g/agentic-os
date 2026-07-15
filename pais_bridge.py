@@ -94,6 +94,10 @@ try:
     from tools import linkedin_sheet  # type: ignore
 except Exception:
     linkedin_sheet = None
+try:
+    from tools import clip_sheet  # type: ignore
+except Exception:
+    clip_sheet = None
 from tools import icloud_read  # iCloud-resilient vault read (shared with the sheets)
 # Load pais-runtime/agents.py under a UNIQUE name — agentic_os already has an
 # `agents/` package, so `import agents` would resolve to the wrong module.
@@ -108,6 +112,25 @@ try:
 except Exception:
     pais_agents = None
 
+
+def _telegram_reviewer(text: str) -> None:
+    """Mirror the reviewer's audit to Telegram. The reviewer runs BACKEND-side
+    (Oracle _execute_run → this bridge's /run-agent), so since the morning
+    routine was unscheduled (2026-06-29) nothing else ever Telegrams its report
+    — the audit only reached the web feed. Reuses pais-runtime's chunked sender
+    (creds from agentic_os/.env, never hardcoded). Best-effort: never raises."""
+    try:
+        if _PAIS_RUNTIME not in sys.path:      # runtime.py does `from client import …`
+            sys.path.insert(0, _PAIS_RUNTIME)
+        spec = importlib.util.spec_from_file_location(
+            "pais_runtime_runtime", os.path.join(_PAIS_RUNTIME, "runtime.py"))
+        rt = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rt)
+        rt._tg_agent_full("reviewer", text)
+    except Exception:
+        pass
+
+
 # Real execution: each web agent runs the SAME script as the n8n morning stack
 # (morning_stack.sh), so a website run is identical to the scheduled routine.
 # Telegram pings, Gmail drafts, scout_jobs.json, git pushes — all real.
@@ -121,10 +144,91 @@ SCRIPT_AGENTS = {
     "linkedin": {"cmd": "python3 linkedin_pais.py"},
     "code":     {"cmd": "python3 tools/repo_sync.py"},
 }
+# clips runs DETACHED (clips_worker.py) — a daily run can exceed SCRIPT_TIMEOUT.
 SCRIPT_TIMEOUT = int(os.environ.get("BRIDGE_SCRIPT_TIMEOUT", "540"))
 RUNNING_PROCS = {}            # agent → Popen (for /kill)
 KILLED = set()
 _PROC_LOCK = threading.Lock()
+LAST_RUNS = {}                # agent → {"log", "report", "ts"} — context for /agent-chat
+
+
+def spawn_clips_worker() -> str:
+    """Detached daily clips run (clip_pipeline.py daily can take 5-15 min)."""
+    worker = Path(os.path.expanduser("~/pais-runtime")) / "clips_worker.py"
+    log = open("/tmp/pais_clips_worker.log", "a")
+    subprocess.Popen([sys.executable, str(worker)], cwd=AGENTIC_DIR,
+                     stdout=log, stderr=log, start_new_session=True)
+    return ("🎬 Generating today's clips now — checking your creators for new "
+            "videos, cutting the best moments, and captioning them. This runs in "
+            "the background (5-15 min); the finished queue will land on your feed "
+            "and in the Clip queue below. You can keep using the app meanwhile.")
+
+
+GROWTH_TAPES = os.path.join(AGENTIC_DIR, "growth_tapes.json")
+
+def _growth_registry() -> dict:
+    """Growth-niche tape registry (tapes rendered by content_pipeline.py).
+    Tapes surface in the clips queue but live outside the vault clip sheet."""
+    try:
+        with open(GROWTH_TAPES) as f:
+            return json.load(f)
+    except Exception:
+        return {"tapes": []}
+
+
+def _growth_tape(clip_id: str):
+    return next((t for t in _growth_registry().get("tapes", [])
+                 if t.get("id") == clip_id), None)
+
+
+def _growth_mark(clip_id: str, status: str, post: str | None = None) -> bool:
+    reg = _growth_registry()
+    hit = False
+    for t in reg.get("tapes", []):
+        if t.get("id") == clip_id:
+            t["status"] = status
+            if post:
+                t["posted"] = post
+            hit = True
+    if hit:
+        with open(GROWTH_TAPES, "w") as f:
+            json.dump(reg, f, indent=2, ensure_ascii=False)
+    return hit
+
+
+def _growth_libraries() -> dict:
+    """B-roll + music libraries with usage attribution for the Libraries tab.
+    B-roll usage is filesystem-encoded (used_tapeN/ subdirs); music usage comes
+    from the tape registry + music_history."""
+    reg = _growth_registry()
+    used_by_music: dict[str, list] = {}
+    for t in reg.get("tapes", []):
+        m = t.get("music")
+        if m:
+            used_by_music.setdefault(m, []).append(f"Part {t.get('part', '?')}")
+    hist = reg.get("music_history", {})
+    music = []
+    for name in reg.get("music", []):
+        used = ", ".join(used_by_music.get(name, [])) or hist.get(name, "")
+        music.append({"name": name, "used_in": used})
+    broll = []
+    bdir = Path.home() / "agentic_os" / "broll_cache" / "minecraft_scenic"
+    if bdir.is_dir():
+        for f in sorted(bdir.glob("*.mp4")):
+            broll.append({"name": f.name, "used_in": "",
+                          "size_mb": round(f.stat().st_size / 1e6)})
+        for f in sorted((bdir / "reserve").glob("*.mp4")):
+            broll.append({"name": f"reserve/{f.name}", "used_in": "",
+                          "size_mb": round(f.stat().st_size / 1e6)})
+        for sub in sorted(bdir.glob("used_*")):
+            label = ("Part " + sub.name.replace("used_tape", "")
+                     if sub.name.startswith("used_tape") else sub.name)
+            for f in sorted(sub.glob("*.mp4")):
+                used = ("master (split into halves)" if f.stem == "full_original"
+                        else label)
+                broll.append({"name": f.name, "used_in": used,
+                              "size_mb": round(f.stat().st_size / 1e6)})
+    return {"music": music, "broll": broll}
 
 
 def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) -> str:
@@ -159,6 +263,7 @@ def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) 
         raw += "\n[stderr]\n" + err
     raw = raw[-6000:].strip() or "(script produced no output)"
     status = "completed" if proc.returncode == 0 else f"exited with code {proc.returncode}"
+    LAST_RUNS[agent] = {"log": raw, "report": "", "ts": time.time()}  # chat context
 
     voice = (f"\nWrite the report in line with the user's configured persona for this "
              f"agent: {persona}\n" if persona else "")
@@ -175,6 +280,7 @@ def run_script_agent(agent: str, persona: str = "", fields: dict | None = None) 
     try:
         report = run_claude(prompt, DEFAULT_MODEL)
         if report:
+            LAST_RUNS[agent]["report"] = report
             return report
     except Exception:
         pass
@@ -301,14 +407,23 @@ def _sales_rows() -> list:
     if not SALES_SHEET.exists():
         return []
     # businesses that already have a saved Gmail draft (✉ Draft button) — used to
-    # hide the button so we don't re-draft the same place.
-    drafted = set()
+    # hide the button so we don't re-draft the same place. Entry values carry the
+    # email the draft attempt resolved ("" = searched, nothing found).
+    # sales_emails.json holds backfill lookups that did NOT save a draft
+    # (email_backfill.py) — merged so the UI can flag no-email rows either way.
+    drafted, looked = {}, {}
     try:
         _df = Path.home() / ".pais" / "sales_drafted.json"
         if _df.exists():
-            drafted = set(json.loads(_df.read_text()).keys())
+            drafted = json.loads(_df.read_text())
     except Exception:
-        drafted = set()
+        drafted = {}
+    try:
+        _ef = Path.home() / ".pais" / "sales_emails.json"
+        if _ef.exists():
+            looked = json.loads(_ef.read_text())
+    except Exception:
+        looked = {}
     rows = []
     in_p = False
     for line in icloud_read.read_text(SALES_SHEET).splitlines():
@@ -323,6 +438,9 @@ def _sales_rows() -> list:
         cols = [c.strip() for c in s.strip("|").split("|")]
         if len(cols) < 2 or not cols[1] or cols[1].lower() == "business" or re.fullmatch(r"-+", cols[1]):
             continue
+        key = cols[1].strip().lower()
+        email = (((drafted.get(key) or {}).get("email")
+                  or (looked.get(key) or {}).get("email")) or "").strip()
         rows.append({
             "status": cols[0],
             "business": cols[1],
@@ -332,7 +450,10 @@ def _sales_rows() -> list:
             "workflow": cols[5] if len(cols) > 5 else "",
             "notes": cols[7] if len(cols) > 7 else "",
             "added": cols[8] if len(cols) > 8 else "",
-            "drafted": cols[1].strip().lower() in drafted,
+            "drafted": key in drafted,
+            "email": email,
+            # searched (draft attempt or backfill) and nothing was found
+            "no_email": (key in drafted or key in looked) and not email,
         })
     return rows
 
@@ -385,7 +506,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/sales-draft", "/job-status", "/job-fill", "/linkedin-status", "/account", "/account-switch", "/trader-signal", "/trader-positions"):
+        if self.path not in ("/llm", "/search", "/stats", "/run-agent", "/leads", "/kill", "/sales-status", "/sales-draft", "/job-status", "/job-fill", "/linkedin-status", "/account", "/account-switch", "/trader-signal", "/trader-positions", "/trader-close", "/trader-scale", "/clip-status", "/clip-open", "/clip-draft", "/agent-chat"):
             return self._send(404, {"error": "not found"})
         if not TOKEN or self.headers.get("Authorization", "") != "Bearer " + TOKEN:
             return self._send(401, {"error": "unauthorized"})
@@ -453,6 +574,14 @@ class Handler(BaseHTTPRequestHandler):
                         return self._send(502, {"error": str(e)[:300]})
                 # career falls through to its scout script below
 
+            # Clips = detached worker (a daily run outlives SCRIPT_TIMEOUT). Ack
+            # immediately; the worker posts the finished queue to the feed.
+            if agent == "clips" and not data.get("simulate"):
+                try:
+                    return self._send(200, {"text": spawn_clips_worker()})
+                except Exception as e:
+                    return self._send(502, {"error": str(e)[:300]})
+
             # Script agents run the REAL n8n-equivalent job on this computer —
             # identical to the scheduled morning routine.
             if agent in SCRIPT_AGENTS and not data.get("simulate"):
@@ -489,7 +618,10 @@ class Handler(BaseHTTPRequestHandler):
                 )
                 model = data.get("model") or DEFAULT_MODEL
                 tools = "WebSearch,WebFetch" if use_web else None
-                self._send(200, {"text": run_claude(prompt, model) if not tools else _run_claude_tools(prompt, model, tools)})
+                text = run_claude(prompt, model) if not tools else _run_claude_tools(prompt, model, tools)
+                self._send(200, {"text": text})
+                if agent == "reviewer" and text.strip():
+                    _telegram_reviewer(text)
             except subprocess.TimeoutExpired:
                 self._send(504, {"error": "agent timed out"})
             except Exception as e:
@@ -569,15 +701,100 @@ class Handler(BaseHTTPRequestHandler):
                                       "phone": r["phone"], "status": st, "done": "WON" in st,
                                       "added": r.get("added", ""),
                                       "note": r["workflow"] or r["window"], "notes": r["notes"],
-                                      "drafted": r.get("drafted", False)})
+                                      "drafted": r.get("drafted", False),
+                                      "email": r.get("email", ""),
+                                      "no_email": r.get("no_email", False)})
+                elif agent == "clips" and clip_sheet is not None:
+                    # vault Clip Pipeline = source of truth; campaign link + ready-to-paste
+                    # caption per creator (some campaigns ban hashtags — "hashtags" cfg)
+                    def _thumb(creator_, clip_, src_path=None):
+                        """Tiny poster frame as a data URI (cached under ~/.pais)."""
+                        try:
+                            tdir = Path.home() / ".pais" / "clip_thumbs"
+                            tdir.mkdir(parents=True, exist_ok=True)
+                            tp = tdir / f"{clip_}.jpg"
+                            if not tp.exists():
+                                src = (Path(src_path) if src_path else
+                                       Path.home() / "Desktop" / "Clips" /
+                                       creator_ / f"{clip_}.mp4")
+                                if not src.exists():
+                                    return ""
+                                import imageio_ffmpeg
+                                subprocess.run(
+                                    [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-ss", "3",
+                                     "-i", str(src), "-frames:v", "1",
+                                     "-vf", "scale=-2:160", "-q:v", "7", str(tp)],
+                                    capture_output=True, timeout=25)
+                            if tp.exists():
+                                import base64
+                                return ("data:image/jpeg;base64," +
+                                        base64.b64encode(tp.read_bytes()).decode())
+                        except Exception:
+                            pass
+                        return ""
+                    ccfg = {}
+                    try:
+                        with open(os.path.join(AGENTIC_DIR, "creators.json")) as f:
+                            ccfg = json.load(f)
+                    except Exception:
+                        pass
+                    for r in clip_sheet.rows():
+                        st = r["status"]
+                        if "Skip" in st:   # skipped clips stay in the vault note, drop off the queue
+                            continue
+                        cfg = ccfg.get(r["creator"], {})
+                        tags = cfg.get("hashtags", f"#{r['creator']} #fyp #viral")
+                        items.append({"title": r["hook"], "sub": f"{r['creator']} · {r['clip']}",
+                                      "clip": r["clip"], "creator": r["creator"],
+                                      "caption": (r["hook"] + " " + tags).strip(),
+                                      "status": st, "added": r.get("date", ""),
+                                      "done": st in ("📤 Submitted", "💰 Paid"),
+                                      "url": cfg.get("campaign", ""),
+                                      "thumb": _thumb(r["creator"], r["clip"]),
+                                      "post": r.get("post", ""), "note": r.get("notes", "")})
+                    # growth-niche tapes (content_pipeline renders) join the queue
+                    for t in _growth_registry().get("tapes", []):
+                        st = t.get("status", "🎬 Rendered")
+                        if "Skip" in st:
+                            continue
+                        items.append({"title": t.get("title", t["id"]),
+                                      "sub": f"growth · {t['id']}",
+                                      "clip": t["id"], "creator": "growth",
+                                      "caption": t.get("caption", t.get("title", "")),
+                                      "status": st, "added": t.get("rendered", ""),
+                                      "done": st in ("📤 Submitted", "💰 Paid"),
+                                      "url": "",
+                                      "thumb": _thumb("growth", t["id"],
+                                                      src_path=os.path.expanduser(t["file"])),
+                                      "post": t.get("posted", ""),
+                                      "note": f"♪ {t.get('music', '?')} · 🎞 {t.get('broll', '?')}"})
                 statuses = None
                 if agent == "sales":
                     statuses = SALES_STATUSES
                 elif agent in ("jobs", "career", "apply") and job_sheet is not None:
                     statuses = job_sheet.STATUSES
+                elif agent == "clips" and clip_sheet is not None:
+                    statuses = clip_sheet.STATUSES
                 elif agent == "linkedin" and linkedin_sheet is not None:
                     statuses = linkedin_sheet.STATUSES
-                self._send(200, {"items": items, "statuses": statuses})
+                payload = {"items": items, "statuses": statuses}
+                if agent == "clips":
+                    try:  # B-roll + music libraries for the Libraries tab
+                        payload["libraries"] = _growth_libraries()
+                    except Exception:
+                        pass
+                    try:  # hourly tiktok_stats.py summary → Views·24h chips
+                        stats = json.loads((Path.home() / ".pais" / "tiktok_stats.json")
+                                           .read_text()).get("summary")
+                        if stats:
+                            vmp3 = Path.home() / ".pais" / "clips_voice.mp3"
+                            if vmp3.exists():  # Adam speaks the 24h numbers
+                                import base64
+                                stats["voice"] = base64.b64encode(vmp3.read_bytes()).decode()
+                            payload["tiktok"] = stats
+                    except Exception:
+                        pass
+                self._send(200, payload)
             except Exception as e:
                 self._send(200, {"items": [], "error": str(e)[:100]})
             return
@@ -603,6 +820,129 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"ok": job_sheet.set_status(url, status)})
             except Exception as e:
                 return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/clip-status":
+            # Owner flips a clip's status (Posted/Submitted/Paid) in the Control Room
+            # → write it straight to the vault Clip Pipeline note (keyed by clip stem).
+            clip = (data.get("clip") or "").strip()
+            status = (data.get("status") or "").strip()
+            post = (data.get("post") or "").strip() or None
+            if not clip or clip_sheet is None or status not in clip_sheet.STATUSES:
+                return self._send(400, {"error": "clip + valid status required"})
+            if _growth_tape(clip):  # growth tapes track status in growth_tapes.json
+                return self._send(200, {"ok": _growth_mark(clip, status, post)})
+            try:
+                return self._send(200, {"ok": clip_sheet.mark(clip, status, post)})
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:200]})
+
+        if self.path == "/clip-open":
+            # ▶ in the Control Room → open the rendered clip on this Mac.
+            # Path is derived from the SHEET row (never from raw input) so a
+            # hostile clip value can't traverse anywhere.
+            clip = (data.get("clip") or "").strip()
+            if not clip:
+                return self._send(400, {"error": "clip required"})
+            if clip.startswith("lib:"):
+                # ▶ on a Libraries row → open that music/B-roll file on this Mac.
+                # Resolved ONLY by exact match against the scanned library —
+                # a hostile name can't traverse anywhere.
+                _, kind, name = (clip.split(":", 2) + ["", ""])[:3]
+                libs = _growth_libraries()
+                if not any(r["name"] == name for r in libs.get(kind, [])):
+                    return self._send(404, {"error": "not in the library"})
+                base = (Path(AGENTIC_DIR) / "music_cache" if kind == "music" else
+                        Path.home() / "agentic_os" / "broll_cache" / "minecraft_scenic")
+                path = base / name
+                if not path.exists() and kind == "broll":
+                    hits = sorted(base.glob(f"*/{name}"))  # used_tapeN/ subdirs
+                    if hits:
+                        path = hits[0]
+                if not path.exists():
+                    return self._send(404, {"error": "file missing on Mac"})
+                subprocess.run(["open", str(path)], check=False)
+                return self._send(200, {"ok": True})
+            tape = _growth_tape(clip)   # path from the registry, never raw input
+            row = None
+            if tape is None and clip_sheet is not None:
+                row = next((r for r in clip_sheet.rows() if r["clip"] == clip), None)
+            if tape is None and row is None:
+                return self._send(404, {"error": "clip not in sheet"})
+            path = (Path(os.path.expanduser(tape["file"])) if tape else
+                    Path.home() / "Desktop" / "Clips" / row["creator"] / f"{row['clip']}.mp4")
+            if not path.exists():
+                return self._send(404, {"error": "file missing on Mac"})
+            subprocess.run(["open", str(path)], check=False)
+            return self._send(200, {"ok": True})
+
+        if self.path == "/clip-draft":
+            # 📱 in the Control Room → upload this clip to TikTok as a DRAFT
+            # (headed browser on this Mac; login persists in the tiktok profile).
+            clip = (data.get("clip") or "").strip()
+            if not clip:
+                return self._send(400, {"error": "clip required"})
+            in_sheet = clip_sheet is not None and any(
+                r["clip"] == clip for r in clip_sheet.rows("Rendered"))
+            tape = _growth_tape(clip)
+            if not in_sheet and not (tape and "Rendered" in tape.get("status", "")):
+                return self._send(404, {"error": "clip not in queue (must be 🎬 Rendered)"})
+            with _PROC_LOCK:
+                p = RUNNING_PROCS.get("_tiktok_draft")
+                if p is not None and p.poll() is None:
+                    return self._send(409, {"error": "another TikTok upload is still "
+                                                     "running — wait for it to finish"})
+                log = open("/tmp/pais_clip_draft.log", "a")
+                proc = subprocess.Popen(
+                    [sys.executable, "clip_pipeline.py", "autopost", clip, "draft"],
+                    cwd=AGENTIC_DIR, stdout=log, stderr=log, start_new_session=True)
+                RUNNING_PROCS["_tiktok_draft"] = proc
+            return self._send(200, {"text": "📱 Uploading to TikTok as a draft — a "
+                                            "browser window is opening on your Mac. "
+                                            "You'll get a Telegram when it's saved."})
+
+        if self.path == "/agent-chat":
+            # Follow-up chat with an agent after a run: a claude session seeded with
+            # the agent's last run log, resumable via session_id (claude -p --resume).
+            agent = (data.get("agent") or "").strip()
+            message = (data.get("message") or "").strip()
+            sid = (data.get("session_id") or "").strip()
+            if not agent or not message:
+                return self._send(400, {"error": "agent + message required"})
+            try:
+                if sid:
+                    cmd = ["claude", "-p", "--resume", sid, "--model", DEFAULT_MODEL,
+                           "--output-format", "json", message]
+                else:
+                    lr = LAST_RUNS.get(agent) or {}
+                    ctx = ""
+                    if lr.get("log"):
+                        ctx = "LAST RUN LOG:\n" + lr["log"][-4000:]
+                        if lr.get("report"):
+                            ctx += "\n\nREPORT POSTED TO FEED:\n" + lr["report"][-2000:]
+                    elif agent == "clips" and os.path.exists("/tmp/pais_clips_last.txt"):
+                        ctx = "LAST RUN LOG:\n" + Path("/tmp/pais_clips_last.txt").read_text()[-4000:]
+                    seed = (
+                        f"You are the user's '{agent}' agent on their personal AI team. "
+                        f"They just watched you run and want to ask follow-up questions. "
+                        f"Answer concretely from the run context below — name real items, "
+                        f"numbers and links from it. If asked something outside the run, "
+                        f"answer from your role. Keep replies tight.\n\n"
+                        f"{ctx or '(no recent run log in memory — answer from your role)'}"
+                        f"\n\nUser: {message}"
+                    )
+                    cmd = ["claude", "-p", "--model", DEFAULT_MODEL,
+                           "--output-format", "json", seed]
+                proc = subprocess.run(cmd, capture_output=True, text=True,
+                                      timeout=150, cwd=AGENTIC_DIR)
+                if proc.returncode != 0:
+                    raise RuntimeError((proc.stderr or "claude failed").strip()[:300])
+                out = json.loads(proc.stdout)
+                return self._send(200, {"text": (out.get("result") or "").strip(),
+                                        "session_id": out.get("session_id") or sid})
+            except subprocess.TimeoutExpired:
+                return self._send(504, {"error": "chat timed out"})
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:300]})
 
         if self.path == "/job-fill":
             # Owner presses 'Fill' on a pipeline row → run the detached fill worker
@@ -668,6 +1008,38 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 return self._send(200, _local_pais(
                     "/api/live/signal", payload={"text": text}, timeout=180))
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:300]})
+
+        if self.path == "/trader-close":
+            # Owner presses Close on a desk position → realize it in the tracker at
+            # the live mark (or an override pnl/exit if the fill differed).
+            tid = (data.get("id") or "").strip()
+            if not tid:
+                return self._send(400, {"error": "trade id required"})
+            body = {"pnl": data.get("pnl", 0)}
+            if data.get("exit_price") is not None:
+                body["exit_price"] = data["exit_price"]
+            try:
+                return self._send(200, _local_pais(
+                    f"/api/trades/{tid}/close", payload=body, timeout=20))
+            except Exception as e:
+                return self._send(502, {"error": str(e)[:300]})
+
+        if self.path == "/trader-scale":
+            # Owner presses + / − on a desk position → scale it in ('add') or
+            # out ('reduce') in the tracker at a given fill price.
+            tid = (data.get("id") or "").strip()
+            if not tid:
+                return self._send(400, {"error": "trade id required"})
+            body = {
+                "action": data.get("action"),
+                "units":  data.get("units"),
+                "price":  data.get("price"),
+            }
+            try:
+                return self._send(200, _local_pais(
+                    f"/api/trades/{tid}/scale", payload=body, timeout=20))
             except Exception as e:
                 return self._send(502, {"error": str(e)[:300]})
 

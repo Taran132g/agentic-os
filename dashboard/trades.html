@@ -105,6 +105,10 @@ body::after{content:'';position:fixed;inset:0;
 .action-btn.close:hover{background:rgba(255,183,0,.15);}
 .action-btn.cancel{border-color:var(--r);color:var(--r);background:rgba(255,77,77,.06);}
 .action-btn.cancel:hover{background:rgba(255,77,77,.15);}
+.action-btn.add{border-color:var(--c);color:var(--c);background:rgba(0,210,255,.06);font-size:11px;padding:1px 7px;line-height:1;}
+.action-btn.add:hover{background:rgba(0,210,255,.16);}
+.action-btn.reduce{border-color:var(--p);color:var(--p);background:rgba(176,110,255,.06);font-size:12px;padding:1px 7px;line-height:1;}
+.action-btn.reduce:hover{background:rgba(176,110,255,.16);}
 
 /* ADD TRADE FORM */
 .form-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;
@@ -174,6 +178,61 @@ body::after{content:'';position:fixed;inset:0;
 .content::-webkit-scrollbar{width:4px;}
 .content::-webkit-scrollbar-track{background:transparent;}
 .content::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px;}
+
+/* TRADE DETAIL MODAL */
+.trades-table tr.clickable{cursor:pointer;}
+.td-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:flex-start;justify-content:center;
+  background:rgba(2,5,10,.72);backdrop-filter:blur(3px);padding:48px 16px;overflow-y:auto;}
+.td-overlay.open{display:flex;}
+.td-modal{width:100%;max-width:520px;background:linear-gradient(160deg,var(--bg2),var(--bg));
+  border:1px solid var(--border);border-radius:8px;box-shadow:0 0 0 1px rgba(0,210,255,.05),0 24px 60px rgba(0,0,0,.6);
+  animation:fadein .18s ease;overflow:hidden;}
+.td-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);
+  background:var(--panel2);}
+.td-head .td-title{font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.06em;color:var(--bright);}
+.td-head .td-sub{font-family:var(--sans);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);}
+.td-close{margin-left:auto;background:none;border:1px solid var(--border);color:var(--dim);cursor:pointer;
+  width:24px;height:24px;border-radius:4px;font-size:13px;line-height:1;}
+.td-close:hover{color:var(--bright);border-color:var(--c);background:rgba(0,210,255,.08);}
+.td-body{padding:14px 16px;}
+.td-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);
+  border-radius:6px;overflow:hidden;margin-bottom:14px;}
+.td-cell{background:var(--bg2);padding:8px 10px;}
+.td-cell.full{grid-column:1 / -1;}
+.td-cell .k{font-family:var(--sans);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+.td-cell .v{font-family:var(--mono);font-size:12px;color:var(--bright);}
+.td-msg-label{font-family:var(--sans);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--c2);margin-bottom:6px;}
+.td-msg{background:var(--bg);border:1px solid var(--border);border-left:2px solid var(--c);border-radius:4px;
+  padding:10px 12px;font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--text);white-space:pre-wrap;
+  word-break:break-word;max-height:200px;overflow-y:auto;margin-bottom:12px;}
+.td-msg.empty{color:var(--dim);font-style:italic;border-left-color:var(--muted);}
+.td-note{background:rgba(255,183,0,.05);border:1px solid rgba(255,183,0,.22);border-radius:4px;padding:8px 10px;
+  font-size:10px;color:var(--o);line-height:1.5;margin-bottom:10px;}
+.td-extra{border-top:1px dashed var(--border);padding-top:10px;}
+.td-extra .k{font-family:var(--sans);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
+.td-extra .row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;font-size:10.5px;}
+.td-extra .row .ev{color:var(--c2);font-family:var(--mono);text-align:right;}
+/* Scale dialog form */
+.sc-info{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:8px 10px;margin-bottom:12px;
+  font-size:10px;color:var(--dim);line-height:1.6;}
+.sc-info b{color:var(--bright);font-family:var(--mono);}
+.sc-field{margin-bottom:11px;}
+.sc-field label{display:block;font-family:var(--sans);font-size:8px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--c2);margin-bottom:4px;}
+.sc-field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--bright);
+  font-family:var(--mono);font-size:13px;padding:8px 10px;outline:none;}
+.sc-field input:focus{border-color:var(--c);box-shadow:0 0 0 1px rgba(0,210,255,.2);}
+.sc-preview{font-size:10px;color:var(--dim);margin-top:5px;min-height:14px;}
+.sc-preview b{font-family:var(--mono);}
+.sc-actions{display:flex;gap:8px;margin-top:14px;}
+.sc-actions button{flex:1;padding:9px;font-family:var(--sans);font-weight:700;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;border-radius:5px;border:1px solid;cursor:pointer;transition:.12s;background:transparent;}
+.sc-btn-go{border-color:var(--c);color:var(--c);background:rgba(0,210,255,.08);}
+.sc-btn-go:hover{background:rgba(0,210,255,.2);}
+.sc-btn-go.reduce{border-color:var(--p);color:var(--p);background:rgba(176,110,255,.08);}
+.sc-btn-go.reduce:hover{background:rgba(176,110,255,.2);}
+.sc-btn-cancel{border-color:var(--muted);color:var(--dim);}
+.sc-btn-cancel:hover{color:var(--bright);border-color:var(--border);}
 </style>
 </head>
 <body>
@@ -326,6 +385,16 @@ body::after{content:'';position:fixed;inset:0;
 
 </div>
 
+<!-- Trade detail modal -->
+<div class="td-overlay" id="tradeDetail" onclick="if(event.target===this)closeTradeDetail()">
+  <div class="td-modal" id="tradeDetailModal"></div>
+</div>
+
+<!-- Scale in/out dialog -->
+<div class="td-overlay" id="scaleDialog" onclick="if(event.target===this)closeScaleDialog()">
+  <div class="td-modal" id="scaleDialogModal" style="max-width:400px;"></div>
+</div>
+
 <script>
 const API = '';
 let _data = null;
@@ -381,7 +450,7 @@ function renderActive(trades) {
     </tr></thead><tbody>`;
   for (const t of trades) {
     const tps = (t.take_profit||[]).map(p=>fmt$(p)).join(' / ') || '—';
-    html += `<tr id="row-${t.id}">
+    html += `<tr id="row-${t.id}" class="clickable" onclick="openTradeDetail('${t.id}')">
       <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span></td>
       <td><span class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}</span></td>
       <td class="price">${fmt$(t.entry_price)}</td>
@@ -390,12 +459,14 @@ function renderActive(trades) {
       <td class="dim">${t.position_size} ${t.asset}<br><span style="color:var(--dim);font-size:9px;">${fmt$(t.notional)} notional</span></td>
       <td class="dim">${t.risk_pct}%  (${fmt$(t.risk_usd)})</td>
       <td id="pnl-${t.id}">
-        <input class="pnl-input" id="input-${t.id}" type="number" step="0.01"
+        <input class="pnl-input" id="input-${t.id}" type="number" step="0.01" onclick="event.stopPropagation()"
           value="${t.pnl !== null ? t.pnl : ''}" placeholder="enter P&L">
       </td>
       <td class="dim" style="font-size:9px;">${t.opened_at ? t.opened_at.slice(0,10) : '—'}</td>
       <td>
-        <div class="action-btns">
+        <div class="action-btns" onclick="event.stopPropagation()">
+          <button class="action-btn add" title="Add to position" onclick="openScaleDialog('${t.id}','add')">＋</button>
+          <button class="action-btn reduce" title="Reduce position" onclick="openScaleDialog('${t.id}','reduce')">－</button>
           <button class="action-btn save" onclick="savePnl('${t.id}')">Save</button>
           <button class="action-btn close" onclick="closeTrade('${t.id}')">Close</button>
           <button class="action-btn cancel" onclick="cancelTrade('${t.id}')">✕</button>
@@ -421,7 +492,7 @@ function renderClosed(trades) {
     </tr></thead><tbody>`;
   for (const t of [...trades].reverse()) {
     const won = (t.pnl||0) > 0;
-    html += `<tr>
+    html += `<tr class="clickable" onclick="openTradeDetail('${t.id}')">
       <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span></td>
       <td class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}</td>
       <td class="price">${fmt$(t.entry_price)}</td>
@@ -617,7 +688,7 @@ function renderLivePositions() {
     const pnl = lv.pnl !== undefined && lv.pnl !== null ? lv.pnl : t.pnl;
     const tp1 = (t.take_profit||[])[0];
     const ex = t.extra || {};
-    html += `<tr>
+    html += `<tr class="clickable" onclick="openTradeDetail('${t.id}')">
       <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span><span class="class-chip ${t.asset_class||'crypto'}">${t.asset_class||'crypto'}</span></td>
       <td class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}${t.leverage>1?' '+t.leverage+'x':''}</td>
       <td class="price">${fmt$(t.entry_price)}</td>
@@ -626,7 +697,9 @@ function renderLivePositions() {
       <td class="${pnlClass2(pnl)}">${fmtPnl(pnl)}${lv.pnl_pct!=null?`<br><span style="font-size:8.5px;" class="dim">${lv.pnl_pct>=0?'+':''}${lv.pnl_pct}% notional</span>`:''}</td>
       <td class="${pnlClass2(pnl)}">${lv.r_multiple!=null?(lv.r_multiple>=0?'+':'')+lv.r_multiple+'R':'—'}</td>
       <td class="dim">${t.position_size} <span style="font-size:8.5px;">≈${fmt$(t.notional)}</span>${ex.stop_source&&ex.stop_source!=='signal'?`<br><span style="font-size:8px;color:var(--o);">vol stop</span>`:''}</td>
-      <td><div class="action-btns">
+      <td><div class="action-btns" onclick="event.stopPropagation()">
+        <button class="action-btn add" title="Add to position" onclick="openScaleDialog('${t.id}','add')">＋</button>
+        <button class="action-btn reduce" title="Reduce position" onclick="openScaleDialog('${t.id}','reduce')">－</button>
         <button class="action-btn close" onclick="closeLive('${t.id}', ${pnl!=null?pnl:0}, ${mark||'null'})">Close</button>
         <button class="action-btn cancel" onclick="cancelTrade('${t.id}')">✕</button>
       </div></td>
@@ -769,7 +842,13 @@ function toggleAddForm() {
 
 function fmt$(n) {
   if (n === null || n === undefined) return '—';
-  return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  n = Number(n);
+  // Sub-cent assets (e.g. PEPE ~$0.0000028) collapse to $0.00 under fixed 2-decimal
+  // formatting — use significant digits so the real price shows.
+  if (n !== 0 && Math.abs(n) < 0.01) {
+    return '$' + n.toLocaleString('en-US', {maximumSignificantDigits:4});
+  }
+  return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 function fmtPnl(n) {
   if (n === null || n === undefined) return '—';
@@ -792,6 +871,184 @@ function fmtShort(n) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── Trade detail modal ─────────────────────────────────────────────────────────
+function findTrade(id) {
+  if (!_data) return null;
+  return (_data.active||[]).find(t=>t.id===id) || (_data.closed||[]).find(t=>t.id===id) || null;
+}
+
+const _extraLabels = {
+  stop_source:'Stop source', stop_pct:'Stop %', annual_vol:'Annualized vol',
+  vol_source:'Vol source', expected_move_pct:'Expected move %', price_move_pct:'Price move %',
+  roi_margin_pct:'ROI on margin %', margin_usd:'Margin $', rr_to_tp1:'R:R to TP1',
+  confidence:'Confidence', agent_note:'Agent note', test_entry_superseded:'Superseded test entry',
+  combined_legs:'Combined legs', backfill:'Backfilled'
+};
+
+function openTradeDetail(id) {
+  const t = findTrade(id);
+  if (!t) return;
+  const lv = _live[id] || {};
+  const isActive = t.status === 'active';
+  const mark = lv.mark;
+  const pnl = (lv.pnl !== undefined && lv.pnl !== null) ? lv.pnl : t.pnl;
+  const isLong = t.direction === 'LONG';
+  const tps = (t.take_profit||[]).map(p=>fmt$(p)).join(' / ') || '—';
+  const dt = s => s ? String(s).slice(0,19).replace('T',' ') : '—';
+
+  const cell = (k, v, full) => `<div class="td-cell${full?' full':''}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+
+  let grid = '';
+  grid += cell('Direction', `<span class="${isLong?'pnl-pos':'pnl-neg'}">${t.direction}${t.leverage>1?' · '+t.leverage+'x':''}</span>`);
+  grid += cell('Status', `<span style="text-transform:uppercase;">${t.status}</span>`);
+  grid += cell('Entry', fmt$(t.entry_price));
+  grid += cell(isActive?'Mark':'Exit', isActive ? (mark?fmt$(mark):'—') : (t.exit_price?fmt$(t.exit_price):'—'));
+  grid += cell('Stop loss', t.stop_loss?fmt$(t.stop_loss):'—');
+  grid += cell('Take profit', tps);
+  grid += cell('Size', `${t.position_size} ${t.asset}`);
+  grid += cell('Notional', fmt$(t.notional));
+  grid += cell('Risk / Margin', fmt$(t.risk_usd));
+  const roi = (t.extra||{}).roi_margin_pct;
+  grid += cell('P&L', `<span class="${pnlClass2(pnl)}">${fmtPnl(pnl)}${roi!=null?` · ${roi>=0?'+':''}${roi}%`:''}</span>`);
+  grid += cell('Opened', dt(t.opened_at));
+  grid += cell('Closed', dt(t.closed_at));
+
+  const msg = (t.signal_text||'').trim();
+  const msgBlock = msg
+    ? `<div class="td-msg-label">Your message / signal</div><div class="td-msg">${esc(msg)}</div>`
+    : `<div class="td-msg-label">Your message / signal</div><div class="td-msg empty">No message was provided for this trade.</div>`;
+
+  const note = (t.notes||'').trim();
+  const noteBlock = note ? `<div class="td-note">📝 ${esc(note)}</div>` : '';
+
+  // Extra metadata (skip ones already shown in the grid)
+  const skip = new Set(['roi_margin_pct']);
+  const ex = t.extra || {};
+  const exRows = Object.keys(ex).filter(k=>!skip.has(k) && ex[k]!==null && ex[k]!=='')
+    .map(k => `<div class="row"><span class="k">${_extraLabels[k]||k}</span><span class="ev">${esc(ex[k])}</span></div>`)
+    .join('');
+  const exBlock = exRows ? `<div class="td-extra">${exRows}</div>` : '';
+
+  document.getElementById('tradeDetailModal').innerHTML = `
+    <div class="td-head">
+      <span class="asset-badge ${isLong?'badge-long':'badge-short'}">${t.asset}</span>
+      <div>
+        <div class="td-title">${t.asset} ${t.direction}</div>
+        <div class="td-sub">${(t.asset_class||'crypto')} · ${t.source||'manual'} · ${t.id}</div>
+      </div>
+      <button class="td-close" onclick="closeTradeDetail()">✕</button>
+    </div>
+    <div class="td-body">
+      <div class="td-grid">${grid}</div>
+      ${msgBlock}
+      ${noteBlock}
+      ${exBlock}
+    </div>`;
+  document.getElementById('tradeDetail').classList.add('open');
+}
+
+function closeTradeDetail() {
+  document.getElementById('tradeDetail').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTradeDetail(); });
+
+// ── Scale in / out dialog ──────────────────────────────────────────────────────
+let _scaleCtx = null;
+
+function openScaleDialog(id, action) {
+  const t = findTrade(id);
+  if (!t) return;
+  const lv = _live[id] || {};
+  const mark = lv.mark;
+  const defPrice = mark || t.entry_price;
+  _scaleCtx = { id, action, trade: t };
+  const isAdd = action === 'add';
+  const isLong = t.direction === 'LONG';
+
+  document.getElementById('scaleDialogModal').innerHTML = `
+    <div class="td-head">
+      <span class="asset-badge ${isLong?'badge-long':'badge-short'}">${t.asset}</span>
+      <div>
+        <div class="td-title">${isAdd?'Add to':'Reduce'} position</div>
+        <div class="td-sub">${t.direction}${t.leverage>1?' · '+t.leverage+'x':''} · ${t.asset_class||'crypto'}</div>
+      </div>
+      <button class="td-close" onclick="closeScaleDialog()">✕</button>
+    </div>
+    <div class="td-body">
+      <div class="sc-info">
+        Current size <b>${t.position_size} ${t.asset}</b> · avg entry <b>${fmt$(t.entry_price)}</b>
+        ${mark?` · mark <b>${fmt$(mark)}</b>`:''}
+      </div>
+      <div class="sc-field">
+        <label>Units to ${isAdd?'add':'reduce'} (${t.asset})</label>
+        <input id="scUnits" type="number" step="any" min="0" placeholder="e.g. ${(t.position_size/2)}"
+          oninput="updateScalePreview()">
+      </div>
+      <div class="sc-field">
+        <label>Fill price</label>
+        <input id="scPrice" type="number" step="any" min="0" value="${defPrice}" oninput="updateScalePreview()">
+      </div>
+      <div class="sc-preview" id="scPreview"></div>
+      <div class="sc-actions">
+        <button class="sc-btn-cancel" onclick="closeScaleDialog()">Cancel</button>
+        <button class="sc-btn-go ${isAdd?'':'reduce'}" onclick="submitScale()">${isAdd?'＋ Add units':'－ Reduce'}</button>
+      </div>
+    </div>`;
+  document.getElementById('scaleDialog').classList.add('open');
+  setTimeout(()=>document.getElementById('scUnits')?.focus(), 30);
+  updateScalePreview();
+}
+
+function updateScalePreview() {
+  if (!_scaleCtx) return;
+  const t = _scaleCtx.trade;
+  const isAdd = _scaleCtx.action === 'add';
+  const isLong = t.direction === 'LONG';
+  const units = parseFloat(document.getElementById('scUnits')?.value);
+  const price = parseFloat(document.getElementById('scPrice')?.value);
+  const el = document.getElementById('scPreview');
+  if (isNaN(units) || units <= 0 || isNaN(price) || price <= 0) { el.innerHTML = ''; return; }
+  const size = t.position_size || 0, entry = t.entry_price || 0;
+  if (isAdd) {
+    const ns = size + units;
+    const ne = (size*entry + units*price) / ns;
+    el.innerHTML = `→ new size <b>${(+ns.toFixed(8))} ${t.asset}</b> · new avg entry <b>${fmt$(ne)}</b> · notional <b>${fmt$(ns*ne)}</b>`;
+  } else {
+    const red = Math.min(units, size);
+    const realized = red * (price - entry) * (isLong?1:-1);
+    const rem = size - red;
+    const cls = realized >= 0 ? 'pnl-pos' : 'pnl-neg';
+    el.innerHTML = `→ realize <b class="${cls}">${fmtPnl(realized)}</b> · ${rem<=1e-9?'<b>closes position</b>':`remaining <b>${(+rem.toFixed(8))} ${t.asset}</b>`}`;
+  }
+}
+
+async function submitScale() {
+  if (!_scaleCtx) return;
+  const units = parseFloat(document.getElementById('scUnits')?.value);
+  const price = parseFloat(document.getElementById('scPrice')?.value);
+  if (isNaN(units) || units <= 0) { alert('Enter a valid number of units.'); return; }
+  if (isNaN(price) || price <= 0) { alert('Enter a valid fill price.'); return; }
+  const { id, action } = _scaleCtx;
+  try {
+    const r = await fetch(`${API}/api/trades/${id}/scale`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action, units, price })
+    });
+    const d = await r.json();
+    if (!d.ok) { alert('Scale failed: ' + (d.error||'unknown')); return; }
+  } catch(e) { alert('Scale failed: ' + e.message); return; }
+  closeScaleDialog();
+  await loadTrades(); await pollLive();
+}
+
+function closeScaleDialog() {
+  document.getElementById('scaleDialog').classList.remove('open');
+  _scaleCtx = null;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeScaleDialog(); });
 
 init();
 </script>

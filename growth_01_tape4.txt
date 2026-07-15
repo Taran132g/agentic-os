@@ -1,0 +1,14 @@
+---
+title: growth_01_TAPE4
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 4
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: cipriani marys theme
+---
+The point of the work was never the money. It's not even about you.
+Everything you have. Your language, your knowledge, the phone you're watching this on. Someone before you poured their entire life into it, and then handed it forward.
+The way we find purpose is to honor them. To take what our ancestors built and carry it one step further.
+You will be here for less than a hundred years. But what you contribute compounds for thousands.

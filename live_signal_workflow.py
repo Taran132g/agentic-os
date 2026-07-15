@@ -42,6 +42,8 @@ Extract the trade into JSON. Rules:
 - "direction": "LONG" or "SHORT". Buy/accumulate/calls => LONG. Sell/short/puts => SHORT.
 - "entry": number, or null if the signal says enter now / at market / gives no price.
   If an entry RANGE is given, use the midpoint. Interpret k-suffixes (65k = 65000).
+- "entry_low"/"entry_high": the range bounds if a zone was given (e.g. 68k-69k),
+  else null. Keep k-suffixes expanded.
 - "stop_loss": number or null.
 - "take_profits": array of numbers (may be empty). Order nearest-first.
 - "leverage": integer, 1 if not mentioned. Cap at 50.
@@ -67,14 +69,13 @@ def _extract_json(text: str) -> dict | None:
         return None
 
 
-async def _claude_parse(text: str, broadcast=None) -> dict | None:
+async def _claude_parse(text: str, risk_usd: float, broadcast=None) -> dict | None:
     """Parse the signal with a Claude subprocess. Returns None on any failure."""
     from tools.llm import run_llm_command
-    from tools.position_sizer import RISK_USD
 
     try:
         res = await run_llm_command(
-            prompt=_PARSE_PROMPT.format(signal_text=text[:2000], risk_usd=RISK_USD),
+            prompt=_PARSE_PROMPT.format(signal_text=text[:2000], risk_usd=risk_usd),
             broadcast=broadcast,
             allowed_tools="",   # pure extraction — no tools
             agent_name="live_trader",
@@ -115,9 +116,14 @@ def _normalize(parsed: dict) -> dict | None:
     asset = str(parsed.get("asset") or "").upper().strip().lstrip("$")
     if not asset or not re.fullmatch(r"[A-Z0-9.]{1,10}", asset):
         return None
+    def _f(key):
+        v = parsed.get(key)
+        return float(v) if v is not None else None
     try:
-        entry = float(parsed["entry"]) if parsed.get("entry") is not None else None
-        sl    = float(parsed["stop_loss"]) if parsed.get("stop_loss") is not None else None
+        entry = _f("entry")
+        elo   = _f("entry_low")
+        ehi   = _f("entry_high")
+        sl    = _f("stop_loss")
         tps   = [float(t) for t in (parsed.get("take_profits") or []) if t]
         lev   = min(max(int(parsed.get("leverage") or 1), 1), 50)
         conf  = max(0, min(100, int(parsed.get("confidence") or 0)))
@@ -129,6 +135,8 @@ def _normalize(parsed: dict) -> dict | None:
         "asset_class":  ac if ac in ("crypto", "stock") else "crypto",
         "direction":    "SHORT" if str(parsed.get("direction", "")).upper() == "SHORT" else "LONG",
         "entry":        entry,
+        "entry_low":    elo,
+        "entry_high":   ehi,
         "stop_loss":    sl,
         "take_profits": tps,
         "leverage":     lev,
@@ -143,9 +151,10 @@ async def process_signal(text: str, broadcast=None) -> dict:
     Returns {"ok": True, "trade", "sizing", "parsed"} or {"ok": False, "error"}.
     """
     from tools.position_sizer import size_trade
-    from tools.trade_tracker import add_trade
+    from tools.trade_tracker import add_trade, resolve_risk_usd
 
-    parsed = await _claude_parse(text, broadcast=broadcast)
+    risk = resolve_risk_usd()
+    parsed = await _claude_parse(text, risk_usd=risk, broadcast=broadcast)
     if parsed is not None and int(parsed.get("confidence") or 0) < 40:
         return {"ok": False,
                 "error": f"Doesn't look like an actionable signal: {parsed.get('note', 'low confidence')}"}
@@ -164,9 +173,15 @@ async def process_signal(text: str, broadcast=None) -> dict:
         stop_loss    = sig["stop_loss"],
         take_profits = sig["take_profits"],
         leverage     = sig["leverage"],
+        risk_usd     = risk,
     )
     if not sizing.get("ok"):
         return {"ok": False, "error": sizing.get("error", "Sizing failed."), "parsed": sig}
+
+    from tools.position_sizer import best_entry_in_zone
+    best_entry = best_entry_in_zone(
+        sig.get("entry_low"), sig.get("entry_high"), sig["direction"],
+        fallback=sizing["entry"])
 
     trade = add_trade(
         asset        = sig["asset"],
@@ -180,7 +195,11 @@ async def process_signal(text: str, broadcast=None) -> dict:
         risk_usd     = sizing["risk_usd"],
         asset_class  = sig["asset_class"],
         units        = sizing["units"],
+        exit_plan    = sizing.get("exit_plan"),
         extra = {
+            "best_entry":        best_entry,
+            "entry_low":         sig.get("entry_low"),
+            "entry_high":        sig.get("entry_high"),
             "stop_source":       sizing["stop_source"],
             "stop_pct":          sizing["stop_pct"],
             "annual_vol":        sizing["annual_vol"],
@@ -195,4 +214,5 @@ async def process_signal(text: str, broadcast=None) -> dict:
     log.info("[live_signal] Entered %s %s %s @ %s — %s units, $%s risk",
              sig["asset_class"], sig["asset"], sig["direction"],
              sizing["entry"], sizing["units"], sizing["risk_usd"])
-    return {"ok": True, "trade": trade, "sizing": sizing, "parsed": sig}
+    return {"ok": True, "trade": trade, "sizing": sizing, "parsed": sig,
+            "best_entry": best_entry}

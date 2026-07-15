@@ -1,0 +1,15 @@
+---
+title: growth_01_TAPE1
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 1
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: alej one more day
+music_delay: 0.5
+---
+Last weekend, I took magic mushrooms for the first time in a long time. Not to escape reality. The opposite. I needed to check back into it.
+Because here's what happens to all of us. You get into the motion of life. Classes, work, the gym, your phone, sleep. Repeat.
+And somewhere in that loop, you stop being present. You're alive, but you're not actually there for any of it.
+And lately, it had gone deeper than that.

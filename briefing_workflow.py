@@ -44,8 +44,35 @@ find "$VAULT" -name "*.md" -mtime -2 -not -path "*/.obsidian/*" 2>/dev/null | so
 # ── Per-bucket reads (use these to scope each section)
 # 1. PAIS
 ls -lt "$VAULT/PAIS Hub/Tasks/" 2>/dev/null | head -15
-cat "$VAULT/Chats/$(date -v-1d +%F).md" 2>/dev/null || true
-cat "$VAULT/Chats/$(date +%F).md" 2>/dev/null || true
+
+# ── Session notes to continue from (do NOT assume "yesterday" has a note) ──
+# If Taran was away, the last real session may be several days back. Read
+# every session note that hasn't been briefed yet: those dated on/after the
+# most recent daily brief. (The morning brief covers the prior day, so a
+# given day's own note is written afterwards and still counts as unbriefed.)
+# Capped to the 7 most recent; falls back to the single latest note if none
+# qualify. This is the "continue from where we left off" source — read them
+# all, oldest first.
+LAST_BRIEF=$(ls -1 "$VAULT/Briefings/"*"Daily Brief.md" 2>/dev/null \
+  | sed -E 's#.*/([0-9]{4}-[0-9]{2}-[0-9]{2}).*#\1#' | sort | tail -1)
+echo "Last daily brief on file: ${LAST_BRIEF:-none}"
+# Collect unbriefed session-note DATES (on/after last brief), 7 most recent.
+# Store bare YYYY-MM-DD (no spaces) and rebuild the quoted path when reading —
+# the vault path contains spaces, so never word-split full paths.
+DATES=$(for f in "$VAULT/Chats/"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md; do
+  [[ -e "$f" ]] || continue
+  d=$(basename "$f" .md)
+  if [[ -z "$LAST_BRIEF" || ! "$d" < "$LAST_BRIEF" ]]; then echo "$d"; fi
+done | sort | tail -7)
+# Fallback: none qualified → use the single latest session note.
+[[ -z "$DATES" ]] && DATES=$(for f in "$VAULT/Chats/"[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md; do
+  [[ -e "$f" ]] && basename "$f" .md; done | sort | tail -1)
+while IFS= read -r d; do
+  [[ -z "$d" ]] && continue
+  echo "===== Session note: $d ====="
+  cat "$VAULT/Chats/$d.md"
+done <<< "$DATES"
+
 cat "$VAULT/Projects & Building/Agentic OS.md" 2>/dev/null | head -60
 find "$PAIS" -maxdepth 2 -name "*.py" -mtime -2 2>/dev/null | head -20
 
@@ -63,16 +90,14 @@ Read every file from the recently-modified list. Match each file to ONE bucket
 below (PAIS / Content / Trading / Other). Anything that
 doesn't fit the first three goes to Other.
 
-## Step 2 — Verify markets BEFORE writing
+NOTE on "Yesterday": the session notes printed above may span more than one day
+(Taran doesn't run a brief every day). Treat the whole unbriefed span as
+"since the last brief" — summarise progress across ALL of those notes, not just
+the calendar day before today. If the newest session note is a few days old,
+that is where you continue from; say so explicitly rather than reporting no
+activity.
 
-Run at least TWO separate WebSearch queries per number:
-- "bitcoin price today" + "BTC price coinmarketcap"
-- "ethereum price today" + "ETH coingecko"
-- "crypto fear greed index today"
-If two sources disagree by >2%, write a range (e.g. "$76k-$79k").
-Never quote a price from memory or a single source.
-
-## Step 3 — Write the brief with this exact structure
+## Step 2 — Write the brief with this exact structure
 
 File path: `$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Digital Brain/Briefings/YYYY-MM-DD Daily Brief.md`
 
@@ -101,16 +126,17 @@ date: YYYY-MM-DD
 **Next:** [next reel topic or podcast episode]
 **📜 AITA daily reminder:** Run the AITA workflow today — `/aita` in Telegram, or tap **🎬 Run AITA Workflow** on the Content agent page. Pick a hook, review the spell-checked script, render and post.
 
-## 3. Trading & Markets
-**Live (verified, 2 sources):**
-- BTC: $X (source A: $X, source B: $X)
-- ETH: $X
-- Fear & Greed: N (Extreme Fear / Fear / Neutral / Greed / Extreme Greed)
-
-**Open positions (from trades.json):**
+## 3. Trading Agent Update
+**Open positions (from pre-loaded trades.json):**
 - Asset Direction | Entry: $X | SL: $X | TP: $X | Status: X
-  → Unrealised PnL: $±X (using live BTC/ETH above)
-  → Stop loss at risk? Yes/No (proximity to SL)
+  → Unrealised PnL: $±X
+  → Bankroll: $X (started $X, total closed PnL $±X)
+
+**Recent agent activity (from activity.json + vault):**
+- Any signals processed via live_signal_workflow in the unbriefed span (asset, direction, entry, outcome)
+- Any live_trade_monitor alerts fired (which trades triggered, what action was suggested)
+- Any trades opened or closed since the last brief
+- If no trading agent activity, say so explicitly.
 
 **Dr. Profit signals (last 24h):** [any new from Dr-Profit-Trades-2026.md, or "none"]
 
@@ -141,7 +167,7 @@ Never split mid-section if the section fits; only split a single oversized
 section across multiple messages if it exceeds the cap on its own.
 
 ## Hard rules
-- If a bucket had no activity yesterday, write "No activity yesterday." for Yesterday and still give a Next.
+- If a bucket had no activity across the unbriefed session notes, write "No activity since last brief." for Yesterday and still give a Next. Never say "no activity" just because *yesterday specifically* was empty — check the whole unbriefed span first.
 - Today's Top 3 must be **actionable today** — no "decide on X strategy" without a specific decision/output.
 - Do not invent activity. If activity.json or vault is empty for a bucket, say so.
 """
@@ -196,22 +222,15 @@ Based on open threads across all projects:
 - 3–5 specific deliverables with project name
 - Order by priority/impact
 
-### 3. Financial Markets
-Run at least TWO separate WebSearch queries to verify any price:
-- "bitcoin price today" + "BTC weekly performance [date range]"
-- "ethereum price today" + "ETH this week"
-- "S&P 500 this week performance"
-- "crypto fear greed index"
-- "crypto market week of [date]" for overall sentiment
-If sources disagree by more than 2%, write a range.
-Never state a price from memory or a single source.
-
-### 4. Trading Review
-From trades.json (Step 1):
-- Open positions: entry zone, SL, TP, status, unrealised PnL (use live price from section 3)
-- Closed trades this week: PnL
-- Bankroll snapshot: starting vs current
+### 3. Trading Agent Review
+From trades.json and activity.json (Step 1):
+- Open positions: asset, direction, entry, SL, TP, status, unrealised PnL
+- Bankroll snapshot: starting vs current, total closed PnL
+- Closed trades this week: each trade's PnL
+- Signals processed this week via live_signal_workflow: asset, direction, entry, outcome
+- Alerts fired by live_trade_monitor this week: which trades, what action suggested
 - Any Dr. Profit signals from this week (check Dr-Profit-Trades-2026.md)
+- If no trading agent activity for a sub-item, say so explicitly.
 
 ### 5. AI/ML & Ecosystem News
 Use WebSearch:
@@ -242,11 +261,8 @@ tags:
 ## Next Week's Plan
 [3–5 specific deliverables with project name]
 
-## Markets
-[BTC price + weekly %, ETH price + weekly %, S&P direction, fear/greed index, sentiment]
-
-## Trading
-[Open positions + unrealised PnL, bankroll snapshot, any signals/trades this week]
+## Trading Agent Review
+[Open positions + unrealised PnL, bankroll snapshot (starting vs current), closed trades this week with PnL, signals processed by live_signal_workflow, alerts fired by live_trade_monitor, any Dr. Profit signals]
 
 ## AI/ML & Ecosystem
 [3–5 bullet points — most relevant developments for Taran's work]
@@ -258,7 +274,7 @@ tags:
 ## Telegram output
 Send the **full brief** to Telegram so Taran can read it on his phone. Send the same markdown body you wrote to the vault file — all sections — preserving headings and bullets. Do NOT summarize, do NOT just send "brief is ready".
 
-Telegram caps messages at 4096 characters, so split on section boundaries (`## Last Week`, `## Next Week`, `## Markets`, etc.) and send each section as its own message, in order. Never split mid-section unless a single section exceeds the cap on its own.
+Telegram caps messages at 4096 characters, so split on section boundaries (`## Last Week`, `## Next Week`, `## Trading Agent Review`, etc.) and send each section as its own message, in order. Never split mid-section unless a single section exceeds the cap on its own.
 """
 
 

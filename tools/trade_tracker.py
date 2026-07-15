@@ -7,6 +7,7 @@ Taran updates PnL via the /trades dashboard; tracker recalculates totals.
 """
 
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +15,32 @@ from typing import Optional
 
 TRADES_FILE = Path(__file__).parent.parent / "trades.json"
 STARTING_BANKROLL = 1000.0
+DEFAULT_RISK_PCT = 6.0     # % of bankroll risked per trade when not fixed-$
+                           # (aggressive — set PAIS_TRADE_RISK_PCT to lower it)
+
+
+def resolve_risk_usd() -> float:
+    """
+    Per-trade risk in USD. Precedence:
+      1. PAIS_TRADE_RISK_USD  — explicit fixed-dollar override (back-compat)
+      2. PAIS_TRADE_RISK_PCT of current bankroll (default 1%)
+      3. $60 fallback if bankroll is unknown.
+    Percent-of-equity compounds on the way up and de-risks in drawdowns.
+    """
+    fixed = os.environ.get("PAIS_TRADE_RISK_USD")
+    if fixed:
+        try:
+            return round(float(fixed), 2)
+        except ValueError:
+            pass
+    try:
+        pct = float(os.environ.get("PAIS_TRADE_RISK_PCT", str(DEFAULT_RISK_PCT)))
+    except ValueError:
+        pct = DEFAULT_RISK_PCT
+    bankroll = _load().get("bankroll") or 0.0
+    if bankroll > 0:
+        return round(bankroll * pct / 100, 2)
+    return 60.0
 
 
 # ── Data schema ───────────────────────────────────────────────────────────────
@@ -115,6 +142,27 @@ def get_all_trades() -> dict:
     }
 
 
+def export_backtest_rows() -> list[dict]:
+    """
+    Flat, backtest-ready rows for every settled (closed, non-cancelled) trade.
+    Once ~30–40 of these accumulate, a real price-path (STOP_K × RR) backtest
+    becomes possible — the vault history lacks the stop/entry/exit pairs for it.
+    """
+    fields = ("asset", "asset_class", "direction", "initial_entry", "initial_stop",
+              "exit_price", "one_r_usd", "pnl", "r_multiple", "leverage",
+              "source", "opened_at", "closed_at")
+    rows = []
+    for t in _load()["closed_trades"]:
+        if t.get("status") != "closed":
+            continue
+        row = {k: t.get(k) for k in fields}
+        # back-fill entry/stop for legacy trades logged before these fields
+        row["initial_entry"] = row["initial_entry"] or t.get("entry_price")
+        row["initial_stop"]  = row["initial_stop"] or t.get("stop_loss")
+        rows.append(row)
+    return rows
+
+
 # ── Write ─────────────────────────────────────────────────────────────────────
 
 def add_trade(
@@ -132,6 +180,7 @@ def add_trade(
     asset_class: str = "crypto",
     extra: Optional[dict] = None,
     units: Optional[float] = None,
+    exit_plan: Optional[dict] = None,
 ) -> dict:
     """
     Add a trade. status='waiting_entry' for pending signals, 'active' once filled.
@@ -180,6 +229,11 @@ def add_trade(
         "risk_usd":     risk_usd,
         "risk_pct":     risk_pct,
         "leverage":     leverage,
+        # ── backtest fields: frozen at entry so R-multiples are computable ──
+        "initial_entry": entry_price,
+        "initial_stop":  stop_loss,
+        "one_r_usd":     risk_usd,     # what 1R costs — the risk unit
+        "r_multiple":    None,         # set on close: pnl / one_r_usd
         "pnl":          None,
         "exit_price":   None,
         "status":       status,
@@ -189,6 +243,8 @@ def add_trade(
         "closed_at":    None,
         "notes":        "",
     }
+    if exit_plan:
+        trade["exit_plan"] = exit_plan
     if extra:
         trade["extra"] = extra
 
@@ -232,6 +288,9 @@ def close_trade(trade_id: str, pnl: float, exit_price: Optional[float] = None,
     trade["exit_price"] = exit_price
     trade["status"]    = "closed"
     trade["closed_at"] = datetime.now().isoformat()
+    one_r = trade.get("one_r_usd") or trade.get("risk_usd")
+    if one_r:
+        trade["r_multiple"] = round(pnl / one_r, 2)
     if notes:
         trade["notes"] = notes
 
@@ -258,6 +317,123 @@ def cancel_trade(trade_id: str) -> bool:
         data["active_trades"] = remaining
         _save(data)
     return found
+
+
+def scale_trade(trade_id: str, action: str, units: float, price: float,
+                notes: str = "") -> Optional[dict]:
+    """
+    Scale an active position in or out.
+
+    action='add'    → buy more units at `price`; recompute weighted-average
+                      entry, notional, and stop-based risk. No PnL realized.
+    action='reduce' → sell `units` at `price`; realize PnL on that slice into
+                      bankroll immediately and shrink the position. If the whole
+                      position is sold, the trade moves to closed_trades with its
+                      cumulative realized PnL.
+
+    Returns {"trade": ..., "realized_pnl": float, "closed": bool} or None.
+    """
+    if action not in ("add", "reduce"):
+        return None
+    units = abs(float(units))
+    price = float(price)
+    if units <= 0 or price <= 0:
+        return None
+
+    data = _load()
+    trade = next((t for t in data["active_trades"] if t["id"] == trade_id), None)
+    if not trade:
+        return None
+
+    size  = trade.get("position_size") or 0.0
+    entry = trade.get("entry_price") or 0.0
+    sl    = trade.get("stop_loss")
+    is_long = trade.get("direction") == "LONG"
+    extra = trade.setdefault("extra", {})
+    events = extra.setdefault("scale_events", [])
+
+    def _recompute_risk(new_size: float, ref_entry: float):
+        if sl:
+            return round(new_size * abs(ref_entry - sl), 2)
+        if size:
+            return round((trade.get("risk_usd") or 0.0) * new_size / size, 2)
+        return trade.get("risk_usd")
+
+    if action == "add":
+        new_size = round(size + units, 8)
+        new_entry = round((size * entry + units * price) / new_size, 10) if new_size else entry
+        trade["position_size"] = new_size
+        trade["entry_price"]   = new_entry
+        trade["notional"]      = round(new_size * new_entry, 2)
+        trade["risk_usd"]      = _recompute_risk(new_size, new_entry)
+        events.append({"ts": datetime.now().isoformat(), "action": "add",
+                       "units": units, "price": price,
+                       "new_size": new_size, "avg_entry": new_entry})
+        if notes:
+            trade["notes"] = notes
+        _save(data)
+        return {"trade": trade, "realized_pnl": 0.0, "closed": False}
+
+    # action == "reduce"
+    red = min(units, size)
+    realized = round(red * (price - entry) * (1 if is_long else -1), 4)
+    new_size = round(size - red, 8)
+    data["bankroll"] = round(data["bankroll"] + realized, 2)
+    extra["realized_scaled_pnl"] = round(extra.get("realized_scaled_pnl", 0.0) + realized, 4)
+    events.append({"ts": datetime.now().isoformat(), "action": "reduce",
+                   "units": red, "price": price,
+                   "realized": realized, "new_size": new_size})
+
+    if new_size <= 1e-9:
+        trade["position_size"] = 0.0
+        trade["notional"]      = 0.0
+        trade["exit_price"]    = price
+        trade["pnl"]           = extra["realized_scaled_pnl"]
+        trade["status"]        = "closed"
+        trade["closed_at"]     = datetime.now().isoformat()
+        one_r = trade.get("one_r_usd") or trade.get("risk_usd")
+        if one_r:
+            trade["r_multiple"] = round(extra["realized_scaled_pnl"] / one_r, 2)
+        if notes:
+            trade["notes"] = notes
+        data["active_trades"] = [t for t in data["active_trades"] if t["id"] != trade_id]
+        data["closed_trades"].append(trade)
+        _save(data)
+        return {"trade": trade, "realized_pnl": realized, "closed": True}
+
+    trade["position_size"] = new_size
+    trade["notional"]      = round(new_size * entry, 2)
+    trade["risk_usd"]      = _recompute_risk(new_size, entry)
+    if notes:
+        trade["notes"] = notes
+    _save(data)
+    return {"trade": trade, "realized_pnl": realized, "closed": False}
+
+
+def delete_trade(trade_id: str) -> Optional[dict]:
+    """
+    Permanently remove a trade from either bucket. If it was a settled (closed,
+    non-cancelled) trade whose PnL had been rolled into bankroll, revert that.
+    """
+    data = _load()
+    removed = None
+    for bucket in ("active_trades", "closed_trades"):
+        keep = []
+        for t in data[bucket]:
+            if t["id"] == trade_id and removed is None:
+                removed = (bucket, t)
+            else:
+                keep.append(t)
+        data[bucket] = keep
+
+    if removed is None:
+        return None
+
+    bucket, trade = removed
+    if bucket == "closed_trades" and trade.get("status") == "closed":
+        data["bankroll"] = round(data["bankroll"] - (trade.get("pnl") or 0.0), 2)
+    _save(data)
+    return trade
 
 
 def reset_bankroll(amount: float = STARTING_BANKROLL):

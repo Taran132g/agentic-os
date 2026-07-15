@@ -1,0 +1,100 @@
+{
+  "togi": {
+    "url": "https://www.youtube.com/@ShaneStoffer/videos",
+    "kick": "https://kick.com/togi",
+    "campaign": "https://whop.com/togi-clipvault/",
+    "active": false,
+    "notes": "PAUSED 2026-07-06 (consolidating to personal acct; dedicated page required). DEDICATED page: only Togi content/name, TikTok bio linktr.ee/_togi, IG tags @stoffer_+@togi fan page. RPM $0.12 TT/$0.15 IG/$0.108 Shorts on TOTAL account views; paid after 1M views. togitranscripts.com"
+  },
+  "tjr": {
+    "url": "https://www.youtube.com/channel/UCGHBUXjDCeiIXNdKR0HUZnA/videos",
+    "campaign": "https://whop.com/tjr/",
+    "active": false,
+    "notes": "PAUSED 2026-07-06. Whop sprints $1/1K on YT+TT+IG+X, $1 min/$1000 max, REQUIRED bio link tjrtrades.com/get-blueprint. (clipping.net also lists TJR at $0.50/1K \u2014 Whop pays double)"
+  },
+  "stableronaldo": {
+    "url": "https://www.youtube.com/channel/UCLldJScHWCtsFlfanYXS8nQ/videos",
+    "campaign": "https://whop.com/discover/content-rewards/",
+    "active": true,
+    "hashtags": "#stableronaldo #fyp",
+    "notes": "ACTIVE for rendering, but NO CONFIRMED CAMPAIGN yet (not on clipping.net \u2014 checked full 66 list 2026-07-06). Find his program on Whop discover or his Discord BEFORE posting for pay."
+  },
+  "plaqueboymax": {
+    "url": "https://www.twitch.tv/plaqueboymax/videos",
+    "campaign": "https://clipping.net/dashboard/campaigns/plaqueboymax-x-clipping",
+    "active": true,
+    "watermark": "watermarks/pbm.png",
+    "hashtags": "#plaqueboymax #fyp",
+    "notes": "clipping.net: $4K bounty pot, min 500K views to qualify, 295 days, PayPal. Twitch VODs (first-hour section + whisper). Rules: PBM featured relevantly, OFFICIAL WATERMARK required clearly visible NOT at edge (auto-overlaid), no other logos, EN audience."
+  },
+  "jasontheween": {
+    "url": "https://www.twitch.tv/jasontheween/videos",
+    "campaign": "https://clipping.net/dashboard/campaigns/jasontheween-x-clipping",
+    "active": true,
+    "watermark": "watermarks/jason.png",
+    "hashtags": "#jasontheween #fyp",
+    "notes": "clipping.net: $7.5K bounty pot, min 700K views to qualify, 295 days. Twitch VODs. Rules: Jason featured relevantly, WATERMARK required clearly visible NOT at edge (auto-overlaid), no other logos, EN audience."
+  },
+  "jeffdunham": {
+    "campaign": "https://clipping.net/dashboard/campaigns/jeff-dunham-x-clipping",
+    "active": false,
+    "hashtags": "#jeffdunham #comedy",
+    "notes": "clipping.net: $1/1K ($100/100K), min 100K views, ~31 days. ASSETS ONLY: Frame.io f.io/LufYfwXk password DUNHAMmasters \u2014 download masters, `ingest` + find/cut the funny moments. No watermark/caption reqs; 'posts that add no value' get rejected (hooks matter). EN audience."
+  },
+  "mrbeast": {
+    "url": "https://www.youtube.com/@BeastPhilanthropy/videos",
+    "campaign": "https://app.vyro.com/",
+    "active": true,
+    "hashtags": "",
+    "notes": "Vyro Beast Philanthropy campaign: $3/1K, $1000 cap/post. Clips of BEAST PHILANTHROPY channel only; no collab/story posts; likes+comments ON; no boosting; NO unaffiliated hashtags; botted views = ban. Personal accounts OK."
+  },
+  "mrbeast_main": {
+    "url": "https://www.youtube.com/channel/UCX6OQ3DkcsbYNE6H8uQQuVA/videos",
+    "campaign": "https://app.vyro.com/",
+    "active": false,
+    "notes": "Main MrBeast channel \u2014 activate only when a Vyro campaign covers main-channel content"
+  },
+  "moana": {
+    "campaign": "https://app.vyro.com/",
+    "active": false,
+    "hashtags": "#Moana #DisneyPartner",
+    "overlay": [
+      "MOANA",
+      "In theatres July 10th",
+      "Get tickets now!"
+    ],
+    "caption_suffix": "Moana \u2014 in theatres July 10th. Get tickets now! https://www.fandango.com/moana-2026-243429/movie-overview",
+    "approved_captions": [
+      "The music alone is enough for me to go see this movie",
+      "I can't believe they pulled off a live-action of my favorite movie",
+      "Live-action Moana is exactly what we needed",
+      "The visuals and the music are just perfect",
+      "No way Heihei made it into the live-action \ud83d\udd25"
+    ],
+    "notes": "Disney Moana on Vyro: $2/1K, ends ~2026-07-10, 5K views min/clip, $1000 cap. ASSETS ONLY (f.io/f3V2Z_SP); native audio contained; 25s-2min; PIN fandango link in comments; #Moana #DisneyPartner only. 7 clips packed 2026-07-06 (1 scheduled + 6 drafts)."
+  },
+  "goggins": {
+    "url": "https://www.youtube.com/@DavidGoggins",
+    "active": false,
+    "niche": "motivation",
+    "hashtags": "#davidgoggins #motivation #discipline #mindset"
+  },
+  "jocko": {
+    "url": "",
+    "active": false,
+    "niche": "motivation",
+    "hashtags": "#jockowillink #discipline #motivation #mindset"
+  },
+  "ericthomas": {
+    "url": "",
+    "active": false,
+    "niche": "motivation",
+    "hashtags": "#ericthomas #howbaddoyouwantit #motivation #mindset"
+  },
+  "jordanpeterson": {
+    "url": "",
+    "active": false,
+    "niche": "motivation",
+    "hashtags": "#jordanpeterson #responsibility #motivation #mindset"
+  }
+}

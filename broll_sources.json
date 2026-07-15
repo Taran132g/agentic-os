@@ -43,6 +43,15 @@
     "duration_max": 1800
   },
 
+  "nature_sunset": {
+    "queries": [
+      "golden hour sunset over ocean cinematic 4k drone",
+      "sunset time lapse cinematic 4k no music"
+    ],
+    "duration_min": 120,
+    "duration_max": 1800
+  },
+
   "nature_aurora": {
     "queries": ["northern lights aurora cinematic 4k time lapse"],
     "duration_min": 180,

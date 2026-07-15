@@ -16,6 +16,11 @@
 body{background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%);color:var(--parch);font-family:var(--serif);overflow:hidden;user-select:none}
 button{font-family:inherit;cursor:pointer;touch-action:manipulation}
 a,select{touch-action:manipulation}
+/* keyboard focus ring — mouse clicks stay clean (:focus-visible only), keyboard/tab users get a clear gold ring */
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--gold2);outline-offset:2px;border-radius:8px}
+.card:focus-visible{outline-offset:4px}
+textarea:focus-visible,input:focus-visible{outline-offset:0}
 
 /* ── HUD ── */
 .hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:18px;padding:14px 26px;
@@ -64,66 +69,11 @@ a,select{touch-action:manipulation}
 .card.settings{border-style:dashed;border-color:rgba(139,148,255,.3)}
 .card.settings .ic{display:grid;place-items:center;color:var(--magic)}
 
-/* ── OFFICE (3D) — retired in favor of a clean dashboard run view ── */
-#c{display:none!important}
-#c.show{opacity:1}
-/* clean two-pane agent panel (steps/pipeline left · avatar right) */
-.run-stage{position:fixed;inset:0;z-index:24;opacity:0;pointer-events:none;transition:opacity .3s;overflow:auto}
-.run-stage.show{opacity:1;pointer-events:auto}
-.rs-card{min-height:100%;background:none;border:none;border-radius:0;box-shadow:none;padding:92px 7vw 56px;max-width:1180px;margin:0 auto;display:flex;flex-direction:column;justify-content:safe center}
-.rs-topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.rs-name{font-size:21px;font-weight:700;color:var(--gold)}
-.rs-role{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:2px}
-.rs-name{font-size:28px}
-.rs-desc{font-size:16px;color:var(--parch);margin-top:11px;line-height:1.55;max-width:760px}
-.rs-actions{display:flex;gap:10px;flex-wrap:wrap}
-.rs-body{display:flex;gap:48px;margin-top:30px;align-items:flex-start}
-.rs-left{flex:1;min-width:0}
-.rs-right{flex:none}
-.rs-av-lg{width:190px;height:190px;border-radius:22px;overflow:hidden;border:1px solid rgba(201,161,74,.4)}
-.rs-av-lg img{width:100%;height:100%;object-fit:cover}
-.rs-status{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.rs-step{display:flex;align-items:center;gap:12px;padding:10px 2px;font-size:16px;color:var(--muted)}
-.rs-step .rs-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--dim);display:grid;place-items:center;font-family:var(--mono);font-size:11px;flex:none}
-.rs-step.done{color:var(--parch)}.rs-step.done .rs-dot{border-color:var(--green);background:var(--green);color:#06160d}
-.rs-step.active{color:var(--parch)}.rs-step.active .rs-dot{border-color:var(--magic);color:var(--magic)}
-.rs-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:10px}
-.rs-fill{height:100%;width:0;background:linear-gradient(90deg,#b9842f,var(--gold2));border-radius:5px;transition:width .3s}
-.rs-eta{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;margin-top:5px;min-height:14px}
-.rs-pipe{max-height:min(62vh,620px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-right:4px}
-.office-ui{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;transition:opacity .4s}
-.office-ui.show{opacity:1}
-.backbtn{position:fixed;top:74px;left:26px;z-index:26;pointer-events:auto;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
-  color:var(--gold);background:rgba(10,12,20,.7);border:1px solid rgba(217,164,65,.3);border-radius:10px;padding:12px 18px;min-height:42px}
-.backbtn:hover{border-color:var(--gold)}
-.dialogue{position:fixed;left:50%;bottom:30px;transform:translate(-50%,140%);z-index:26;width:min(700px,94vw);pointer-events:none;
-  transition:transform .5s cubic-bezier(.16,1,.3,1);background:linear-gradient(180deg,#15131c,#0d0c12);border:1px solid var(--gold);
-  border-radius:16px;box-shadow:0 -10px 50px rgba(0,0,0,.7),0 0 40px -12px rgba(217,164,65,.35);padding:18px 22px}
-.dialogue.on{transform:translate(-50%,0);pointer-events:auto}
-.dialogue .row{display:flex;gap:16px;align-items:flex-start}
-.dialogue .por{width:62px;height:62px;border-radius:12px;overflow:hidden;border:1px solid var(--gold);flex:none;box-shadow:0 0 18px -6px var(--gold)}
-.dialogue .por img{width:100%;height:100%;object-fit:cover}
-.dialogue .who{font-family:var(--display);font-size:19px;color:var(--gold);letter-spacing:.04em}
-.dialogue .role{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px}
-.dialogue .say{font-size:16px;line-height:1.5;color:var(--parch);min-height:44px}
-.dialogue .acts{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
 .btn{font-family:var(--display);letter-spacing:.01em;text-transform:none;font-weight:600;font-size:13px;border-radius:9px;padding:10px 18px;
   border:1px solid var(--gold);color:#1a140a;background:linear-gradient(180deg,var(--gold2),#b9842f);box-shadow:0 6px 18px -6px var(--gold);transition:transform .12s}
 .btn:hover{transform:translateY(-1px)}.btn[disabled]{opacity:.5;cursor:default;transform:none}
 .btn.ghost{background:none;color:var(--gold)}
 .btn.run{border-color:var(--green);background:linear-gradient(180deg,#6ee29b,#2f9d5e);color:#06160d;box-shadow:0 6px 18px -6px var(--green)}
-.acts .spacer{flex:1}
-/* pipeline panel — pointer-events:none while hidden: an invisible fixed panel at
-   screen center was silently swallowing clicks on the hub cards beneath it */
-.pipe{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.95);z-index:27;width:min(520px,92vw);pointer-events:none;
-  opacity:0;transition:opacity .3s,transform .3s;background:linear-gradient(180deg,#16131e,#0e0c14);border:1px solid var(--gold);border-radius:16px;padding:22px 24px;
-  box-shadow:0 24px 70px rgba(0,0,0,.7)}
-.pipe.on{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
-.pipe h3{font-family:var(--display);font-size:20px;color:var(--gold);margin:0 0 2px}
-.pipe .pr{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
-.pipe .step{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.06);font-size:15px}
-.pipe .step .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
-.pipe .x{position:absolute;top:12px;right:14px;background:none;border:1px solid rgba(255,255,255,.1);color:var(--muted);width:40px;height:40px;border-radius:10px;font-size:16px}
 
 /* settings */
 .settings-panel{position:fixed;inset:0;z-index:35;display:none;place-items:center;background:rgba(5,6,10,.7);backdrop-filter:blur(4px)}
@@ -138,10 +88,14 @@ a,select{touch-action:manipulation}
 .spanel .srow b{font-family:var(--display);color:var(--gold)}
 
 /* banner + confetti */
-.banner{position:fixed;top:38%;left:50%;z-index:40;transform:translate(-50%,-50%) scale(.85);opacity:0;text-align:center;pointer-events:none;transition:.45s}
-.banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
-.banner .big{font-family:var(--display);font-size:24px;font-weight:700;color:var(--parch)}
-.banner .small{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--parch);text-transform:uppercase;margin-top:6px}
+/* top toast, not a center overlay — a solid pill below the HUD so it never tangles with content */
+.banner{position:fixed;top:76px;left:50%;z-index:60;transform:translate(-50%,-14px);opacity:0;text-align:center;pointer-events:none;
+  transition:opacity .35s,transform .35s cubic-bezier(.16,1,.3,1);max-width:min(90vw,460px);
+  background:linear-gradient(180deg,rgba(30,26,18,.97),rgba(16,14,10,.97));border:1px solid var(--gold);
+  border-radius:14px;padding:12px 22px;box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 34px -12px var(--gold)}
+.banner.on{opacity:1;transform:translate(-50%,0)}
+.banner .big{font-family:var(--display);font-size:16px;font-weight:700;color:var(--gold2)}
+.banner .small{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--parch);text-transform:none;margin-top:4px;opacity:.85}
 #fx{position:fixed;inset:0;z-index:39;pointer-events:none}
 .loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--ink);font-family:var(--mono);color:var(--gold);letter-spacing:.2em;font-size:12px}
 .cfg-overlay{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.96);z-index:27;width:min(440px,90vw);pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;
@@ -166,15 +120,7 @@ a,select{touch-action:manipulation}
 .acct-chip.active{border-color:var(--green);background:rgba(86,217,138,.1)}
 .acct-chip small{color:var(--muted);font-size:11px}
 /* rich pipeline view (steps + persona + latest report) */
-.pp-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.pp-head img{width:46px;height:46px;border-radius:11px;object-fit:cover;border:1px solid var(--gold)}
-.pp-steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:14px}
 .step-pill{font-family:var(--mono);font-size:11px;color:var(--gold);border:1px solid rgba(217,164,65,.4);border-radius:999px;padding:5px 12px}
-.pp-steps .arrow{color:var(--dim)}
-.pp-persona{font-size:14px;line-height:1.6;color:var(--muted);margin-bottom:16px;white-space:pre-wrap}
-.report-head{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--green);margin-bottom:8px}
-.report-body{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 16px;font-size:13.5px;line-height:1.6;color:var(--parch);white-space:pre-wrap;max-height:38vh;overflow:auto}
-.modal-box.wide{width:min(820px,95vw)}
 /* chief of staff full page (ChatGPT-style) */
 .chief-page{position:fixed;inset:0;z-index:42;display:none;background:radial-gradient(120% 90% at 50% 0%,#15131f,#08090e 70%)}
 .chief-page.on{display:flex}
@@ -279,6 +225,25 @@ a,select{touch-action:manipulation}
 .ap-prev:hover{color:var(--parch)}
 .ap-prev b{color:var(--gold2);white-space:nowrap}
 .ap-prev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+/* skeleton loaders — a shimmering placeholder reads as "loading fast" vs bare text */
+@keyframes shimmer{100%{background-position:-200% 0}}
+.sk{height:13px;border-radius:6px;margin:9px 0;
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(201,161,74,.12) 37%,rgba(255,255,255,.04) 63%);
+  background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+.sk-chip{height:64px;border-radius:13px;
+  background:linear-gradient(90deg,rgba(255,255,255,.03) 25%,rgba(201,161,74,.1) 37%,rgba(255,255,255,.03) 63%);
+  background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+@media (prefers-reduced-motion:reduce){ .sk,.sk-chip{animation:none} }
+/* hub activity feed — what your team did while you were away */
+.hub-feed{width:min(1000px,94vw);margin:18px auto 0;border:1px solid rgba(255,255,255,.06);border-radius:14px;
+  background:linear-gradient(180deg,rgba(22,20,30,.5),rgba(9,9,14,.7));padding:12px 16px}
+.hub-feed .hf-h{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.hf-row{display:flex;align-items:center;gap:11px;padding:7px 4px;border-top:1px solid rgba(255,255,255,.04);cursor:pointer;text-align:left;background:none;border-left:0;border-right:0;border-bottom:0;width:100%}
+.hf-row:hover{background:rgba(201,161,74,.04)}
+.hf-row img{width:26px;height:26px;border-radius:7px;object-fit:cover;flex:none}
+.hf-row .who{font-family:var(--display);font-size:12.5px;color:var(--gold2);min-width:74px}
+.hf-row .txt{font-family:var(--serif);font-size:13px;color:var(--parch);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf-row .ago{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
 
 /* HUD identity (google avatar + name + occupation) */
 .hud .av img{width:100%;height:100%;border-radius:50%;object-fit:cover}
@@ -351,6 +316,45 @@ a,select{touch-action:manipulation}
   .intro-mark span{animation:none;transform:none}
   .intro-btn{animation:none}
 }
+.lead-row{display:flex;align-items:center;gap:10px}
+
+/* ───────────────── mobile / small-screen pass ───────────────── */
+@media (max-width:768px){
+  .hud{gap:7px;padding:9px 12px}
+  .hud h1{font-size:13px}
+  .hud .occ{font-size:9px}
+  .hud .av{width:38px;height:38px}
+  /* utility chips collapse to icons so the header stays a single compact row */
+  .chip .clbl{display:none}
+  #signinChip .clbl{display:inline}
+  .chip{font-size:12px;padding:8px 11px;min-height:38px}
+  .hub{padding:70px 14px 30px;justify-content:flex-start}
+  .hub .lead{font-size:22px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px;width:100%}
+  .card{padding:14px;border-radius:13px}
+  .card .ic{width:40px;height:40px}
+  .td-wrap{padding:18px 13px 60px}
+  .td-head{gap:10px}
+  .td-chips{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+  .ap-av{width:44px;height:44px}
+  .ap-name{font-size:17px}
+  .td-report{font-size:11.5px;max-height:50vh}
+}
+@media (max-width:440px){
+  .hud .chip{flex:1;justify-content:center}
+  .td-chips{grid-template-columns:1fr 1fr}
+  .td-chip .v{font-size:18px}
+  /* pipeline rows: let the action button + status dropdown wrap under the name */
+  .lead-row{flex-wrap:wrap}
+  .lead-row .lr-name{flex:1 1 100%;margin-bottom:6px}
+  .lead-row>[data-act="fill"],.lead-row>[data-act="draft"],.lead-row>a{flex:1}
+  .clip-card{transition:transform .18s cubic-bezier(.16,1,.3,1),border-color .18s,box-shadow .18s}
+  .clip-card:hover{transform:translateY(-2px);border-color:rgba(var(--ac),.55);box-shadow:0 8px 22px -12px rgba(var(--ac),.45)}
+  .clip-card button:hover,.clip-card a:hover{filter:brightness(1.35)}
+  .lead-row select{flex:1;min-width:120px}
+  .hf-row .who{min-width:60px;font-size:11.5px}
+  .hf-row .txt{font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -393,50 +397,25 @@ a,select{touch-action:manipulation}
   <div class="me"><div class="av" id="meAv"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5"><circle cx="12" cy="8" r="3.4"/><path d="M5 21c0-4 3-6.5 7-6.5s7 2.5 7 6.5"/></svg></div>
     <div><h1 id="meName">OPERATOR</h1><div class="occ" id="meOcc"></div></div></div>
   <div class="spacer"></div>
-  <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 Sign in · live agents</button>
-  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● LIVE</div>
-  <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 Connect</button>
-  <button class="chip" onclick="openUsage()" style="cursor:pointer">📊 Usage</button>
-  <button class="chip" onclick="openBrain()" style="cursor:pointer">🧠 Brain</button>
-  <button class="chip" id="signoutChip" onclick="paisSignOut()" style="display:none;cursor:pointer">Sign out</button>
+  <button class="chip" id="signinChip" onclick="paisSignIn()" style="cursor:pointer">🔓 <span class="clbl">Sign in · live agents</span></button>
+  <div class="chip" id="liveBadge" style="display:none;color:#56d98a;border-color:rgba(86,217,138,.4)">● <span class="clbl">LIVE</span></div>
+  <button class="chip" onclick="openConnect()" style="cursor:pointer">🖥 <span class="clbl">Connect</span></button>
+  <button class="chip" onclick="openUsage()" style="cursor:pointer">📊 <span class="clbl">Usage</span></button>
+  <button class="chip" onclick="openBrain()" style="cursor:pointer">🧠 <span class="clbl">Brain</span></button>
+  <button class="chip" id="muteChip" onclick="toggleMute()" title="Mute agent voices" style="cursor:pointer">🔊</button>
+  <button class="chip" id="signoutChip" onclick="paisSignOut()" style="display:none;cursor:pointer">↪ <span class="clbl">Sign out</span></button>
 </header>
 
 <!-- HUB -->
 <div class="hub" id="hub">
   <div class="lead">Your Agent Team</div>
-  <div class="sub">click an agent to meet them</div>
+  <div class="sub">tap an agent to open its workspace</div>
   <div class="grid" id="grid"></div>
-</div>
-
-<!-- 3D office -->
-<canvas id="c"></canvas>
-<div class="office-ui" id="officeUI"></div>
-<!-- clean dashboard run view (replaces the 3D office screen) -->
-<div class="run-stage" id="runStage"><div class="rs-card">
-  <div class="rs-topbar">
-    <div><div class="rs-name" id="rsName">—</div><div class="rs-role" id="rsRole">—</div></div>
-    <div class="rs-actions" id="rsActions"></div>
+  <div class="hub-feed" id="hubFeed" style="display:none">
+    <div class="hf-h">◷ While you were away<span style="flex:1"></span><span id="hfMore" style="color:var(--dim)"></span></div>
+    <div id="hfRows"></div>
   </div>
-  <div class="rs-desc" id="rsDesc"></div>
-  <div class="rs-body">
-    <div class="rs-left">
-      <div class="rs-status" id="rsStatus">Ready</div>
-      <div id="rsSteps"></div>
-      <div class="rs-bar" id="rsBarWrap"><div class="rs-fill" id="rsFill"></div></div>
-      <div class="rs-eta" id="rsEta"></div>
-      <div class="rs-pipe" id="rsPipe" style="display:none"></div>
-    </div>
-    <div class="rs-right"><div class="rs-av-lg"><img id="rsImg" alt=""></div></div>
-  </div>
-</div></div>
-<button class="backbtn" id="backbtn" style="display:none">← Control Room</button>
-<div class="dialogue" id="dialogue">
-  <div class="row"><div style="flex:1"><div class="who" id="dWho">—</div><div class="role" id="dRole">—</div>
-      <div class="say" id="dSay">—</div><div class="acts" id="dActs"></div></div>
-    <div class="por"><img id="dImg" alt=""></div></div>
 </div>
-<div class="pipe" id="pipe"><button class="x" onclick="closePipe()">✕</button>
-  <h3 id="pName">—</h3><div class="pr" id="pRole">—</div><div id="pSteps"></div></div>
 
 <!-- settings -->
 <div class="settings-panel" id="settings"><div class="spanel">
@@ -447,15 +426,6 @@ a,select{touch-action:manipulation}
 
 <div class="banner" id="banner"><div class="big" id="bBig">DONE</div><div class="small" id="bSmall"></div></div>
 <div class="cfg-overlay" id="cfgOverlay"></div>
-
-<!-- rich pipeline view (steps + persona + latest report) -->
-<div class="modal-scrim" id="pipePanel"><div class="modal-box wide"><button class="x" onclick="closeModal('pipePanel')">✕</button>
-  <div class="pp-head"><img id="ppImg" alt=""><div><h3 id="ppName" style="margin:0">—</h3><div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase" id="ppRole">—</div></div></div>
-  <div class="pp-steps" id="ppSteps"></div>
-  <div class="pp-persona" id="ppPersona"></div>
-  <div id="ppLeads" style="margin-bottom:16px"></div>
-  <div id="ppReport"></div>
-</div></div>
 
 <!-- trader — full page terminal desk -->
 <div class="trader-page" id="traderPage">
@@ -506,7 +476,7 @@ a,select{touch-action:manipulation}
       <button class="td-close" onclick="closeAgentPage()">✕</button>
     </div>
     <div class="td-chips" id="apChips"></div>
-    <div class="td-panel">
+    <div class="td-panel" id="apMissionPanel">
       <div class="td-sec">Mission<span class="rule"></span></div>
       <div class="ap-say" id="apSay"></div>
       <div class="ap-steps" id="apSteps"></div>
@@ -523,9 +493,18 @@ a,select{touch-action:manipulation}
       </div>
       <div id="apPipe" style="max-height:52vh;overflow-y:auto;overscroll-behavior:contain;padding-right:4px"></div>
     </div>
-    <div class="td-panel">
+    <div class="td-panel" id="apReportPanel">
       <div class="td-sec">Latest report<span class="rule"></span></div>
       <div class="td-report" id="apReport">—</div>
+    </div>
+    <div class="td-panel" id="apChatPanel" style="display:none">
+      <div class="td-sec">Ask the agent<span class="rule"></span></div>
+      <div id="apChatMsgs" style="max-height:38vh;overflow-y:auto;overscroll-behavior:contain"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input id="apChatIn" placeholder="Ask a follow-up about this run…" onkeydown="if(event.key==='Enter')apAsk()"
+          style="flex:1;background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:9px;padding:10px 12px;font-family:var(--serif);font-size:14px">
+        <button class="btn" id="apChatBtn" onclick="apAsk()">💬 Ask</button>
+      </div>
     </div>
     <div class="td-panel" id="apPrevPanel" style="display:none">
       <div class="td-sec">Earlier runs<span class="rule"></span></div>
@@ -575,7 +554,6 @@ a,select{touch-action:manipulation}
 
 <canvas id="fx"></canvas>
 
-<script src="vendor/three.min.js"></script>
 <script>
 const DEFAULT_AGENTS=[
   {id:"briefing",name:"Briefing",role:"Daily briefing",say:"I read through your vault and notes and give you a short rundown of what matters today. Want me to put it together?",steps:["Read your notes","Summarize the day","Post the briefing"]},
@@ -586,11 +564,12 @@ const DEFAULT_AGENTS=[
   {id:"code",name:"Code",role:"Code sync",say:"I check your repos, run safety checks, then commit and push the work. Want me to run it?",steps:["Scan the repos","Run checks","Commit","Push"]},
   {id:"reviewer",name:"Reviewer",role:"Reviewer",say:"I look at what your agents have done since the last review and tell you how it went and what still needs you. Want me to review?",steps:["Read recent runs","Grade the work","Flag what needs you"]},
   {id:"trader",name:"Trader",role:"Live trading",say:"Paste a trade signal — crypto or stock — and I'll size it so a stop-out costs you exactly $60, then track the live P&L. Want to open the desk?",steps:["Parse the signal","Pull live price + volatility","Size at $60 fixed risk","Track live P&L"]},
+  {id:"clips",name:"Clips",role:"Clip factory",say:"I watch your creators for new videos, cut the best moments into captioned clips, and queue each one with a caption and its campaign link. Want me to generate today's clips?",steps:["Check new uploads","Score the best moments","Cut + caption 9:16","Queue for posting"]},
 ];
 const $=id=>document.getElementById(id);
 // Bump AGENTS_VER whenever DEFAULT_AGENTS text changes (name/role/say/steps) so a
 // stale saved copy in localStorage can't shadow the new defaults (the de-themed text).
-const AGENTS_VER="2026-07-02-trader";
+const AGENTS_VER="2026-07-06-clips";
 if(localStorage.getItem("pais_agents_v")!==AGENTS_VER){ try{localStorage.removeItem("pais_agents");}catch{} try{localStorage.setItem("pais_agents_v",AGENTS_VER);}catch{} }
 let AGENTS; try{ AGENTS=JSON.parse(localStorage.getItem("pais_agents"))||null; }catch{ AGENTS=null; }
 if(!AGENTS||AGENTS.length!==DEFAULT_AGENTS.length){ AGENTS=DEFAULT_AGENTS.map(a=>({...a})); }
@@ -600,8 +579,28 @@ function agoLabel(ts){ if(!ts) return "not run yet"; const s=Math.max(0,(Date.no
   if(s<90) return "ran just now"; if(s<3600) return "ran "+Math.round(s/60)+"m ago";
   if(s<86400) return "ran "+Math.round(s/3600)+"h ago";
   const d=Math.round(s/86400); return "ran "+d+(d===1?" day":" days")+" ago"; }
-async function loadLastRuns(){ if(!LIVE||!token) return;
-  try{ const r=await api("/api/agents/messages"); (r.messages||[]).forEach(m=>{ if(m.agent&&m.ts) lastRun[m.agent]=Math.max(lastRun[m.agent]||0,m.ts); }); renderHub(); }catch(e){} }
+let hubFeedMsgs=[];
+async function loadLastRuns(){ if(!LIVE||!token){ renderHubFeed(); return; }
+  try{ const r=await api("/api/agents/messages"); const msgs=(r.messages||[]);
+    msgs.forEach(m=>{ if(m.agent&&m.ts) lastRun[m.agent]=Math.max(lastRun[m.agent]||0,m.ts); });
+    hubFeedMsgs=msgs.filter(m=>m.agent&&m.ts).sort((a,b)=>b.ts-a.ts);
+    renderHub(); renderHubFeed();
+  }catch(e){} }
+function _agentName(id){ const a=AGENTS.find(x=>x.id===id); return a?a.name:id; }
+// "While you were away" — a compact cross-agent feed of what the team did, so one
+// glance on the hub tells you a draft saved / scout finished without opening each.
+function renderHubFeed(){ const box=$("hubFeed"), rows=$("hfRows"); if(!box) return;
+  if(!(LIVE&&token) || !hubFeedMsgs.length){ box.style.display="none"; return; }
+  box.style.display="";
+  const top=hubFeedMsgs.slice(0,4);
+  $("hfMore").textContent = hubFeedMsgs.length>4 ? "+"+(hubFeedMsgs.length-4)+" more" : "";
+  rows.innerHTML=top.map(m=>{ const first=String(m.text||"").split("\n").find(l=>l.trim())||"";
+    return `<button class="hf-row" onclick="hubFeedOpen('${m.agent}')">
+      <img src="av/av-${m.agent}.webp" alt=""><span class="who">${esc(_agentName(m.agent))}</span>
+      <span class="txt">${esc(first.slice(0,90))}</span><span class="ago">${esc(agoLabel(m.ts).replace(/^ran /,""))}</span></button>`;
+  }).join(""); }
+function hubFeedOpen(id){ if(id==="trader") return openTraderPage();
+  const a=AGENTS.find(x=>x.id===id); if(a) openAgentPage(a); }
 // which agents are shown in the team room (UI visibility, toggled in Settings / onboarding).
 // null = not onboarded yet → all show. A Set = the chosen team.
 let teamUi=null; try{ const t=localStorage.getItem("pais_team_ui"); if(t) teamUi=new Set(JSON.parse(t)); }catch{ teamUi=null; }
@@ -660,11 +659,16 @@ let actx; function chime(kind){ return; /* game sounds disabled */ try{ actx=act
   notes.forEach((f,i)=>{ const o=actx.createOscillator(),g=actx.createGain(); o.type="triangle"; o.frequency.value=f;
     o.connect(g); g.connect(actx.destination); const t=actx.currentTime+i*0.09; g.gain.setValueAtTime(0.0001,t);
     g.gain.exponentialRampToValueAtTime(0.18,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.32); o.start(t); o.stop(t+0.34); }); }catch(e){} }
-function speak(text,idx){ try{ const ss=window.speechSynthesis; if(!ss)return; ss.cancel();
+// Agent voices — charming once, tiresome by the tenth open. Muted state persists.
+let muted=false; try{ muted=localStorage.getItem("pais_muted")==="1"; }catch{}
+function updateMuteChip(){ const c=$("muteChip"); if(c){ c.textContent=muted?"🔇":"🔊"; c.title=muted?"Agent voices muted — tap to unmute":"Mute agent voices"; } }
+function toggleMute(){ muted=!muted; try{ localStorage.setItem("pais_muted",muted?"1":"0"); }catch{}
+  if(muted){ try{ if(curAudio)curAudio.pause(); speechSynthesis.cancel(); }catch(e){} } updateMuteChip(); }
+function speak(text,idx){ if(muted) return; try{ const ss=window.speechSynthesis; if(!ss)return; ss.cancel();
   const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=1+(((idx||0)%4)-1.5)*0.13; u.volume=0.95; ss.speak(u); }catch(e){} }
 // per-agent ElevenLabs clip (character-matched voice); falls back to browser TTS
 let curAudio=null;
-function voiceLine(id,tag){ try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices2/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
+function voiceLine(id,tag){ if(muted) return; try{ if(curAudio){curAudio.pause();} curAudio=new Audio("voices2/"+id+"-"+tag+".mp3"); curAudio.volume=0.95;
   curAudio.play().catch(()=>{ const a=AGENTS.find(x=>x.id===id); speak(tag==="greet"?a.say:tag==="working"?"Working. Watch the screen.":"Done. Posted to your feed.",AGENTS.indexOf(a)); }); }catch(e){} }
 
 // ── HUD / gamification ──
@@ -702,101 +706,9 @@ function renderHub(){ const g=$("grid"); g.innerHTML="";
   s.onclick=openSettings; g.appendChild(s);
   renderHud(); }
 
-// ════════════════════════════ 3D OFFICE (fixed camera) ════════════════════════
-const renderer=new THREE.WebGLRenderer({canvas:$("c"),antialias:true,alpha:true});
-renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(1.5,devicePixelRatio)); renderer.outputEncoding=THREE.sRGBEncoding;
-const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x0a0b12,0.045);
-const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
-// first-person camera modes: stand (talk to agent), seat (run, at the screen), screen (read pipeline/config)
-const CAM={ stand:[[0.95,1.62,1.5],[1.45,1.42,-0.45]], seat:[[0,1.16,0.5],[0,1.5,-1.25]], screen:[[0,1.45,0.05],[0,1.5,-1.25]],
-  zoom:[[0,1.5,-0.18],[0,1.5,-1.25]] };   // zoom right into the monitor — screen fills the view
-let camPos=new THREE.Vector3(...CAM.stand[0]), camLook=new THREE.Vector3(...CAM.stand[1]); const lookCur=camLook.clone();
-function setCam(m){ camPos.set(...CAM[m][0]); camLook.set(...CAM[m][1]); }
-camera.position.copy(camPos); camera.lookAt(camLook);
-scene.add(new THREE.AmbientLight(0x46506e,0.95));
-const keyL=new THREE.DirectionalLight(0xffe6b0,0.5); keyL.position.set(4,8,5); scene.add(keyL);
-const floor=new THREE.Mesh(new THREE.CircleGeometry(14,48),new THREE.MeshStandardMaterial({color:0x0c0e15,roughness:.9})); floor.rotation.x=-Math.PI/2; scene.add(floor);
-const loader=new THREE.TextureLoader();
-const dark=new THREE.MeshStandardMaterial({color:0x171320,roughness:.78,metalness:.18});
-const wallMat=new THREE.MeshStandardMaterial({color:0x12101a,roughness:.96});
-// monitor faces +Z toward you/camera (default plane orientation → no mirror needed)
-const screenCanvas=document.createElement("canvas"); screenCanvas.width=512; screenCanvas.height=320;
-const sctx=screenCanvas.getContext("2d"); const screenTex=new THREE.CanvasTexture(screenCanvas);
-screenTex.encoding=THREE.sRGBEncoding; screenTex.minFilter=THREE.LinearFilter; screenTex.generateMipmaps=false;
-const monitor=new THREE.Mesh(new THREE.PlaneGeometry(2.0,1.2),new THREE.MeshBasicMaterial({map:screenTex,side:THREE.DoubleSide}));
-monitor.position.set(0,1.5,-1.25); scene.add(monitor);
-const mstand=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.7,0.14),dark); mstand.position.set(0,1.05,-1.3); scene.add(mstand);
-const monGlow=new THREE.PointLight(0xa9b6ff,0.6,6); monGlow.position.set(0,1.5,-0.4); scene.add(monGlow);
-const desk=new THREE.Mesh(new THREE.BoxGeometry(2.7,0.12,0.95),dark); desk.position.set(0,0.8,-1.4); scene.add(desk);
-[[-1.25,-1.0],[1.25,-1.0],[-1.25,-1.8],[1.25,-1.8]].forEach(([x,z])=>{ const lg=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.8,0.1),dark); lg.position.set(x,0.4,z); scene.add(lg); });
-const back=new THREE.Mesh(new THREE.BoxGeometry(5,3.6,0.12),wallMat); back.position.set(0,1.8,-2.3); scene.add(back);
-const sideL=new THREE.Mesh(new THREE.BoxGeometry(0.12,3.6,3),wallMat); sideL.position.set(-2.6,1.8,-1.0); scene.add(sideL);
-const sideR=sideL.clone(); sideR.position.x=2.6; scene.add(sideR);
-const rug=new THREE.Mesh(new THREE.CircleGeometry(2.4,40),new THREE.MeshStandardMaterial({color:0x120f1a,roughness:.95})); rug.rotation.x=-Math.PI/2; rug.position.set(0,0.01,-0.7); scene.add(rug);
-// chair (yours)
-const chairMat=new THREE.MeshStandardMaterial({color:0x201b2c,roughness:.85});
-const seat=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.1,0.62),chairMat); seat.position.set(-0.7,0.52,0.4); scene.add(seat);
-const cback=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.8,0.1),chairMat); cback.position.set(-0.7,0.92,0.7); scene.add(cback);
-// plant + lamp
-const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.17,0.3,10),new THREE.MeshStandardMaterial({color:0x4a3326})); pot.position.set(-2.1,0.15,-1.6); scene.add(pot);
-const plant=new THREE.Mesh(new THREE.IcosahedronGeometry(0.34,0),new THREE.MeshStandardMaterial({color:0x2f5d3a,flatShading:true,roughness:1})); plant.position.set(-2.1,0.55,-1.6); scene.add(plant);
-const lamp=new THREE.PointLight(0xffcaa0,0.4,5); lamp.position.set(2.0,2.2,-1.3); scene.add(lamp);
-// the agent standee (texture swapped per agent)
-const agentMat=new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide});
-const agent=new THREE.Mesh(new THREE.PlaneGeometry(1.25,1.55),agentMat); agent.position.set(1.5,1.18,-0.85); scene.add(agent);
-const aseat=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,0.6),chairMat); aseat.position.set(1.5,0.52,-0.55); scene.add(aseat);
-const aback=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.8,0.1),chairMat); aback.position.set(1.5,0.92,-0.3); scene.add(aback);
-const sign=new THREE.Mesh(new THREE.PlaneGeometry(2,0.5),new THREE.MeshBasicMaterial({transparent:true,side:THREE.DoubleSide})); sign.position.set(0,2.7,-1.2); scene.add(sign);
-
-// you (seated articulated figure with a face)
-const you=new THREE.Group();
-const clothA=new THREE.MeshStandardMaterial({color:0x39406a,roughness:.8}), clothB=new THREE.MeshStandardMaterial({color:0x2a2f48,roughness:.8});
-const skin=new THREE.MeshStandardMaterial({color:0xc9a98c,roughness:.7}), gold=new THREE.MeshStandardMaterial({color:0xd9a441,emissive:0x3a2a08,metalness:.4,roughness:.5});
-function limb(mat,w,h,d,py){ const grp=new THREE.Group(); const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.y=-h/2; grp.add(m); grp.position.y=py; return grp; }
-const hips=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.22,0.26),clothB); hips.position.y=0.92; you.add(hips);
-const torso=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.62,0.3),clothA); torso.position.y=1.36; you.add(torso);
-const belt=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.08,0.32),gold); belt.position.y=1.06; you.add(belt);
-const head=new THREE.Mesh(new THREE.SphereGeometry(0.2,20,20),skin); head.position.y=1.86; you.add(head);
-const hair=new THREE.Mesh(new THREE.SphereGeometry(0.205,18,18,0,6.28,0,1.7),new THREE.MeshStandardMaterial({color:0x241a16,roughness:.9})); hair.position.y=1.9; you.add(hair);
-const eyeW=new THREE.MeshStandardMaterial({color:0xf3efe6}),pupil=new THREE.MeshStandardMaterial({color:0x16131c});
-[-0.072,0.072].forEach(ex=>{ const w=new THREE.Mesh(new THREE.SphereGeometry(0.042,12,12),eyeW); w.position.set(ex,1.88,0.165); w.scale.z=.55; you.add(w);
-  const pp=new THREE.Mesh(new THREE.SphereGeometry(0.02,8,8),pupil); pp.position.set(ex,1.88,0.2); you.add(pp);
-  const br=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.018,0.02),new THREE.MeshStandardMaterial({color:0x241a16})); br.position.set(ex,1.94,0.18); you.add(br); });
-const nose=new THREE.Mesh(new THREE.SphereGeometry(0.028,8,8),skin); nose.position.set(0,1.84,0.2); you.add(nose);
-const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.02,0.02),new THREE.MeshStandardMaterial({color:0x7a4a44})); mouth.position.set(0,1.78,0.18); you.add(mouth);
-const legL=limb(clothB,0.18,0.8,0.2,0.92); legL.position.x=-0.12; you.add(legL);
-const legR=limb(clothB,0.18,0.8,0.2,0.92); legR.position.x=0.12; you.add(legR);
-const armL=limb(clothA,0.14,0.62,0.16,1.62); armL.position.x=-0.32; you.add(armL);
-const armR=limb(clothA,0.14,0.62,0.16,1.62); armR.position.x=0.32; you.add(armR);
-you.position.set(-0.7,0,0.5); you.rotation.y=Math.PI-0.22; you.visible=false;   // first-person — the camera is you
-legL.rotation.x=-1.45; legR.rotation.x=-1.45; armL.rotation.x=-0.6; armR.rotation.x=-0.6;  // seated pose
-scene.add(you);
-const youLight=new THREE.PointLight(0xffe6b0,0.4,5); youLight.position.set(0,2.4,1); scene.add(youLight);
-
-// ── screen drawing (faces you, no mirror) ──
-const screenState={running:false,done:false,pct:0,stepIdx:-1,eta:0,agent:null,mode:"ready"};
-function renderStage(){ const a=screenState.agent; if(!a||!document.getElementById("runStage")) return;
-  const st=screenState;
-  document.getElementById("rsImg").src="av/av-"+a.id+".webp";
-  document.getElementById("rsName").textContent=a.name;
-  document.getElementById("rsRole").textContent=a.role;
-  document.getElementById("rsDesc").textContent=a.say;
-  const se=document.getElementById("rsStatus");
-  if(st.done){ se.textContent="● Complete"; se.style.color="var(--green)"; }
-  else if(st.running){ se.textContent="● Running"; se.style.color="var(--magic)"; }
-  else { se.textContent="○ Ready"; se.style.color="var(--muted)"; }
-  document.getElementById("rsSteps").innerHTML=(a.steps||[]).map((step,i)=>{
-    const done=st.done||i<st.stepIdx, active=!st.done&&i===st.stepIdx;
-    return `<div class="rs-step ${done?'done':active?'active':''}"><span class="rs-dot">${done?'✓':(i+1)}</span><span>${esc(step)}</span></div>`; }).join("");
-  document.getElementById("rsFill").style.width=Math.round((st.pct||0)*100)+"%";
-  document.getElementById("rsEta").textContent=(st.running&&!st.done&&st.eta)?("~"+st.eta+"s left"):"";
-}
-// ── left-pane view toggle: steps (default/run) ↔ pipeline (leads) ──
-const LEAD_STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"]};
-function _stepsEls(){ return ["rsStatus","rsSteps","rsBarWrap","rsEta"].map(id=>document.getElementById(id)).filter(Boolean); }
-function showSteps(){ _stepsEls().forEach(e=>e.style.display=""); const p=document.getElementById("rsPipe"); if(p)p.style.display="none"; }
-function showPipe(){ if(!currentAgent)return; _stepsEls().forEach(e=>e.style.display="none"); const p=document.getElementById("rsPipe"); if(p)p.style.display=""; renderLeadsInto("rsPipe",currentAgent); }
-// Shared lead-row renderer — ONE source of truth for the run-stage pipeline and
+// Pipeline status vocab per agent (drives the workspace chips + status dropdowns)
+const LEAD_STAT={sales:["🟣 To call","🟡 Demo sent","🔴 Call back","🟢 WON","⚫ Rejected","⚪ Skip"],jobs:["🔍 To apply","📤 Applied","📞 Interview","🎯 Offer","⚫ Rejected","⚪ Skip"],linkedin:["🔍 To send","📨 Invite sent","🤝 Connected","💬 Replied","⚪ Skip"],clips:["🎬 Rendered","📱 Posted","📤 Submitted","💰 Paid","⚪ Skip"]};
+// Shared lead-row renderer — ONE source of truth for the workspace pipeline.
 // the Pipeline modal (they used to carry near-identical copies that drifted).
 // Rows carry data-* only, never interpolated JS, so a business name with an
 // apostrophe or a hostile scouted URL can't break the markup or inject script
@@ -814,28 +726,56 @@ function leadRowHTML(a,it,i,STAT){
   let act="";
   if(a.id==="jobs" && it.url && cur===STAT[0]){
     act=`<button data-act="fill" data-url="${escAttr(it.url)}" title="Fill this application on your Mac to review &amp; submit" style="${btnBase};border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green)">✎ Fill</button>`;
+  } else if(a.id==="sales" && it.no_email){
+    act=`<span title="The scout searched but couldn't find a public email for this business — call them or use their contact form instead" style="${btnBase};border:1px solid rgba(251,113,133,.35);background:rgba(251,113,133,.07);color:#fb7185;cursor:default;display:inline-flex;align-items:center">✕ No email</span>`;
   } else if(a.id==="sales" && !it.drafted){
     act=`<button data-act="draft" data-biz="${escAttr(it.business||it.title||"")}" data-vert="${escAttr(it.sub||it.vertical||"")}" title="Draft an outreach email → Gmail Drafts" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff">✉ Draft</button>`;
   } else if(a.id==="linkedin"){
     const q=encodeURIComponent(((it.title||it.name||"")+" "+(it.company||"")).trim());
     const raw=String(it.linkedin||""); const href=/^https?:\/\//i.test(raw)?raw:`https://www.linkedin.com/search/results/people/?keywords=${q}`;
     act=`<a href="${escAttr(href)}" target="_blank" rel="noopener" title="Open on LinkedIn" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff;text-decoration:none">in ↗</a>`;
+  } else if(a.id==="clips"){
+    act=`<button data-act="playclip" data-clip="${escAttr(it.clip||"")}" title="Open this video on your Mac" style="${btnBase};border:1px solid rgba(56,118,243,.4);background:rgba(56,118,243,.1);color:#7ab7ff">▶ Play</button>`
+      + (cur===STAT[0]?`<button data-act="draftclip" data-clip="${escAttr(it.clip||"")}" title="Upload to TikTok as a draft (browser opens on your Mac, caption pre-filled)" style="${btnBase};border:1px solid rgba(244,114,182,.4);background:rgba(244,114,182,.08);color:#f9a8d4">📱 Draft</button>`:"")
+      + `<button data-act="copycap" data-cap="${escAttr(it.caption||it.title||"")}" title="Copy the ready-to-paste caption (campaign rules baked in)" style="${btnBase};border:1px solid rgba(52,211,153,.4);background:rgba(52,211,153,.1);color:var(--green)">⧉ Copy caption</button>`
+      + (it.url?`<a href="${escAttr(it.url)}" target="_blank" rel="noopener" title="Open the campaign page to submit this clip" style="${btnBase};border:1px solid rgba(217,164,65,.4);background:rgba(217,164,65,.08);color:var(--gold2);text-decoration:none">⬆ Submit ↗</a>`:"");
   }
-  return `<div style="display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div style="flex:1;min-width:0">${nameBlock}</div>
+  return `<div class="lead-row" style="border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:9px 12px;margin-top:6px"><div class="lr-name" style="flex:1;min-width:0">${nameBlock}</div>
     ${act}<select data-act="status" data-agent="${a.id}" data-idx="${i}" style="background:#0c0b12;border:1px solid rgba(255,255,255,.12);color:var(--parch);border-radius:8px;padding:9px 10px;min-height:38px;font-size:12.5px">${STAT.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join("")}</select></div>`;
 }
 // Delegated handlers for the lead rows (registered once). Rows expose data-* only,
 // so values are read back safely via dataset — no JS injected from lead content.
 document.addEventListener("click",e=>{ const b=e.target.closest("button[data-act]"); if(!b) return;
   if(b.dataset.act==="fill") fillJob(b,b.dataset.url||"");
-  else if(b.dataset.act==="draft") draftSales(b,b.dataset.biz||"",b.dataset.vert||""); });
+  else if(b.dataset.act==="draft") draftSales(b,b.dataset.biz||"",b.dataset.vert||"");
+  else if(b.dataset.act==="playclip"){ const o=b.textContent; b.textContent="▶ Opening…"; b.disabled=true;
+    api("/api/agents/clips/open",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({clip:b.dataset.clip})})
+      .then(()=>{ b.textContent="✓ On your Mac"; banner("Playing","the clip just opened on your Mac"); })
+      .catch(e=>{ b.textContent=o; banner("Couldn't open",(e&&e.detail)||"is your Mac awake?"); })
+      .finally(()=>{ b.disabled=false; setTimeout(()=>{b.textContent=o;},1800); }); }
+  else if(b.dataset.act==="draftclip"){ const o=b.textContent; b.textContent="📱 Uploading…"; b.disabled=true;
+    api("/api/agents/clips/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({clip:b.dataset.clip})})
+      .then(r=>{ b.textContent="✓ Uploading on Mac"; banner("Draft upload started",(r&&r.text)?"watch the browser on your Mac — Telegram when saved":""); chime("done"); })
+      .catch(e=>{ b.textContent=o; b.disabled=false; banner("Couldn't start",(e&&e.detail)||"is your Mac awake?"); })
+      .finally(()=>{ setTimeout(()=>{ b.textContent=o; b.disabled=false; },60000); }); }
+  else if(b.dataset.act==="playlib"){ const o=b.textContent; b.textContent="▶ Opening…"; b.disabled=true;
+    api("/api/agents/clips/open",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({clip:"lib:"+(b.dataset.lib||"")})})
+      .then(()=>{ b.textContent="✓ On your Mac"; banner("Opening","the file just opened on your Mac"); })
+      .catch(e=>{ b.textContent=o; banner("Couldn't open",(e&&e.detail)||"is your Mac awake?"); })
+      .finally(()=>{ b.disabled=false; setTimeout(()=>{b.textContent=o;},1800); }); }
+  else if(b.dataset.act==="copycap"){ navigator.clipboard.writeText(b.dataset.cap||"").then(()=>{
+      const o=b.textContent; b.textContent="✓ Copied"; setTimeout(()=>{b.textContent=o;},1400);
+      banner("Caption copied","paste it as the TikTok title/caption");
+    }).catch(()=>banner("Couldn't copy","select and copy the hook text manually")); } });
 document.addEventListener("change",e=>{ const s=e.target.closest("select[data-act='status']"); if(!s) return;
   setLeadStatus(s.dataset.agent, parseInt(s.dataset.idx,10), s.value); });
 
 // ── Trader desk — full-page terminal (owner-only, data lives on the Mac) ──────
 function fmtUsd(n,plus){ if(n===null||n===undefined) return "—";
-  const s="$"+Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-  return (n<0?"-":plus&&n>0?"+":"")+s; }
+  const a=Math.abs(n);
+  // Sub-cent assets (e.g. PEPE ~$0.0000028) collapse to $0.00 under fixed 2-decimal — use sig digits.
+  const body=(a!==0&&a<0.01)?a.toLocaleString("en-US",{maximumSignificantDigits:4}):a.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?"-":plus&&n>0?"+":"")+"$"+body; }
 function pnlColor(n){ return n>0?"var(--green)":n<0?"#ff7a7a":"var(--muted)"; }
 let tdTimer=null, tdData=null;
 function openTraderPage(){ $("traderPage").classList.add("on"); tdRefresh();
@@ -879,7 +819,12 @@ function renderTd(){
       <div class="td-px">entry <b>${fmtUsd(p.entry)}</b><br>mark&nbsp; <b style="color:var(--gold2)">${p.mark?fmtUsd(p.mark):"—"}</b></div>
       <div>${tdRbar(p)}</div>
       <div class="td-pnl"><div class="big" style="color:${pnlColor(p.pnl)}">${fmtUsd(p.pnl,true)}</div>
-        <div class="sub">${p.r_multiple!=null?`<b style="color:${pnlColor(p.pnl)}">${p.r_multiple>0?"+":""}${p.r_multiple}R</b> · `:""}${p.units??"—"} u · ${fmtUsd(p.notional)}</div></div>
+        <div class="sub">${p.r_multiple!=null?`<b style="color:${pnlColor(p.pnl)}">${p.r_multiple>0?"+":""}${p.r_multiple}R</b> · `:""}${p.units??"—"} u · ${fmtUsd(p.notional)}</div>
+        <div style="display:flex;gap:6px;margin-top:7px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn ghost" title="Add to position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','add',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">＋ Add</button>
+          <button class="btn ghost" title="Reduce position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','reduce',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">− Trim</button>
+          <button class="btn ghost td-closebtn" style="padding:6px 13px;font-size:11px" onclick="tdClose('${p.id}',${p.pnl==null?0:p.pnl},${p.mark==null?"null":p.mark})">Close</button>
+        </div></div>
     </div>`;
   }).join("")||'<div class="td-empty">No open positions — paste a signal above.</div>';
   // recently closed
@@ -898,7 +843,7 @@ function tdRbar(p){
   if(!span) return "";
   const pct=v=>Math.max(2,Math.min(98,(v-sl)/span*100));
   const e=pct(entry), m=p.mark?pct(p.mark):e;
-  const f=v=>Math.abs(v)>=10000?"$"+(v/1000).toFixed(1)+"k":"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:Math.abs(v)<10?4:0});
+  const f=v=>Math.abs(v)>=10000?"$"+(v/1000).toFixed(1)+"k":(v!==0&&Math.abs(v)<0.01)?"$"+Number(v).toLocaleString("en-US",{maximumSignificantDigits:4}):"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:Math.abs(v)<10?4:0});
   return `<div class="td-rbar"><div class="zsl" style="width:${e}%"></div><div class="ztp" style="width:${100-e}%"></div>
       <div class="dot" style="left:${m}%"></div></div>
     <div class="td-lbl"><span>SL ${f(sl)}</span><span>${tp1?"TP "+f(tp1):"2R"}</span></div>`;
@@ -955,25 +900,139 @@ async function tdEnter(){
   }catch(e){ st.className="td-status err"; st.textContent="✕ "+(e.detail||e.message||"Request failed — is your Mac awake?"); }
   btn.disabled=false;
 }
+async function tdClose(id,pnl,mark){
+  const live=(pnl==null?0:pnl);
+  const v=prompt("Close this position at the live P&L? Edit if your real fill differed:",live.toFixed(2));
+  if(v===null) return;
+  const p=parseFloat(v); if(isNaN(p)) return;
+  const st=$("tdStatus"); st.className="td-status working"; st.textContent="Closing on your Mac…";
+  try{
+    await api("/api/agents/trader/close",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id,pnl:p,exit_price:mark})});
+    st.className="td-status ok"; st.textContent="✓ Position closed.";
+    banner("Position closed",fmtUsd(p,true)+" realized"); chime("done");
+    tdRefresh();
+  }catch(e){ st.className="td-status err"; st.textContent="✕ "+(e.detail||e.message||"Close failed — is your Mac awake?"); }
+}
+async function tdScale(id,action,curUnits,mark){
+  const isAdd=action==="add", verb=isAdd?"add to":"reduce";
+  const uStr=prompt(`How many units to ${verb} this position?`, isAdd?"":(curUnits?String(+(curUnits/2).toFixed(8)):""));
+  if(uStr===null) return;
+  const units=parseFloat(uStr);
+  if(isNaN(units)||units<=0){ const st=$("tdStatus"); st.className="td-status err"; st.textContent="Enter a valid number of units."; return; }
+  const pStr=prompt("Fill price? (defaults to the live mark)", mark!=null?String(mark):"");
+  if(pStr===null) return;
+  const price=parseFloat(pStr);
+  if(isNaN(price)||price<=0){ const st=$("tdStatus"); st.className="td-status err"; st.textContent="Enter a valid fill price."; return; }
+  const st=$("tdStatus"); st.className="td-status working"; st.textContent=(isAdd?"Adding to":"Trimming")+" position on your Mac…";
+  try{
+    const d=await api("/api/agents/trader/scale",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id,action,units,price})});
+    st.className="td-status ok"; st.textContent="✓ Position "+(isAdd?"increased":"reduced")+(d&&d.closed?" — and closed out.":".");
+    const realized=(d&&d.realized_pnl!=null)?d.realized_pnl:null;
+    banner(isAdd?"Added to position":"Trimmed position",(!isAdd&&realized!=null)?fmtUsd(realized,true)+" realized":""); chime("done");
+    tdRefresh();
+  }catch(e){ st.className="td-status err"; st.textContent="✕ "+(e.detail||e.message||"Scale failed — is your Mac awake?"); }
+}
 // ── generalized agent workspace (same terminal format as the trader desk) ─────
-let apId=null, apBusy=false, apMsgs=[], apItems=null;
-const AP_PIPE_LABEL={jobs:"Job pipeline",sales:"Sales pipeline",linkedin:"LinkedIn pipeline"};
+let apId=null, apBusy=false, apMsgs=[], apItems=null, apTimer=null;
+let apClipCreator=null;   // clips queue: which creator tab is selected (null = all)
+function clipTab(c){ apClipCreator=c; renderAp("clips"); }
+// ── clip queue card (thumbnail + hook + meta + actions) ──────────────────────
+const CLIP_ACCENT={ "🎬":"217,164,65", "📱":"122,183,255", "📤":"52,211,153", "💰":"74,222,128" };
+function clipCardHTML(it,i,STAT){
+  const cur=it.status||STAT[0];
+  const ac=CLIP_ACCENT[cur.slice(0,2)]||"160,160,160";
+  const dur=((it.note||"").match(/\d+s/)||[""])[0];
+  const score=((it.note||"").match(/score (\d+)/)||[,""])[1];
+  const thumb= it.thumb
+    ? `<img src="${it.thumb}" loading="lazy" alt="" style="width:62px;height:110px;object-fit:cover;border-radius:9px;flex:none;border:1px solid rgba(255,255,255,.1)">`
+    : `<div style="width:62px;height:110px;border-radius:9px;flex:none;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;font-size:22px">🎬</div>`;
+  const ib="font-family:var(--mono);font-size:11.5px;font-weight:600;padding:8px 11px;border-radius:8px;cursor:pointer;white-space:nowrap";
+  const btns=
+    `<button data-act="playclip" data-clip="${escAttr(it.clip||"")}" title="Preview on your Mac" style="${ib};border:1px solid rgba(56,118,243,.35);background:rgba(56,118,243,.1);color:#7ab7ff">▶ Play</button>`
+    +(cur===STAT[0]?`<button data-act="draftclip" data-clip="${escAttr(it.clip||"")}" title="Upload to TikTok as a draft" style="${ib};border:1px solid rgba(244,114,182,.35);background:rgba(244,114,182,.08);color:#f9a8d4">📱 Draft</button>`:"")
+    +`<button data-act="copycap" data-cap="${escAttr(it.caption||it.title||"")}" title="Copy the compliant caption" style="${ib};border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.1);color:var(--green)">⧉ Copy</button>`
+    +(it.url?`<a href="${escAttr(it.url)}" target="_blank" rel="noopener" title="Open the campaign page to submit" style="${ib};border:1px solid rgba(217,164,65,.35);background:rgba(217,164,65,.08);color:var(--gold2);text-decoration:none">⬆ Submit</a>`:"");
+  return `<div class="clip-card" style="--ac:${ac};display:flex;gap:12px;padding:11px;border:1px solid rgba(${ac},.22);border-left:3px solid rgba(${ac},.9);border-radius:12px;background:linear-gradient(135deg,rgba(${ac},.05),rgba(255,255,255,.015))">
+    ${thumb}
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:7px">
+      <b style="font-size:14px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(it.title||"clip")}</b>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
+        <span style="color:rgb(${ac});border:1px solid rgba(${ac},.35);border-radius:999px;padding:2px 9px;font-weight:700">${esc(it.creator||"")}</span>
+        ${dur?`<span>${dur}</span>`:""}${score?`<span title="hook score">★ ${score}/10</span>`:""}${it.added?`<span>${esc(it.added)}</span>`:""}
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:auto">
+        ${btns}
+        <select data-act="status" data-agent="clips" data-idx="${i}" style="margin-left:auto;background:#0c0b12;border:1px solid rgba(${ac},.4);color:rgb(${ac});border-radius:8px;padding:7px 9px;font-size:12px;font-weight:600">${STAT.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join("")}</select>
+      </div>
+    </div>
+  </div>`;
+}
+// ── B-roll + music libraries (clips page 📚 tab) — unused on top, used below ──
+function clipLibHTML(title,icon,rows){
+  const sorted=[...rows].sort((a,b)=>((a.used_in?1:0)-(b.used_in?1:0))||String(a.name).localeCompare(String(b.name)));
+  return `<div style="margin:12px 0 4px;font-family:var(--mono);font-size:12px;font-weight:700;color:var(--gold2)">${icon} ${esc(title)} · ${rows.filter(r=>!r.used_in).length} available</div>`
+    + (sorted.length? sorted.map(r=>{
+      const used=!!r.used_in, ac=used?"248,113,113":"74,222,128";
+      return `<div style="display:flex;gap:10px;align-items:center;padding:9px 12px;margin:6px 0;border:1px solid rgba(${ac},.18);border-left:3px solid rgba(${ac},.85);border-radius:10px;background:rgba(${ac},.04);opacity:${used?".72":"1"}">
+        <b style="font-size:12.5px;font-family:var(--mono);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}</b>
+        ${r.size_mb?`<span style="font-family:var(--mono);font-size:10.5px;color:var(--muted);flex:none">${r.size_mb} MB</span>`:""}
+        <button data-act="playlib" data-lib="${escAttr((r.kind||"")+":"+r.name)}" title="Open this file on your Mac" style="font-family:var(--mono);font-size:10.5px;font-weight:600;padding:5px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;flex:none;border:1px solid rgba(56,118,243,.35);background:rgba(56,118,243,.1);color:#7ab7ff">▶ Play</button>
+        <span style="font-family:var(--mono);font-size:10.5px;font-weight:700;color:rgb(${ac});border:1px solid rgba(${ac},.35);border-radius:999px;padding:2px 10px;white-space:nowrap;flex:none">${used?"● Used — "+esc(r.used_in):"● Available"}</span>
+      </div>`; }).join("") : '<div class="td-empty">Empty — ask Claude to fetch more.</div>');
+}
+function clipLibsHTML(libs){
+  if(!libs) return '<div class="td-empty">Libraries load with the queue — refresh in a moment.</div>';
+  const tag=(rows,kind)=>rows.map(r=>({...r,kind}));
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 22px">`
+    + `<div>${clipLibHTML("B-roll library","🎞",tag(libs.broll||[],"broll"))}</div>`
+    + `<div>${clipLibHTML("Music library","🎵",tag(libs.music||[],"music"))}</div>`
+    + `</div>`;
+}
+const AP_PIPE_LABEL={jobs:"Job pipeline",sales:"Sales pipeline",linkedin:"LinkedIn pipeline",clips:"Clip queue"};
 function openAgentPage(a){ apId=a.id; currentAgent=a;
   $("apAv").src="av/av-"+a.id+".webp"; $("apName").textContent=a.name; $("apRole").textContent=a.role;
   $("apSay").textContent=a.say;
   $("apSteps").innerHTML=a.steps.map((s,i)=>`<span class="step-pill">${i+1}. ${esc(s)}</span>`).join('<span style="color:var(--dim)">→</span>');
   $("apStatus").className="td-status"; $("apStatus").textContent= LIVE? "" : "Demo mode — sign in to run for real.";
-  $("apReport").textContent="Loading…"; $("apChips").innerHTML=""; $("apPrevPanel").style.display="none";
+  $("apReport").innerHTML=skel(4); $("apChips").innerHTML=chipSkel(4); $("apPrevPanel").style.display="none";
   const hasPipe=!!LEAD_STAT[a.id];
   $("apPipePanel").style.display=hasPipe?"":"none";
-  if(hasPipe){ $("apPipeTitle").textContent=AP_PIPE_LABEL[a.id]||"Pipeline"; $("apPipe").innerHTML=""; }
+  if(hasPipe){ $("apPipeTitle").textContent=AP_PIPE_LABEL[a.id]||"Pipeline"; $("apPipe").innerHTML=skel(3); }
   $("apLive").style.display=LIVE?"flex":"none";
+  // clips runs are triggered via Claude ("generate clips for the day") — hide the
+  // Mission/Run and report panels; the queue + chips + Ask are the whole page
+  $("apMissionPanel").style.display = a.id==="clips" ? "none" : "";
+  $("apReportPanel").style.display = a.id==="clips" ? "none" : "";
+  $("apChatPanel").style.display=LIVE?"":"none"; $("apChatMsgs").innerHTML="";
   $("agentPage").classList.add("on");
-  voiceLine(a.id,"greet");
+  if(a.id==="clips"){ window.__clipVoicePlayed=false; }  // Adam speaks the stats once loaded
+  else voiceLine(a.id,"greet");
   apRefresh();
+  apCheckRunning();                                    // resume the progress bar if a run is already in flight
+  clearInterval(apTimer);                              // auto-surface background work (drafts/fills/run reports)
+  apTimer=setInterval(()=>{ if(!apBusy) apRefresh(); }, 30000);
 }
 function closeAgentPage(){ $("agentPage").classList.remove("on"); apId=null;
+  clearInterval(apTimer); apTimer=null;
   try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
+// If the agent is already running (started here earlier, or by the schedule), reattach
+// the progress bar + await its result instead of pretending nothing's happening.
+async function apCheckRunning(){ const id=apId; if(!(LIVE&&token)||apBusy) return;
+  let s; try{ s=await api("/api/agents/run-status?agent="+id); }catch(e){ return; }
+  if(apId!==id || s.state!=="running" || apBusy) return;
+  apBusy=true;
+  const btn=$("apRunBtn"), st=$("apStatus"), bar=$("apBar"), fill=$("apFill");
+  btn.disabled=true; bar.style.display="block"; fill.style.width="70%";
+  st.className="td-status working"; st.textContent="● Already running on your Mac — waiting for it to finish…";
+  waitRun(id).then(r=>{ if(apId!==id){ apBusy=false; return; } apBusy=false; btn.disabled=false;
+    fill.style.width="100%"; setTimeout(()=>{ bar.style.display="none"; },900);
+    const ok=r&&r.ran&&!r._err&&!r._lost;
+    st.className="td-status "+(ok?"ok":"err"); st.textContent=(ok?"✓ Done — report below.":"Run ended — see the report.");
+    apRefresh();
+  }).catch(()=>{ apBusy=false; btn.disabled=false; bar.style.display="none"; });
+}
 async function apRefresh(manual){
   const id=apId; if(!id) return;
   if(!(LIVE&&token)){
@@ -989,6 +1048,14 @@ async function apRefresh(manual){
   if(apId!==id) return;                       // closed / switched while loading
   apMsgs=(mr&&mr.messages)||[];
   apItems=lr?(lr.items||[]):null;
+  if(id==="clips"){ window.__clipTT=(lr&&lr.tiktok)||null; window.__clipLibs=(lr&&lr.libraries)||null;
+    // Adam (ElevenLabs) reads the 24h views once per page open
+    const tt=window.__clipTT;
+    if(tt&&tt.voice&&!window.__clipVoicePlayed&&!muted&&apId==="clips"){
+      window.__clipVoicePlayed=true;
+      try{ if(curAudio)curAudio.pause(); curAudio=new Audio("data:audio/mpeg;base64,"+tt.voice); curAudio.volume=0.95; curAudio.play().catch(()=>{}); }catch(e){}
+    }
+  }
   apMsgs.forEach(m=>{ if(m.ts) lastRun[id]=Math.max(lastRun[id]||0,m.ts); });
   renderAp(id);
 }
@@ -1000,18 +1067,67 @@ function renderAp(id){
   $("apAsof").textContent="as of "+new Date().toLocaleTimeString();
   if(STAT){
     window.__leads={agent:id,items};
-    $("apPipeCount").textContent=items.length;
-    $("apPipe").innerHTML= items.length
-      ? items.slice(0,120).map((it,i)=>leadRowHTML(AGENTS.find(x=>x.id===id),it,i,STAT)).join("")
-      : '<div class="td-empty">Nothing here yet — press Run to scout.</div>';
+    const a=AGENTS.find(x=>x.id===id);
+    let rowsIdx=items.map((it,i)=>({it,i})), tabs="";
+    if(id==="clips"){
+      // clips are grouped per creator — click a person to see only their clips
+      // Growth tapes + Libraries only — business-clip creator tabs removed 2026-07-13
+      if(apClipCreator!=="__lib") apClipCreator="growth";
+      if(apClipCreator!=="__lib") rowsIdx=rowsIdx.filter(r=>(r.it.creator||"other")==="growth");
+      const tabBtn=(label,val,n)=>{ const on=(apClipCreator===val);
+        return `<button onclick="clipTab('${escAttr(val)}')" style="font-family:var(--mono);font-size:11.5px;font-weight:600;padding:7px 13px;border-radius:999px;cursor:pointer;border:1px solid ${on?"var(--gold2)":"rgba(255,255,255,.14)"};background:${on?"rgba(217,164,65,.14)":"rgba(255,255,255,.03)"};color:${on?"var(--gold2)":"var(--parch)"}">${esc(label)} · ${n}</button>`; };
+      const L=window.__clipLibs;
+      const libFree=L?((L.broll||[]).filter(b=>!b.used_in).length+(L.music||[]).filter(m=>!m.used_in).length):0;
+      tabs=`<div style="display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 8px">`
+        + tabBtn("growth","growth",items.filter(x=>(x.creator||"other")==="growth").length)
+        + tabBtn("📚 Libraries","__lib",libFree)
+        + `</div>`;
+    }
+    $("apPipeCount").textContent=rowsIdx.length;
+    if(id==="clips"&&apClipCreator==="__lib"){
+      const L=window.__clipLibs;
+      $("apPipeCount").textContent=L?((L.broll||[]).length+(L.music||[]).length):0;
+      $("apPipe").innerHTML=tabs+clipLibsHTML(L);
+    } else if(id==="clips"){
+      // actionable first (Rendered → Posted → Submitted → Paid), newest inside each
+      const w=s=>({"🎬":0,"📱":1,"📤":2,"💰":3}[String(s||"").slice(0,2)]??4);
+      rowsIdx=[...rowsIdx].sort((x,y)=> w(x.it.status)-w(y.it.status) || String(y.it.added||"").localeCompare(String(x.it.added||"")));
+      $("apPipe").innerHTML= tabs + (rowsIdx.length
+        ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:10px">`
+          + rowsIdx.slice(0,120).map(r=>clipCardHTML(r.it,r.i,STAT)).join("") + `</div>`
+        : '<div class="td-empty">Queue is empty — tell Claude to "generate clips for the day".</div>');
+    } else {
+      $("apPipe").innerHTML= tabs + (rowsIdx.length
+        ? rowsIdx.slice(0,120).map(r=>leadRowHTML(a,r.it,r.i,STAT)).join("")
+        : '<div class="td-empty">Nothing here yet — press Run to scout.</div>');
+    }
   }
   const last=apMsgs[apMsgs.length-1];
   $("apReport").textContent= last? last.text : "No report yet — press Run to generate one.";
   const prev=apMsgs.slice(0,-1).slice(-4).reverse();
-  $("apPrevPanel").style.display=prev.length?"":"none";
+  $("apPrevPanel").style.display=(id==="clips")?"none":(prev.length?"":"none");
   $("apPrev").innerHTML=prev.map((m,i)=>`<button class="ap-prev" onclick="apShowPrev(${apMsgs.length-2-i})"><b>${new Date(m.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</b><span>${esc((m.text||"").slice(0,110))}</span></button>`).join("");
 }
 function apShowPrev(idx){ const m=apMsgs[idx]; if(m){ $("apReport").textContent=m.text; $("apReport").scrollTop=0; } }
+// ── follow-up chat with the agent: a resumable claude session on the Mac,
+// seeded with the agent's last run log (bridge /agent-chat).
+let apChatSid={};   // agentId → claude session id (context survives page switches)
+function apChatRender(who,text){ const box=$("apChatMsgs"); if(!box) return null;
+  const d=document.createElement("div");
+  d.style.cssText="margin-top:8px;padding:9px 12px;border-radius:10px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;"+
+    (who==="you"?"background:rgba(217,164,65,.10);border:1px solid rgba(217,164,65,.25)":"background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)");
+  d.textContent=(who==="you"?"You — ":"")+text; box.appendChild(d); box.scrollTop=box.scrollHeight; return d; }
+async function apAsk(){ const id=apId, inp=$("apChatIn"), btn=$("apChatBtn");
+  const q=(inp.value||"").trim(); if(!q||!id) return;
+  if(!(LIVE&&token)){ banner("Sign in first","Agent chat runs on your Mac — sign in to use it"); return; }
+  inp.value=""; apChatRender("you",q);
+  btn.disabled=true; const wait=apChatRender("agent","…thinking (asking the agent on your Mac)");
+  try{ const r=await api("/api/agents/chat",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({agent:id,message:q,session_id:apChatSid[id]||""})});
+    if(r.session_id) apChatSid[id]=r.session_id;
+    wait.textContent=r.text||"(no reply)";
+  }catch(e){ wait.textContent="✕ "+((e&&e.detail)||"Couldn't reach the agent — is your Mac awake?"); }
+  btn.disabled=false; inp.focus(); }
 function apChipsHtml(id,msgs,items){
   const chip=(l,v,c,s)=>`<div class="td-chip"><div class="l">${l}</div><div class="v" style="color:${c||"var(--parch)"}">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
   const lastTs=msgs.length? msgs[msgs.length-1].ts : lastRun[id];
@@ -1039,7 +1155,23 @@ function apChipsHtml(id,msgs,items){
       + chip("To call",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
       + chip("Demo sent",cnt(STAT[1]))
       + chip("Won",cnt(STAT[3]),cnt(STAT[3])?"var(--green)":"")
-      + chip("Drafted",items.filter(it=>it.drafted).length,"","emails ready") + base;
+      + chip("Drafted",items.filter(it=>it.drafted&&!it.no_email).length,"","emails ready")
+      + (items.some(it=>it.no_email)?chip("No email",items.filter(it=>it.no_email).length,"#fb7185","call instead"):"") + base;
+  }
+  if(id==="clips"){
+    const tt=window.__clipTT, up=tt&&tt.views_24h!=null&&tt.prev_24h!=null? (tt.views_24h>=tt.prev_24h) : null;
+    const ttChips = tt? (
+        chip("Views · 24h", tt.views_24h!=null? tt.views_24h.toLocaleString():"soon",
+             up===null?"var(--gold2)":(up?"var(--green)":"#fb7185"),
+             up===null? (tt.views_24h==null?"needs 24h of history":"") : (up?"▲ up vs prior day":"▼ down vs prior day"))
+      + chip("TikTok total",(tt.total||0).toLocaleString(),"var(--gold2)",(tt.posts||0)+" live posts")
+      ) : "";
+    return ttChips
+      + chip("Clips",items.length,"var(--gold2)")
+      + chip("To post",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
+      + chip("Posted",cnt(STAT[1]))
+      + chip("Submitted",cnt(STAT[2]))
+      + chip("Paid",cnt(STAT[3]),cnt(STAT[3])?"var(--green)":"") + base;
   }
   return chip("Targets",items.length,"var(--gold2)")
     + chip("To send",cnt(STAT[0]),cnt(STAT[0])?"var(--green)":"")
@@ -1081,87 +1213,7 @@ async function apRun(){
   requestAnimationFrame(tick);
 }
 
-async function renderLeadsInto(targetId,a){ const tgt=document.getElementById(targetId); if(!tgt)return; const STAT=LEAD_STAT[a.id];
-  if(a.id==="trader"){ tgt.innerHTML='<div class="td-empty">The desk opens full-screen.</div>'; openTraderPage(); return; }
-  if(!STAT){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">This agent has no pipeline — press Run to watch it work.</div>'; return; }
-  if(!(LIVE&&token)){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Sign in to view your pipeline.</div>'; return; }
-  tgt.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px 0">Loading pipeline…</div>';
-  try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
-    if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }
-    window.__leads={agent:a.id,items};
-    if(!items.length){ tgt.innerHTML='<div style="color:var(--muted);font-size:13.5px;padding:6px 0">Nothing here yet — press Run to scout.</div>'; return; }
-    tgt.innerHTML=`<div class="rs-status">${esc(a.name)} pipeline · ${items.length}</div>`+items.slice(0,120).map((it,i)=>leadRowHTML(a,it,i,STAT)).join("");
-  }catch(e){ tgt.innerHTML='<div style="color:var(--muted);font-size:13px">Couldn\'t load the pipeline.</div>'; } }
-function drawScreen(){ try{renderStage();}catch(e){} const a=screenState.agent; if(!a)return; const x=sctx,st=screenState,W=512,H=320;
-  x.fillStyle="#0e1422"; x.fillRect(0,0,W,H);
-  const gg=x.createLinearGradient(0,0,0,H); gg.addColorStop(0,"rgba(124,128,240,.10)"); gg.addColorStop(1,"rgba(0,0,0,0)"); x.fillStyle=gg; x.fillRect(0,0,W,H);
-  x.strokeStyle="rgba(217,164,65,.55)"; x.lineWidth=4; x.strokeRect(8,8,W-16,H-16);
-  x.textBaseline="top"; x.textAlign="left"; x.fillStyle="#d9a441"; x.font="700 26px Inter, system-ui, sans-serif"; x.fillText(a.name,26,22);
-  const m=st.mode||"ready";
-  const label = m==="pipeline"?"▦ PIPELINE": m==="config"?"⚙ CONFIGURE": st.done?"● COMPLETE":st.running?"● RUNNING":"○ READY";
-  x.fillStyle= m==="pipeline"?"#d9a441": m==="config"?"#8b94ff": st.done?"#56d98a":st.running?"#8b94ff":"#6b6675"; x.font="13px 'JetBrains Mono', monospace";
-  x.fillText(label,28,56);
-  if(m==="config"){ x.fillStyle="#9a93a6"; x.font="16px Inter, system-ui, sans-serif"; x.fillText("Editing this agent — use the panel below.",28,98); screenTex.needsUpdate=true; return; }
-  x.font="17px Inter, system-ui, sans-serif";
-  a.steps.forEach((step,i)=>{ const y=92+i*34, done=(m!=="pipeline")&&(st.done||i<st.stepIdx), active=(m!=="pipeline")&&!st.done&&i===st.stepIdx;
-    x.beginPath(); x.arc(34,y+9,7,0,7);
-    if(done){x.fillStyle="#d9a441";x.fill();} else if(m==="pipeline"){x.strokeStyle="#d9a441";x.lineWidth=1.5;x.stroke();x.fillStyle="#d9a441";x.font="11px 'JetBrains Mono'";x.fillText(i+1,30.5,y+4);x.font="17px Inter, system-ui, sans-serif";} else {x.strokeStyle=active?"#8b94ff":"#46414f";x.lineWidth=2;x.stroke();}
-    x.fillStyle= m==="pipeline"?"#e9dcc0": done?"#d9a441":active?"#e9dcc0":"#5a5566";
-    x.fillText((m==="pipeline"?"":done?"✓  ":active?"▸  ":"    ")+step, m==="pipeline"?52:52, y); });
-  if(m!=="pipeline"){ const by=H-44; x.fillStyle="rgba(255,255,255,.08)"; x.fillRect(26,by,W-52,9); x.fillStyle="#d9a441"; x.fillRect(26,by,(W-52)*(st.pct||0),9);
-    if(st.running&&!st.done){ x.fillStyle="#c9a35e"; x.font="12px 'JetBrains Mono'"; x.textAlign="right"; x.fillText("~"+st.eta+"s left",W-28,by-18); } }
-  screenTex.needsUpdate=true; }
-function signFor(a){ const c=document.createElement("canvas"); c.width=256;c.height=64; const x=c.getContext("2d");
-  x.fillStyle="#d9a441"; x.font="700 30px Inter, system-ui, sans-serif"; x.textAlign="center"; x.textBaseline="middle"; x.fillText(a.name,128,26);
-  x.fillStyle="#9a93a6"; x.font="16px Inter, sans-serif"; x.fillText(a.role,128,50);
-  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.minFilter=THREE.LinearFilter; return t; }
-
-// ── flow: enter agent → talk → pipeline / run ──
-let currentAgent=null, busy=false, agentWatch=0;
-function enterAgent(a){ currentAgent=a;
-  agentMat.map=loader.load("av/av-"+a.id+".webp"); agentMat.map.encoding=THREE.sRGBEncoding; agentMat.needsUpdate=true;
-  sign.material.map=signFor(a); sign.material.needsUpdate=true;
-  screenState.agent=a; screenState.running=false; screenState.done=!!state.done[a.id]; screenState.pct=state.done[a.id]?1:0; screenState.stepIdx=state.done[a.id]?a.steps.length:-1; screenState.mode="ready"; drawScreen();
-  $("hub").classList.add("hide"); $("runStage").classList.add("show"); $("backbtn").style.display="block";
-  showSteps(); renderActs(); voiceLine(a.id,"greet");
-}
-function renderActs(){ const d=$("rsActions"); if(!d) return; d.innerHTML="";
-  if(currentAgent && currentAgent.id==="trader"){
-    // Trader never "runs" a routine — the desk IS the agent (enter signals, watch P&L).
-    const desk=el("button","btn run","📈 Open the desk"); desk.onclick=openTraderPage; d.append(desk); return;
-  }
-  if(screenState.running){ const r=el("button","btn run","● Running…"); r.disabled=true; d.append(r); return; }
-  const pipe=el("button","btn ghost","📋 Pipeline"); pipe.onclick=showPipe;
-  const run=el("button","btn run",state.done[currentAgent.id]?"↻ Run again":"▶ Run"); run.onclick=()=>{ showSteps(); runTask(); };
-  d.append(pipe,run);
-}
-function el(t,c,html){ const e=document.createElement(t); e.className=c; e.innerHTML=html; return e; }
-function backToHub(){ if(busy)return; $("hub").classList.remove("hide"); $("c").classList.remove("show"); $("officeUI").classList.remove("show"); $("runStage").classList.remove("show");
-  $("backbtn").style.display="none"; $("dialogue").classList.remove("on"); closePipe(); closeCfg(); setCam("stand");
-  try{speechSynthesis.cancel(); if(curAudio)curAudio.pause();}catch(e){} renderHub(); }
-$("backbtn").onclick=backToHub;
-
-async function openPipe(){ const a=currentAgent; closeCfg(); screenState.mode="pipeline"; setCam("screen"); drawScreen(); openModal("pipePanel");
-  $("ppImg").src="av/av-"+a.id+".webp"; $("ppName").textContent=a.name; $("ppRole").textContent=a.role+" · pipeline";
-  $("ppSteps").innerHTML=a.steps.map((s,i)=>`<span class="step-pill">${i+1}. ${s}</span>`).join('<span class="arrow">→</span>');
-  $("ppPersona").textContent=a.persona||a.say||"";
-  $("ppReport").innerHTML='<span style="color:var(--muted)">Loading latest report…</span>';
-  $("ppLeads").innerHTML="";
-  if(LIVE && token){
-    try{ const c=await api("/api/agents/config"); const p=(c.agents&&c.agents[a.id]||{}).persona; if(p) $("ppPersona").textContent=p; }catch{}
-    if(["sales","jobs","linkedin"].includes(a.id)){
-      const STAT=LEAD_STAT[a.id];
-      try{ const lr=await api("/api/agents/leads?agent="+a.id); let items=lr.items||[];
-        if(a.id==="jobs"){ const top=STAT[0]; items=[...items].sort((x,y)=>{ const xa=(x.status||top)===top, ya=(y.status||top)===top; if(xa!==ya) return xa?-1:1; return String(y.added||y.posted||"").localeCompare(String(x.added||x.posted||"")); }); }  // To-apply first, then most-recently-posted first
-        window.__leads={agent:a.id,items};
-        if(items.length) $("ppLeads").innerHTML=`<div class="report-head">${esc(a.name.toUpperCase())} PIPELINE · ${items.length}</div>`+items.slice(0,40).map((it,i)=>leadRowHTML(a,it,i,STAT)).join(""); }catch(e){}
-    }
-    try{ const r=await api("/api/agents/messages?agent="+a.id); const msgs=r.messages||[]; const last=msgs[msgs.length-1];
-      if(last) $("ppReport").innerHTML=`<div class="report-head">LATEST REPORT · ${new Date(last.ts).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div><div class="report-body">${esc(last.text)}</div>`;
-      else $("ppReport").innerHTML='<span style="color:var(--muted)">No report yet — Run '+esc(a.name)+' to generate one.</span>';
-    }catch(e){ $("ppReport").innerHTML='<span style="color:var(--muted)">Couldn\'t load the report.</span>'; }
-  } else { $("ppReport").innerHTML='<span style="color:var(--muted)">Sign in to see this agent\'s latest run report. (Demo mode shows the pipeline only.)</span>'; } }
-function closePipe(){ $("pipe").classList.remove("on"); }
+let currentAgent=null;
 // ── real per-agent config (schema + secrets/connections/persona) ──
 let schema=null, cfg=null;
 // brain status (vault/desktop) — used to prompt the user to connect when an agent or settings need it
@@ -1172,7 +1224,6 @@ async function loadConfig(){ if(!LIVE||!token) return; try{ schema=await api("/a
 function agentReady(id){ if(!schema) return true; if(cfg&&cfg.owner) return true;   // owner runs read keys from the Mac's own .env — the backend ignores web-stored `needs`, so don't gate the Run button on them
   const sp=(schema.agents&&schema.agents[id])||{needs:[]}; const conns=(cfg&&cfg.connections)||{}; return (sp.needs||[]).every(k=>conns[k]); }
 function closeCfg(){ const o=$("cfgOverlay"); if(o) o.classList.remove("on"); }
-function openCfgScreen(){ openAgentSettings(currentAgent.id); }
 async function openAgentSettings(id){
   const a=AGENTS.find(x=>x.id===id)||currentAgent;
   if(!LIVE||!token){ banner("Sign in first","Sign in to configure your agents"); return; }
@@ -1210,37 +1261,6 @@ async function doPrefill(id,btn){ if(brainConnected===null) await refreshBrainSt
     const pt=$("cfPersona"); if(pt&&r.persona) pt.value=r.persona; btn.textContent="Prefilled"; }
   catch(e){ btn.textContent="Prefill failed"; } finally{ setTimeout(()=>{btn.disabled=false;btn.textContent=o;},1600); } }
 
-function runTask(){ const a=currentAgent;
-  if(LIVE && !agentReady(a.id)){ $("dSay").textContent="I'm not set up yet — give me my keys & details in Settings, then I can run for you.";
-    try{ speechSynthesis.cancel(); }catch(e){} speak("Please configure my settings first.");
-    banner("Setup needed",a.name+" needs configuring"); openAgentSettings(a.id); return; }
-  closePipe(); busy=true;
-  screenState.running=true; screenState.done=false; screenState.stepIdx=0; screenState.pct=0; monGlow.intensity=1.3;
-  agentWatch=1; $("dActs").innerHTML=""; closeCfg(); screenState.mode="running"; setCam("zoom");   // zoom into the screen
-  $("dSay").textContent= LIVE? "Running for real on your Mac… watch the screen." : "Working… watch the screen."; voiceLine(a.id,"working");
-  // LIVE: fire the real agent in the background; screen shows estimated progress until it returns.
-  let realDone=false, realResult=null;
-  if(LIVE){ bgRun(a.id).then(q=> q && q.queued? waitRun(a.id) : q).then(r=>{ realResult=r||{}; realDone=true; })
-    .catch(e=>{ realResult={_err:e}; realDone=true; }); }
-  const finish=(ok,text)=>{ screenState.running=false; screenState.done=ok; screenState.stepIdx=a.steps.length; screenState.pct=1; drawScreen();
-    if(ok){ state.done[a.id]=true; lastRun[a.id]=Date.now(); renderHub(); } persist();
-    busy=false; agentWatch=0; $("dSay").textContent= text || (ok?"Done. Posted to your feed.":"Run ended — check your feed.");
-    voiceLine(a.id,"done"); chime("done"); if(ok){ banner("Done",a.name+" finished"); persist();} else banner("Run ended",a.name+" — see your feed"); renderActs(); };
-  const per = LIVE? 11000 : (1500+Math.random()*1000), total=per*a.steps.length, t0=performance.now();
-  const tick=()=>{ const e=performance.now()-t0; let pct=Math.min(1,e/total);
-    if(LIVE) pct=Math.min(realDone?1:0.94, e/total);
-    screenState.pct=pct; screenState.eta=Math.max(0,Math.round((total-e)/1000)); screenState.stepIdx=Math.min(a.steps.length-1,Math.floor(pct*a.steps.length)); drawScreen();
-    if(LIVE){ if(realDone){ const r=realResult||{}; const ok=!!r.ran && !r._err && !r._lost;
-        const msg = r._timeout ? "Still running — its report will land in your feed."
-          : r._err ? ("Couldn't run — "+((r._err.detail||("error "+(r._err.status||""))).trim()))
-          : r._lost ? "The run didn't start — try again."
-          : (r.message||null);
-        finish(ok, msg); }
-      else requestAnimationFrame(tick); }
-    else { if(pct<1) requestAnimationFrame(tick); else finish(true); } };
-  requestAnimationFrame(tick);
-}
-
 // ── settings ──
 function openSettings(){ $("settings").classList.add("on"); renderSettingsList(); if(LIVE&&token&&(!schema||!cfg)) loadConfig().then(renderSettingsList); }
 function renderSettingsList(){ const L=$("sList"); if(!L) return;
@@ -1258,38 +1278,7 @@ function toggleAgentUi(id,elx){ const on=!elx.classList.contains("on"); setAgent
 function saveSettings(){ closeSettings(); }
 function closeSettings(){ $("settings").classList.remove("on"); }
 
-// ── render loop ──
-const clock=new THREE.Clock();
-// The 3D office is a background. Rendering it every frame at retina 2x kept the main
-// thread busy and made hovering/clicking the UI feel laggy. So: (1) don't render at
-// all while a full-screen panel covers it — which is exactly when you're clicking the
-// pipeline/buttons — and (2) cap it to ~30fps otherwise.
-function _sceneCovered(){
-  const rs=document.getElementById("runStage");
-  if(rs && rs.classList.contains("show")) return true;              // run / pipeline view
-  return !!document.querySelector(".settings-panel.on, .modal-scrim.on");  // any modal
-}
-let _lastFrame=0;
-// The 3D office is retired (#c is display:none!important) — rendering the scene
-// into a hidden canvas burned GPU every frame ON THE HUB and made clicks/hover
-// feel janky. Skip all WebGL work unless the canvas is actually shown again.
-const OFFICE_RETIRED=true;
-function loop(ts){ requestAnimationFrame(loop);
-  if(OFFICE_RETIRED) return;                                         // no hidden-canvas rendering
-  if(_sceneCovered()) return;                                        // office hidden → skip
-  if(ts && ts-_lastFrame < 32) return;                               // ~30fps cap (was ~60)
-  _lastFrame=ts||0;
-  const t=clock.getElapsedTime();
-  agent.position.y=1.18+Math.sin(t*1.5)*0.02;                                  // seated bob
-  const targetRot=agentWatch? 0.85 : Math.sin(t*0.5)*0.07;                      // watch screen, else gentle idle sway
-  agent.rotation.y += (targetRot-agent.rotation.y)*0.08;
-  torso.scale.y=1+Math.sin(t*1.8)*0.015; head.position.y=1.86+Math.sin(t*1.8)*0.008;  // (you are hidden in 1st person)
-  lookCur.lerp(camLook,0.1); camera.position.lerp(camPos,0.1); camera.lookAt(lookCur);   // smooth 1st-person camera moves
-  renderer.render(scene,camera); }
-requestAnimationFrame(loop);
-addEventListener("resize",()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
-
-renderHub(); setTimeout(()=>$("loading").style.display="none",450);
+renderHub(); updateMuteChip(); setTimeout(()=>$("loading").style.display="none",450);
 
 // ── intro (signed-out) + onboarding (pick your team) ──
 function showIntro(){ const el=$("intro"); if(el) el.classList.add("on"); }
@@ -1312,6 +1301,8 @@ function onboardDone(){ teamUi=new Set(obSel); teamUiSave(); renderHub(); dismis
 Object.assign(window,{introEnter,onboardDone,obToggle,toggleAgentUi,showOnboard}); // intro/onboarding hooks
 // ── feature modals: Chief of Staff, Connect, Usage, Brain ────────────────────
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function skel(n){ return Array.from({length:n||3},(_ ,i)=>`<div class="sk" style="width:${[92,78,85,64,72][i%5]}%"></div>`).join(""); }
+function chipSkel(n){ return Array.from({length:n||4},()=>`<div class="sk-chip"></div>`).join(""); }
 function openModal(id){ document.getElementById(id).classList.add("on"); }
 function closeModal(id){ document.getElementById(id).classList.remove("on"); }
 function requireLive(){ if(LIVE&&token) return true; banner("Sign in first","Use 🔓 Sign in to unlock live features"); return false; }
@@ -1389,28 +1380,81 @@ document.getElementById("vaultFile2").addEventListener("change",async ()=>{ cons
   }catch{ $("brainBody").textContent="Couldn't reach the server."; } finally{ btn.disabled=false; btn.textContent=prev; } });
 
 async function setLeadStatus(agent,idx,status){ const it=(window.__leads&&window.__leads.items[idx])||{};
-  const body= agent==="sales"?{business:it.business||it.title,status}: agent==="jobs"?{url:it.url,status}:{name:it.name||it.title,company:it.company||"",status};
+  const body= agent==="sales"?{business:it.business||it.title,status}: agent==="jobs"?{url:it.url,status}: agent==="clips"?{clip:it.clip,status}:{name:it.name||it.title,company:it.company||"",status};
   try{ await api("/api/agents/"+agent+"/status",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}); banner("Updated",status); chime("done"); }
-  catch(e){ alert("Couldn't update status."); } }
+  catch(e){ banner("Couldn't update status","check that your Mac is awake, then retry"); } }
 
 // Jobs pipeline → fill an application on the Mac (form opens for review; nothing auto-submitted)
 async function fillJob(btn,url){ if(!url) return; const orig=btn.textContent;
   btn.disabled=true; btn.textContent="✎ Filling…"; btn.style.opacity="0.7";
-  try{ const r=await api("/api/agents/jobs/fill",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
-    btn.textContent="✓ Opening"; btn.style.borderColor="var(--green)";
-    alert((r&&r.message)||"Filling on your Mac — the form opens on your screen to review and submit. Nothing is submitted automatically.");
+  try{ await api("/api/agents/jobs/fill",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    btn.textContent="✓ Opening"; btn.style.borderColor="var(--green)"; chime("done");
+    banner("Filling on your Mac","form opens on your screen · nothing auto-submitted");
   }catch(e){ btn.textContent=orig; btn.disabled=false; btn.style.opacity="1";
-    alert((e&&e.detail)?e.detail:"Couldn't start the fill — is your Mac awake and signed in?"); } }
+    banner("Couldn't start the fill",(e&&e.detail)||"is your Mac awake and signed in?"); } }
 
-// Sales & Outreach pipeline → draft an outreach email per patron (saved to Gmail → Drafts; nothing sent)
+// Sales & Outreach pipeline → draft an outreach email per patron (saved to Gmail → Drafts;
+// nothing sent). The Mac spawns a DETACHED worker, so this returns instantly and the
+// user is free to leave — the draft lands in Gmail → Drafts + the feed when done.
 async function draftSales(btn,business,vertical){ if(!business) return; const orig=btn.textContent;
   btn.disabled=true; btn.textContent="✉ Drafting…"; btn.style.opacity="0.7";
-  try{ const r=await api("/api/agents/sales/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({business,vertical:vertical||""})});
-    btn.textContent="✓ Drafting"; btn.style.borderColor="var(--green)";
-    alert((r&&r.message)||"Drafting on your Mac — I'll save it to Gmail → Drafts and post in the feed when ready. Nothing is sent.");
+  try{ await api("/api/agents/sales/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({business,vertical:vertical||""})});
+    btn.textContent="✓ Drafting in background"; btn.style.borderColor="var(--green)"; btn.style.opacity="1"; chime("done");
+    banner("Drafting in the background","safe to leave · lands in Gmail → Drafts + your feed");
+    watchDraft(business);
   }catch(e){ btn.textContent=orig; btn.disabled=false; btn.style.opacity="1";
-    alert((e&&e.detail)?e.detail:"Couldn't start the draft — is your Mac awake?"); } }
-Object.assign(window,{enterAgent,runTask,AGENTS,state,openSettings,openPipe,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,fillJob,draftSales,LIVE_force:()=>{}}); // debug hooks
+    banner("Couldn't start the draft",(e&&e.detail)||"is your Mac awake?"); } }
+// After a ✉ Draft press, poll until the Mac CONFIRMS the draft landed in Gmail
+// (drafted:true from sales-status, written only on a successful save) — then
+// re-render the pipeline so the row's Draft button disappears. Gives up quietly
+// after 15 min (e.g. session-limited claude): the button just stays for a retry.
+const _draftWatch={};
+function watchDraft(business){
+  const key=String(business).trim().toLowerCase();
+  if(_draftWatch[key]) return;                       // one watcher per business
+  const t0=Date.now();
+  _draftWatch[key]=setInterval(async()=>{
+    if(Date.now()-t0>15*60*1000){ clearInterval(_draftWatch[key]); delete _draftWatch[key]; return; }
+    try{
+      const lr=await api("/api/agents/leads?agent=sales");
+      const hit=(lr&&lr.items||[]).find(it=>String(it.business||it.title||"").trim().toLowerCase()===key);
+      if(hit&&hit.drafted){
+        clearInterval(_draftWatch[key]); delete _draftWatch[key];
+        banner("Draft saved",business+" · review it in Gmail → Drafts");
+        chime("done");
+        if(apId==="sales") apRefresh();              // re-render → ✉ Draft button gone
+      }
+    }catch(e){}                                      // transient fetch errors: keep polling
+  },30000);
+}
+// ── overlay navigation: Esc closes · browser Back closes · (no more "Back = leave site") ──
+// Topmost-first close order: per-agent modals (z40) sit above the workspaces, so they go first.
+function _topOverlayClose(){
+  const scrim=[...document.querySelectorAll(".modal-scrim.on")].pop();
+  if(scrim) return ()=>closeModal(scrim.id);
+  if(document.querySelector("#settings.on"))   return closeSettings;
+  if(document.querySelector("#chiefPage.on"))  return closeChief;
+  if(document.querySelector("#traderPage.on")) return closeTraderPage;
+  if(document.querySelector("#agentPage.on"))  return closeAgentPage;
+  return null;   // onboarding is a required step — intentionally not Esc/Back-dismissable
+}
+function _overlaysOpen(){ return document.querySelectorAll("#agentPage.on,#traderPage.on,#chiefPage.on,#settings.on,.modal-scrim.on").length; }
+addEventListener("keydown",e=>{ if(e.key==="Escape"){ const c=_topOverlayClose(); if(c){ e.preventDefault(); c(); } } });
+// History-backed Back button. A MutationObserver watches every overlay's class so it
+// auto-arms on open (via ANY path: card click, ✕, Esc, programmatic) and disarms on close.
+let _navArmed=false;
+function _navSync(){ const open=_overlaysOpen()>0;
+  if(open && !_navArmed){ _navArmed=true; try{ history.pushState({paisOverlay:1},""); }catch(e){} }
+  else if(!open){ _navArmed=false; } }
+addEventListener("popstate",()=>{ const c=_topOverlayClose(); if(c) c(); _navSync(); });   // Back → close top overlay, re-arm if nested
+(function _wireNav(){
+  const ids=["agentPage","traderPage","chiefPage","settings"].map(i=>document.getElementById(i)).filter(Boolean);
+  document.querySelectorAll(".modal-scrim").forEach(el=>ids.push(el));
+  const obs=new MutationObserver(_navSync);
+  ids.forEach(t=>obs.observe(t,{attributes:true,attributeFilter:["class"]}));
+})();
+
+Object.assign(window,{AGENTS,state,openAgentPage,openTraderPage,openSettings,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,fillJob,draftSales}); // debug hooks
 </script>
 </body>
 </html>

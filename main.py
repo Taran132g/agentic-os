@@ -24,6 +24,7 @@ from scheduler import (
     ScheduledTask, create_schedule, delete_schedule, toggle_schedule,
     load_schedules, schedule_to_dict, run_scheduler,
 )
+from live_trade_monitor import run_monitor as run_live_trade_monitor
 
 _LOG_FILE = Path(__file__).parent / "pais.log"
 logging.basicConfig(
@@ -1294,6 +1295,36 @@ async def api_cancel_trade(trade_id: str):
     return JSONResponse({"ok": ok})
 
 
+@api.post("/api/trades/{trade_id}/scale")
+async def api_scale_trade(trade_id: str, body: dict):
+    """Scale a position in ('add') or out ('reduce') by a number of units."""
+    from tools.trade_tracker import scale_trade, get_bankroll
+    action = body.get("action")
+    try:
+        units = float(body.get("units"))
+        price = float(body.get("price"))
+    except (TypeError, ValueError):
+        return JSONResponse({"ok": False, "error": "units and price required"}, status_code=400)
+    notes = body.get("notes", "")
+    result = scale_trade(trade_id, action, units, price, notes)
+    if not result:
+        return JSONResponse({"ok": False, "error": "trade not found or invalid input"}, status_code=404)
+    br = get_bankroll()
+    await broadcast({"type": "trade_scaled", "trade": result["trade"], "bankroll": br})
+    return JSONResponse({"ok": True, **result, "bankroll": br})
+
+
+@api.delete("/api/trades/{trade_id}")
+async def api_delete_trade(trade_id: str):
+    from tools.trade_tracker import delete_trade, get_bankroll
+    trade = delete_trade(trade_id)
+    if not trade:
+        return JSONResponse({"ok": False, "error": "trade not found"}, status_code=404)
+    br = get_bankroll()
+    await broadcast({"type": "trade_deleted", "id": trade_id, "bankroll": br})
+    return JSONResponse({"ok": True, "trade": trade, "bankroll": br})
+
+
 @api.get("/api/signal_log")
 async def api_signal_log():
     """Return parsed entries from the Dr. Profit live signals vault log."""
@@ -1796,6 +1827,7 @@ async def main():
         asyncio.create_task(ag.watch_approvals(),                       name="approval_watcher"),
         asyncio.create_task(_retry_worker(),                            name="retry_worker"),
         asyncio.create_task(run_scheduler(_schedule_dispatch),          name="scheduler"),
+        asyncio.create_task(run_live_trade_monitor(),                   name="live_trade_monitor"),
         asyncio.create_task(_evict_stale_verifications(),               name="evict_cleanup"),
         asyncio.create_task(_usage_quota_watch(),                       name="usage_quota_watch"),
     ]

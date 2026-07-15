@@ -22,6 +22,7 @@ from pathlib import Path
 import requests
 
 USER_AGENT     = "PAIS-AITA-Pipeline/1.0 (by /u/taranveer)"
+ARCTIC_SHIFT   = "https://arctic-shift.photon-reddit.com/api/posts/search"
 
 # Subreddits sourced for picks. AITA stays first so it dominates the pool;
 # others provide variety. Each post is tagged with its source `sub` field.
@@ -42,7 +43,7 @@ SUB_META = {
 CACHE_DIR      = Path.home() / "agentic_os" / "aita_cache"
 SCRIPT_DIR     = Path.home() / "agentic_os"
 BLOCKLIST_FILE = SCRIPT_DIR / "aita_blocklist.json"
-MIN_UPS         = 800
+MIN_UPS         = 200  # Arctic Shift returns recent posts before votes fully accumulate
 MIN_BODY        = 400
 MAX_BODY        = 4000
 BODY_TARGET     = 1000  # ~60-90s of Adam voice at 1.0x speed
@@ -73,13 +74,25 @@ def add_to_blocklist(entries: list[dict]) -> None:
 
 
 def _fetch_one_sub(sub: str) -> list[dict]:
-    """Fetch hot posts for a single subreddit. Returns raw children list or []."""
-    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=25"
-    headers = {"User-Agent": USER_AGENT}
+    """Fetch recent posts for a single subreddit via Arctic Shift mirror.
+
+    Arctic Shift returns posts sorted by created_utc desc. We fetch 100 and
+    let the caller sort by score_hook, so we always surface the best content
+    from the past few days even if it hasn't hit the Reddit hot threshold yet.
+    Reddit's own JSON API now 403s unauthenticated requests.
+    """
     try:
-        r = requests.get(url, headers=headers, timeout=15)
+        r = requests.get(
+            ARCTIC_SHIFT,
+            params={"subreddit": sub, "limit": 100, "sort": "desc"},
+            headers={"User-Agent": USER_AGENT},
+            timeout=15,
+        )
         r.raise_for_status()
-        return r.json()["data"]["children"]
+        # Arctic Shift returns flat dicts — wrap in {"data": ...} shape so
+        # fetch_top_posts can treat them uniformly via p["data"].
+        raw = r.json().get("data") or []
+        return [{"data": p} for p in raw]
     except Exception:
         return []
 
@@ -101,18 +114,21 @@ def fetch_top_posts(limit: int = 5, subs: list[str] | None = None) -> list[dict]
             d = p["data"]
             if d.get("stickied") or d.get("over_18") or d.get("is_video"):
                 continue
-            if d.get("ups", 0) < MIN_UPS:
+            ups = d.get("score") or d.get("ups", 0)
+            if ups < MIN_UPS:
                 continue
             if d["id"] in blocked:
                 continue
             body = d.get("selftext", "")
+            if body in ("[deleted]", "[removed]", ""):
+                continue
             if not (MIN_BODY <= len(body) <= MAX_BODY):
                 continue
             out.append({
                 "id": d["id"],
                 "title": d["title"],
                 "body": body,
-                "ups": d["ups"],
+                "ups": ups,
                 "ratio": d.get("upvote_ratio", 0.0),
                 "url": f"https://reddit.com{d['permalink']}",
                 "sub": sub,
@@ -121,6 +137,8 @@ def fetch_top_posts(limit: int = 5, subs: list[str] | None = None) -> list[dict]
 
 
 def clean_body(body: str, max_chars: int = BODY_TARGET) -> str:
+    body = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", body)  # strip markdown links → keep label
+    body = re.sub(r"https?://\S+", "", body)               # drop bare URLs
     body = re.sub(r"\n+", " ", body)
     body = re.sub(r"\s+", " ", body).strip()
     # Strip common edit/update tails
@@ -258,6 +276,35 @@ def spell_fix(text: str, timeout: int = 90) -> str:
         return text
 
 
+THEME_PROMPT = (
+    "In ONE sentence (max 20 words), describe the visual setting of this story "
+    "as a scene direction for an AI image generator: who, where, what emotional moment. "
+    "No preamble. Output ONLY the scene description.\n\n"
+    "Title: {title}\nStory: {body}"
+)
+
+
+def generate_theme(title: str, body: str, timeout: int = 45) -> str:
+    """Generate a visual scene description for AI image B-roll via claude -p.
+
+    Falls back to the post title if claude is unavailable or times out.
+    """
+    try:
+        prompt = THEME_PROMPT.format(title=title, body=body[:300])
+        r = subprocess.run(
+            ["claude", "-p", prompt],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            out = r.stdout.strip()
+            # Drop any quoted wrappers or list prefixes
+            out = out.strip('"').strip("'").lstrip("- ").strip()
+            return out[:200]
+    except Exception:
+        pass
+    return title
+
+
 OUTRO_BY_STYLE = {
     "aita":    "Comment not the asshole or you're the asshole below — what would you do?",
     "generic": "Comment your verdict below — what would you do?",
@@ -281,15 +328,16 @@ def _hook_for(post: dict, title: str) -> str:
 
 
 def _write_script(post_id: str, safe_title: str, hook: str, sentences: list[str],
-                  outro: str, part_suffix: str = "") -> Path:
+                  outro: str, part_suffix: str = "", theme: str = "") -> Path:
     """Write a single script file and return its path. part_suffix is '' or '_p1'/'_p2'."""
     script_path = SCRIPT_DIR / f"aita_{post_id}_{safe_title}{part_suffix}.txt"
     title_value = f"aita_{post_id}{part_suffix}"
     lines = [
         "---",
-        "game:   parkour",
+        "game:   ai_generated",
         f"title:  {title_value}",
-        "broll:  local",
+        "broll:  ai",
+        f"theme:  {theme or hook}",
         "music:  tense suspenseful lofi background no copyright",
         "captions: true",
         "---",
@@ -328,18 +376,21 @@ def build_script(post: dict, spell_check: bool = True) -> list[Path]:
         hook = spell_fix(hook)
         full_body = spell_fix(full_body)
 
+    # Generate a visual scene description for AI image B-roll
+    theme = generate_theme(title, raw_body[:300])
+
     safe_title = re.sub(r"[^a-z0-9]+", "_", title.lower())[:50].strip("_")
 
     if not should_split:
         body = clean_body(full_body, max_chars=BODY_TARGET)
         sentences = split_sentences(body)
-        return [_write_script(post["id"], safe_title, hook, sentences, outro)]
+        return [_write_script(post["id"], safe_title, hook, sentences, outro, theme=theme)]
 
     parts = split_body_into_parts(full_body)
     if len(parts) == 1:
         body = clean_body(parts[0], max_chars=BODY_TARGET)
         sentences = split_sentences(body)
-        return [_write_script(post["id"], safe_title, hook, sentences, outro)]
+        return [_write_script(post["id"], safe_title, hook, sentences, outro, theme=theme)]
 
     part1_body, part2_body = parts
     p1_sentences = split_sentences(part1_body)
@@ -348,8 +399,8 @@ def build_script(post: dict, spell_check: bool = True) -> list[Path]:
     recap_hook = f"Part two. Quick recap: {hook}. Here's what happened next"
 
     return [
-        _write_script(post["id"], safe_title, hook, p1_sentences, PART1_OUTRO, "_p1"),
-        _write_script(post["id"], safe_title, recap_hook, p2_sentences, outro, "_p2"),
+        _write_script(post["id"], safe_title, hook, p1_sentences, PART1_OUTRO, "_p1", theme=theme),
+        _write_script(post["id"], safe_title, recap_hook, p2_sentences, outro, "_p2", theme=theme),
     ]
 
 

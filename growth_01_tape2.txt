@@ -1,0 +1,14 @@
+---
+title: growth_01_TAPE2
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 2
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: alexg waiting for you
+---
+I'm twenty years old, and last weekend I watched a sunset for the first time in my life. Actually watched it. And I regret every single one I missed.
+Rewind a little. Lately I had been struggling with my motivation. Because at some point you look up and ask the real question. What is the point of all this? Why am I doing this work?
+So that evening, me and a friend went out to watch the sunset. And it was the most beautiful thing I have ever seen.
+But it wasn't just the sunset I was seeing.

@@ -9,6 +9,9 @@ pais.keychain-db-*
 
 # Logged-in browser profile (cookies, passwords, autofill)
 .browser_profile/
+.browser_profile_tiktok/
+.browser_profile_tiktok_growth/
+.browser_profile_watch/
 
 # Personally identifiable runtime artifacts
 application_profile.md
@@ -28,10 +31,13 @@ usage.json
 aita_blocklist.json
 schedules.json
 trades.json
+monitor_state.json
 chroma_db/
 chroma_meta.json
 aita_cache/
 broll_cache/
+clip_cache/
+broll_yt/
 music_cache/
 stoic_cache/
 stoic_corpus/
@@ -46,6 +52,7 @@ server.log.*
 *.pid
 
 # One-off scratch scripts / sample text inputs
+_jeff_run.py
 aita_*.txt
 horror_*.txt
 stoic_*.txt

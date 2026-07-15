@@ -45,6 +45,8 @@ VOICE_SPEED    = 1.0                       # storytime cadence — faster than i
 # Each profile: (voice_id, speed, stability, similarity_boost)
 VOICE_PROFILES = {
     "adam":          ("pNInz6obpgDQGcFmaJgB", 1.0,  0.72, 0.75),  # AITA storytime default
+    "will_growth":   ("bIHbv24MWmeRgasZH58o", 0.95, 0.60, 0.75),  # relaxed young male — Growth/journal niche
+    "chris_growth":  ("iP95p4xoKVk53GoZ742B", 0.95, 0.60, 0.75),  # casual down-to-earth — Growth niche pick
     "bill":          ("pqHfZKP75CvOlQylNhV4", 0.92, 0.80, 0.78),  # gravelly elder — Stoic / motivational
     "daniel":        ("onwK4e9ZLuTAKqWW03F9", 0.95, 0.78, 0.75),  # deep British narrator
     "drew":          ("29vD33N1CtxCmqQRPOHJ", 1.0,  0.72, 0.75),  # deep American narrative
@@ -99,6 +101,8 @@ CAPTION_SIZE   = 52
 CAPTION_COLOR  = "white"
 CAPTION_SHADOW = "black@0.7"
 BG_MUSIC_VOL   = 0.12                      # audible but beneath the voice
+OUTRO_TAIL     = 1.0                       # seconds of music-only outro after the last spoken line
+MUSIC_DELAY_DEFAULT = 3.0                  # seconds before the music bed enters (override per-script via music_delay:)
 MUSIC_PATH     = Path.home() / "agentic_os" / "bg_music.mp3"
 BROLL_SOURCE   = "youtube"    # "youtube", "pexels", or "local"
 GAME_TAG       = "LittleBigPlanet"  # prepended to yt-dlp searches
@@ -311,6 +315,27 @@ def pick_cached_music(mood_query: str) -> Path | None:
     return best_track if best_score > 0 else random.choice(tracks)
 
 
+def _strip_leading_silence(path: Path) -> None:
+    """Condition the music bed in-place: trim leading silence + normalize loudness.
+
+    Guarantees (a) the first audible note lands exactly where the mix schedules it
+    (old-piano recordings often open with a second of near-silence), and (b) every
+    bed hits the mix at the same perceived level — source tracks vary wildly
+    (-16 to -30 dB mean), which made quiet recordings inaudible at BG_MUSIC_VOL."""
+    trimmed = path.with_suffix(".trim.mp3")
+    cmd = [
+        FFMPEG, "-y", "-i", str(path),
+        "-af", "silenceremove=start_periods=1:start_threshold=-35dB:detection=peak,"
+               "loudnorm=I=-16:TP=-1.5:LRA=11",
+        str(trimmed),
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode == 0 and trimmed.exists() and trimmed.stat().st_size > 10_000:
+        trimmed.replace(path)
+    else:
+        trimmed.unlink(missing_ok=True)
+
+
 def fetch_bg_music(query: str = MUSIC_QUERY) -> None:
     """Pick a track from MUSIC_CACHE if available, else fall back to yt-dlp."""
     import shutil
@@ -319,6 +344,7 @@ def fetch_bg_music(query: str = MUSIC_QUERY) -> None:
     if cached is not None:
         import shutil as _sh
         _sh.copyfile(cached, MUSIC_PATH)
+        _strip_leading_silence(MUSIC_PATH)
         print(f"  → Music: {cached.name} (royalty-free cache)")
         return
 
@@ -340,6 +366,7 @@ def fetch_bg_music(query: str = MUSIC_QUERY) -> None:
     ]
     subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if MUSIC_PATH.exists():
+        _strip_leading_silence(MUSIC_PATH)
         print(f"  → Music cached at {MUSIC_PATH.name}")
     else:
         print(f"  Warning: music download failed — video will have no background music")
@@ -428,6 +455,70 @@ def fetch_broll_local(category: str, duration_needed: float, out_path: Path) -> 
         fetch_broll(category or "gameplay", duration_needed, out_path)
 
 
+# ── AI image B-roll via Pollinations.ai + Ken Burns zoom ────────────────────────
+POLLINATIONS_BASE = "https://image.pollinations.ai/prompt/{prompt}?width=576&height=1024&nologo=true&model=flux&seed={seed}"
+AI_STYLE_SUFFIX   = "cinematic dramatic lighting photorealistic 4k emotional portrait no text"
+
+def _scene_prompt(segment_text: str, story_theme: str) -> str:
+    """Build a Pollinations prompt from segment text + story theme.
+
+    Uses the segment text as the primary visual anchor so each image matches
+    what's being narrated. The story_theme adds scene/setting context.
+    """
+    context = f" | setting: {story_theme}" if story_theme else ""
+    return f"{segment_text[:140]}{context}, {AI_STYLE_SUFFIX}"
+
+def fetch_broll_ai_image(segment_text: str, story_theme: str, duration: float, out_path: Path) -> None:
+    """Generate an AI image via Pollinations.ai and animate it with a Ken Burns zoom.
+
+    Falls back to local B-roll (parkour) if Pollinations fails.
+    """
+    import urllib.parse
+
+    prompt = _scene_prompt(segment_text, story_theme)
+    seed   = random.randint(1, 99999)
+    url    = POLLINATIONS_BASE.format(prompt=urllib.parse.quote(prompt), seed=seed)
+
+    img_tmp = out_path.with_suffix(".jpg")
+    try:
+        r = requests.get(url, timeout=45)
+        r.raise_for_status()
+        if "image" not in r.headers.get("content-type", ""):
+            raise RuntimeError("Non-image response from Pollinations")
+        img_tmp.write_bytes(r.content)
+    except Exception as e:
+        print(f"  (Pollinations failed: {e} — falling back to local B-roll)")
+        fetch_broll_local("parkour", duration, out_path)
+        return
+
+    # Ken Burns: start zoomed in 1.5x, slowly pull back to 1.0x
+    frames = int(duration * 30) + 10
+    zoom_filter = (
+        f"zoompan="
+        f"z='if(lte(zoom,1.0),1.5,max(1.001,zoom-0.0015))':"
+        f"d={frames}:"
+        f"x='iw/2-(iw/zoom/2)':"
+        f"y='ih/2-(ih/zoom/2)':"
+        f"s={OUT_W}x{OUT_H},"
+        f"fps=30"
+    )
+    cmd = [
+        FFMPEG, "-y",
+        "-loop", "1",
+        "-i", str(img_tmp),
+        "-vf", zoom_filter,
+        "-t", str(duration + 0.2),
+        "-c:v", "libx264", "-crf", "22",
+        "-pix_fmt", "yuv420p",
+        str(out_path),
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    img_tmp.unlink(missing_ok=True)
+    if r.returncode != 0:
+        print(f"  (Ken Burns ffmpeg failed — falling back to local B-roll)")
+        fetch_broll_local("parkour", duration, out_path)
+
+
 # ── ffprobe duration ────────────────────────────────────────────────────────────
 def get_duration(path: Path) -> float:
     r = subprocess.run(
@@ -446,9 +537,13 @@ def get_duration(path: Path) -> float:
 
 
 # ── Assemble one segment ────────────────────────────────────────────────────────
-def assemble_segment(audio: Path, broll: Path, caption: str, out: Path) -> None:
-    """Combine B-roll + voiceover into a single segment clip. Captions added in CapCut."""
-    dur = get_duration(audio)
+def assemble_segment(audio: Path, broll: Path, caption: str, out: Path,
+                     tail: float = 0.0) -> None:
+    """Combine B-roll + voiceover into a single segment clip. Captions added in CapCut.
+
+    tail: extra seconds of B-roll (audio padded with silence) after the VO ends —
+    used on the final segment so the music can linger."""
+    dur = get_duration(audio) + tail
 
     scale_filter = (
         f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
@@ -460,9 +555,9 @@ def assemble_segment(audio: Path, broll: Path, caption: str, out: Path) -> None:
         FFMPEG, "-y",
         "-stream_loop", "-1", "-i", str(broll),
         "-i", str(audio),
-        "-filter_complex", f"[0:v]{scale_filter}[v]",
+        "-filter_complex", f"[0:v]{scale_filter}[v];[1:a]apad[a]",
         "-map", "[v]",
-        "-map", "1:a",
+        "-map", "[a]",
         "-t", str(dur),
         "-c:v", "libx264", "-crf", "20", "-r", "30",
         "-pix_fmt", "yuv420p",
@@ -476,8 +571,11 @@ def assemble_segment(audio: Path, broll: Path, caption: str, out: Path) -> None:
 
 
 # ── Color grade + music mix ─────────────────────────────────────────────────────
-def apply_grade(inp: Path, out: Path) -> None:
-    """Warm nostalgic grade + optional background music mix."""
+def apply_grade(inp: Path, out: Path, music_delay: float = 0.0) -> None:
+    """Warm nostalgic grade + optional background music mix.
+
+    music_delay: seconds of silence before the music bed enters — used to hold
+    the music until the narrator's first line has landed (then 1.2s fade-in)."""
     # Slightly warm, slightly vibrant — evokes early-era gaming/YouTube nostalgia
     vf = (
         "eq=saturation=0.88:contrast=1.03:brightness=-0.01,"
@@ -486,13 +584,18 @@ def apply_grade(inp: Path, out: Path) -> None:
 
     if MUSIC_PATH.exists():
         vid_dur = get_duration(inp)
+        music_filters = []
+        if music_delay > 0:
+            music_filters.append(f"adelay={int(music_delay * 1000)}:all=1")
+            music_filters.append(f"afade=t=in:st={music_delay:.2f}:d=0.25")
+        music_filters.append(f"volume={BG_MUSIC_VOL}")
         cmd = [
             FFMPEG, "-y",
             "-i", str(inp),
             "-stream_loop", "-1", "-i", str(MUSIC_PATH),
             "-filter_complex",
                 f"[0:v]{vf}[v];"
-                f"[1:a]volume={BG_MUSIC_VOL}[m];"
+                f"[1:a]{','.join(music_filters)}[m];"
                 f"[0:a][m]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a]",
             "-map", "[v]",
             "-map", "[a]",
@@ -519,7 +622,8 @@ def apply_grade(inp: Path, out: Path) -> None:
 
 
 # ── Burn-in captions via Captacity ──────────────────────────────────────────────
-def burn_captions(inp: Path, out: Path, segments: list[dict], durations: list[float]) -> None:
+def burn_captions(inp: Path, out: Path, segments: list[dict], durations: list[float],
+                  style: str = "default") -> None:
     """Burn word-by-word captions into the final video.
 
     We skip Whisper entirely by feeding Captacity pre-built segments: we already
@@ -561,26 +665,94 @@ def burn_captions(inp: Path, out: Path, segments: list[dict], durations: list[fl
         })
         cursor += dur
 
-    # Restrained style — fits the contemplative voice (not the loud yellow default)
+    style_kwargs = CAPTION_STYLES.get(style, CAPTION_STYLES["default"])
     captacity.add_captions(
         video_file=str(inp),
         output_file=str(out),
-        font_size=90,
-        font_color="white",
-        stroke_color="black",
-        stroke_width=3,
-        highlight_current_word=True,
-        word_highlight_color="#F5B041",  # warm amber, matches color grade
         line_count=2,
         padding=60,
         shadow_strength=1.0,
         shadow_blur=0.15,
         segments=cap_segments,
         print_info=False,
+        **style_kwargs,
     )
 
 
 # ── Main ────────────────────────────────────────────────────────────────────────
+# Caption styles selectable per-script via `caption_style:` header field.
+# Kwargs are forwarded to captacity.add_captions (font is a ttf path).
+CAPTION_STYLES = {
+    "default": {  # restrained word-highlight — AITA/Stoic/Horror house style
+        "font_size": 90, "font_color": "white",
+        "stroke_color": "black", "stroke_width": 3,
+        "highlight_current_word": True, "word_highlight_color": "#F5B041",
+    },
+    "vhs": {  # camcorder mono — Growth niche; pairs with apply_vhs_overlay
+        "font": "/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+        "font_size": 60, "font_color": "white",
+        "stroke_color": "black", "stroke_width": 2,
+        "highlight_current_word": True, "word_highlight_color": "#F5B041",
+    },
+}
+
+VHS_DEFAULT_DATE = "AUG 12 2014"
+
+def _build_vhs_overlay_png(path: Path, date_text: str, w: int, h: int, label: str = "") -> None:
+    """Transparent camcorder UI layer: ● REC, PLAY ▸ (drawn triangle), date stamp.
+
+    Optional `label` (e.g. "TAPE 1 OF 5") stamps top-right for series branding."""
+    from PIL import Image, ImageDraw, ImageFont
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    f = ImageFont.truetype("/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
+                           int(h * 0.026))
+    def stamped(pos, text, fill):
+        x, y = pos
+        d.text((x + 3, y + 3), text, font=f, fill=(0, 0, 0, 150))
+        d.text((x, y), text, font=f, fill=fill)
+    margin = int(w * 0.06)
+    stamped((margin, int(h * 0.055)), "● REC", (255, 59, 48, 255))
+    if label:
+        lw = d.textlength(label, font=f)
+        stamped((w - lw - margin, int(h * 0.055)), label, (255, 59, 48, 255))
+    play_y = h - int(h * 0.075)
+    stamped((margin, play_y), "PLAY", (255, 255, 255, 235))
+    # Courier New has no ▶ glyph — draw the triangle as a polygon instead
+    tri_x = margin + int(d.textlength("PLAY ", font=f))
+    box = f.getbbox("P")
+    tri_h = box[3] - box[1]
+    tri_y = play_y + box[1]
+    d.polygon([(tri_x + 3, tri_y + tri_h + 3), (tri_x + 3, tri_y + 3),
+               (tri_x + 3 + int(tri_h * 0.9), tri_y + 3 + tri_h // 2)], fill=(0, 0, 0, 150))
+    d.polygon([(tri_x, tri_y + tri_h), (tri_x, tri_y),
+               (tri_x + int(tri_h * 0.9), tri_y + tri_h // 2)], fill=(255, 255, 255, 235))
+    tw = d.textlength(date_text, font=f)
+    stamped((w - tw - margin, play_y), date_text, (255, 255, 255, 235))
+    img.save(path)
+
+
+def apply_vhs_overlay(inp: Path, out: Path, date_text: str = VHS_DEFAULT_DATE,
+                      label: str = "") -> None:
+    """Composite the camcorder UI over the video + add light analog tape noise."""
+    overlay_png = inp.parent / "vhs_overlay.png"
+    _build_vhs_overlay_png(overlay_png, date_text, OUT_W, OUT_H, label)
+    cmd = [
+        FFMPEG, "-y",
+        "-i", str(inp),
+        "-i", str(overlay_png),
+        "-filter_complex", "[0:v]noise=alls=4:allf=t[nv];[nv][1:v]overlay=0:0[v]",
+        "-map", "[v]", "-map", "0:a?",
+        "-c:v", "libx264", "-crf", "22",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "copy",
+        str(out),
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"VHS overlay failed: {r.stderr[-500:]}")
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python3 content_pipeline.py script.txt")
@@ -594,8 +766,11 @@ def main():
     title         = meta.get("title", script_path.stem)
     music_q       = meta.get("music", MUSIC_QUERY)
     b_source      = meta.get("broll", BROLL_SOURCE)
+    story_theme   = meta.get("theme", "")
     captions_on   = meta.get("captions", "true").lower() not in ("false", "no", "0", "off")
     voice_profile = meta.get("voice", "adam").lower()
+    caption_style = meta.get("caption_style", "default").lower()
+    music_delay   = float(meta.get("music_delay", MUSIC_DELAY_DEFAULT))
     # Optional per-speaker voice map. Header format:
     #   voices: N=bill_horror,V=sarah_horror
     # When a segment has a speaker tag ([N]/[V]), look it up here; otherwise
@@ -618,7 +793,8 @@ def main():
     # Random template by default — pick fresh B-roll category + music track per
     # render so videos don't all look identical. Set RANDOM_TEMPLATE=0 to use
     # the script's `game:` and `music:` headers instead.
-    random_template_on = os.environ.get("RANDOM_TEMPLATE", "1") != "0"
+    # AI mode generates visuals per-segment — random template selection doesn't apply
+    random_template_on = os.environ.get("RANDOM_TEMPLATE", "1") != "0" and b_source != "ai"
     template_label = None
     if random_template_on:
         try:
@@ -627,6 +803,7 @@ def main():
             b_source = "local"
             import shutil as _sh
             _sh.copyfile(rand_music, MUSIC_PATH)
+            _strip_leading_silence(MUSIC_PATH)
             template_label = f"{rand_cat} + {rand_music.stem}"
             print(f"🎲 Random template [{template_pool}]: {template_label}")
             Path("/tmp/last_template.txt").write_text(template_label + "\n")
@@ -661,15 +838,23 @@ def main():
             generate_voiceover(seg["text"], audio_path, voice_profile=seg_voice)
             dur = get_duration(audio_path)
             segment_durs.append(dur)
-            print(f"  → B-roll [{b_source}] ({seg['keyword']}, need {dur:.1f}s)…")
-            if b_source == "youtube":
-                fetch_broll_youtube(game, seg["keyword"], dur, broll_path)
+            # Final segment carries a music-only outro — B-roll keeps rolling
+            tail = OUTRO_TAIL if i == len(segments) - 1 else 0.0
+            need = dur + tail
+            if b_source == "ai":
+                print(f"  → AI image (need {need:.1f}s)…")
+                fetch_broll_ai_image(seg["text"], story_theme, need, broll_path)
+            elif b_source == "youtube":
+                print(f"  → B-roll [youtube] ({seg['keyword']}, need {need:.1f}s)…")
+                fetch_broll_youtube(game, seg["keyword"], need, broll_path)
             elif b_source == "local":
-                fetch_broll_local(game, dur, broll_path)
+                print(f"  → B-roll [local] ({seg['keyword']}, need {need:.1f}s)…")
+                fetch_broll_local(game, need, broll_path)
             else:
-                fetch_broll(seg["keyword"], dur, broll_path)
+                print(f"  → B-roll [pexels] ({seg['keyword']}, need {need:.1f}s)…")
+                fetch_broll(seg["keyword"], need, broll_path)
             print(f"  → Assembling…")
-            assemble_segment(audio_path, broll_path, seg["text"], segment_out)
+            assemble_segment(audio_path, broll_path, seg["text"], segment_out, tail=tail)
             segment_files.append(segment_out)
 
         # Concatenate all segments
@@ -690,21 +875,37 @@ def main():
             print("ERROR:", r.stderr[-2000:])
             sys.exit(1)
 
-        # Color grade
+        # Color grade — music bed enters after music_delay seconds (default 4.0)
         print("Applying color grade…")
         graded = tmp / "graded.mp4" if captions_on else output
-        apply_grade(raw_out, graded)
+        apply_grade(raw_out, graded, music_delay=music_delay)
+
+        if not captions_on and caption_style == "vhs":
+            print("Applying VHS overlay…")
+            vhs_only = tmp / "vhs.mp4"
+            apply_vhs_overlay(graded, vhs_only, meta.get("vhs_date", VHS_DEFAULT_DATE),
+                              meta.get("vhs_label", ""))
+            vhs_only.replace(output)
 
         # Burn-in captions (skippable via `captions: false` header)
         if captions_on:
             print("Burning in captions…")
             captioned = tmp / "captioned.mp4"
             try:
-                burn_captions(graded, captioned, segments, segment_durs)
+                burn_captions(graded, captioned, segments, segment_durs, style=caption_style)
             except Exception as e:
                 print(f"  Caption burn failed ({e}) — saving un-captioned video instead")
                 graded.replace(output)
             else:
+                if caption_style == "vhs":
+                    print("Applying VHS overlay…")
+                    vhs_out = tmp / "vhs.mp4"
+                    try:
+                        apply_vhs_overlay(captioned, vhs_out, meta.get("vhs_date", VHS_DEFAULT_DATE),
+                                          meta.get("vhs_label", ""))
+                        captioned = vhs_out
+                    except Exception as e:
+                        print(f"  VHS overlay failed ({e}) — continuing without")
                 # Captacity/moviepy writes mp3-in-mp4 which iOS silently mutes.
                 # Re-encode audio to AAC (faststart so it plays inline on phones).
                 print("Re-muxing audio to AAC (iOS compatibility)…")

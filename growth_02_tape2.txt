@@ -1,0 +1,15 @@
+---
+title: growth_02_TAPE2
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 2
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: oneheart snowfall
+---
+Two months after that question, I did something worse. I asked an AI to rate my face.
+It gave me a seven out of ten. Then a full breakdown. Strong brows. Good bone structure. Genetically solid. It said I could be an eight point five, maybe a nine, with fat loss and better grooming.
+And I need to be honest about what happened next. I felt relieved. A machine handed me a number, and some part of me treated it like a verdict I could finally trust.
+For weeks I checked the mirror against that score. Not against how I felt. Against a number a machine made up in half a second.
+I had outsourced my own reflection. And I didn't tell anyone. Until now.

@@ -1,0 +1,15 @@
+---
+title: growth_02_TAPE1
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 1
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: gibran idea 10
+---
+Last September, at two in the morning, I typed a question into an AI that I have never said out loud to a single person.
+What is my deepest insecurity?
+It said it couldn't know that. Only I could. But it told me where insecurities hide. What do you judge yourself for. What situations do you avoid. Which small comments cut way too deep. And who do you compare yourself to.
+I sat there in the dark and realized I had an answer for every single one. Instantly. No thinking required.
+The machine didn't tell me my deepest insecurity that night. It showed me I already knew it. I'd just never let myself say it.

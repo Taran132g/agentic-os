@@ -65,7 +65,7 @@ NAME_EXCEPTIONS = {
 DENY_CONTENT = re.compile(
     r"(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{30,}|xox[baprs]-[0-9A-Za-z\-]{10,}|"
     r"AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"
-    r"\b\d{6,10}:[A-Za-z0-9_\-]{30,}\b)")  # last = telegram bot token shape
+    r"\b\d{8,10}:AA[A-Za-z0-9_\-]{33}\b)")  # telegram bot token (always AA-prefixed)
 
 
 def _git(repo: Path, *args, check=True) -> str:

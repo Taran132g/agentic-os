@@ -1,0 +1,22 @@
+---
+voice:          bill
+template_pool:  stoic
+title:          pov_liveaid_queen
+broll:          local
+captions:       true
+---
+I was one of seventy-two thousand people at Wembley Stadium the day Freddie Mercury held the entire planet in his hand.
+July 13th, 1985.
+Live Aid.
+We'd been standing for eight hours through nineteen acts.
+Then four men walked out, and Freddie sat down at the piano.
+The first notes of Bohemian Rhapsody hit, and the stadium moved like one body.
+He did that ay-oh echo, and seventy-two thousand strangers answered him in perfect unison.
+During Radio Ga Ga, every single hand around me clapped in sync.
+I looked up, and it was an ocean.
+One point nine billion people were watching on TV.
+Almost half the planet.
+And he played those twenty minutes like he was singing to each of us alone.
+I've been to hundreds of concerts since, and nothing has ever come close.
+We weren't watching a show.
+We were inside the greatest twenty minutes in music history.

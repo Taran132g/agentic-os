@@ -25,5 +25,59 @@
     "connect": "Hi Carl \u2014 fellow Penn Stater here (AI Eng '27; huge respect for your work on the Board of Trustees). Love what Rayze is building for nonprofits. Would love to connect.",
     "followup": "Thanks for connecting, Carl \u2014 proud to share the Penn State tie. I'm an AI Engineering student ('27) who ships full products solo: PAIS, a platform of autonomous AI agent workflows run from one Control Room (https://getpais.company), plus BrainScan (open-source AI) and a live trading bot \u2014 stack's Python/React/AWS/Firebase. As Rayze grows its engineering team, I'd love 15 min to share how I build and learn what you need in a full-stack builder. Open to a quick chat?",
     "contacted": false
+  },
+  {
+    "name": "Madhav Jha",
+    "role": "CTO & Co-Founder",
+    "company": "Emergent Labs",
+    "why": "Penn State tie: PhD in Theoretical Computer Science from Penn State University \u2014 confirmed in Emergent company bio and PSU Engineering Industry Xchange speaker materials. Open role: 'Software Engineer (Backend)' and 'Software Engineer \u2013 Infrastructure' active on ycombinator.com/companies/emergent/jobs (39 total open roles). Emergent is a YC S24 vibe-coding platform ($70M Series B, Khosla + SoftBank) that lets anyone build production software in plain language \u2014 Madhav's LinkedIn literally reads 'Making vibe coding a reality.'",
+    "connect": "Fellow Penn Stater \u2014 saw your CS theory PhD from PSU before you built the vibe coding platform the whole dev world's talking about. Would love to connect, We Are!",
+    "followup": "Madhav, fellow Penn Stater here \u2014 AI Engineering, Class of 2028. I vibe-code the same way Emergent works: I built PAIS (https://getpais.company), a platform of autonomous AI agent workflows run from one Control Room, solo from scratch in Python, React, and AWS. Also shipped BrainScan (open-source AI product) and a live algorithmic trading bot \u2014 all end to end. Saw Emergent has open software engineering roles and this feels like a natural fit. Would you be open to a quick 15-min call to chat about it?",
+    "contacted": false
+  },
+  {
+    "name": "Igor Jablokov",
+    "role": "CEO & Founder",
+    "company": "Pryon",
+    "why": "Penn State tie: BS in Computer Engineering from Pennsylvania State University, named Penn State Outstanding Engineering Alumnus \u2014 confirmed in PSU College of Engineering Industry Xchange 2020 PDF (engr.psu.edu/industryxchange2020/bios/jablokov-igor.pdf). Open role: 'Software Engineer, Full Stack' actively posted on LinkedIn (job ID 4226355927), ZipRecruiter, Taro, and Simplify \u2014 remote-US, React + Golang stack, $150\u2013175K comp. Pryon builds an enterprise RAG / AI knowledge platform and is actively growing its engineering team.",
+    "connect": "Fellow Nittany Lion \u2014 spotted your Penn State Computer Engineering roots before you built one of the most serious enterprise AI platforms out there. Would love to connect. We Are!",
+    "followup": "Igor, fellow Penn Stater here \u2014 AI Engineering, Class of 2028. The RAG and knowledge-layer work Pryon is doing is right in the stack I've been building on. I shipped PAIS (https://getpais.company), an autonomous AI agent workflows platform run from a single Control Room \u2014 Python, React, AWS, end to end \u2014 and BrainScan, an open-source AI product. Saw Pryon has an open Full Stack Software Engineer role and the stack lines up exactly with what I build. Would you be open to a quick chat about it?",
+    "contacted": false
+  },
+  {
+    "name": "Jason Cornelius",
+    "role": "CEO & Co-Founder",
+    "company": "Perseus Defense",
+    "why": "Penn State tie: BS, MS, and PhD all in Aerospace Engineering from Penn State University \u2014 confirmed on Penn State Engineering Early Career Award 2026 cohort page (engr.psu.edu/alumni/awards/early-career/cohort/2026.aspx). Open role: 'Engineer' active on YC job board (ycombinator.com/companies/perseus-defense/jobs/uxJvS5U-engineer) \u2014 on-site Austin TX, spans Computer Science, Computer Vision, and Software Engineering disciplines. Perseus Defense is YC S25, building counter-drone missiles for DoD; CV and ML software are core to the guidance and detection stack.",
+    "connect": "Fellow Nittany Lion \u2014 three Penn State aerospace degrees before launching a YC-backed defense startup in 2025. That's remarkable. Would love to connect, We Are!",
+    "followup": "Jason, fellow Penn Stater here \u2014 AI Engineering, Class of 2028. The autonomy and ML angles in counter-UAS are genuinely exciting, and that's the exact intersection I build in. I shipped PAIS (https://getpais.company), a platform of autonomous AI agent workflows run from one Control Room, plus BrainScan (open-source AI) and a live trading bot \u2014 all in Python, React, and AWS. Saw Perseus has engineering roles open and I'd love to learn where software and CV fit in your stack. Open to a quick call?",
+    "contacted": false
+  },
+  {
+    "name": "Eugene Chen",
+    "role": "Co-Founder",
+    "company": "Ellipsis Labs",
+    "why": "Live 'Software Engineer - 2027 Interns' posting on Ashby (jobs.ashbyhq.com/ellipsislabs/02136b22-35b1-4b3d-8bef-567c3380a849), confirmed on LinkedIn Jobs, Crypto Careers, and Jobright \u2014 explicitly titled '2027 Interns,' $10k/month, NYC. Ellipsis raised $43M from Paradigm, Haun Ventures, Electric Capital and has processed $285B+ in on-chain volume. Eugene's prior role at Jane Street aligns directly with Taran's TNFund trading bot work. No PSU tie (MIT Mathematics '16).",
+    "connect": "Hi Eugene \u2014 saw Ellipsis Labs' live 2027 intern role. Building performant DeFi infra on Solana is exactly the systems challenge I want to tackle. Would love to connect as I explore next summer.",
+    "followup": "Hey Eugene \u2014 thanks for connecting!\n\nThe work Ellipsis Labs is doing on Phoenix and Atlas \u2014 building verifiable, high-performance on-chain finance \u2014 is the most compelling systems problem in DeFi right now. Your background at Jane Street building low-latency trading systems maps exactly onto what I've been building independently.\n\nI'm a Penn State AI Engineering student (Class of 2028) targeting Summer 2027 SWE internships, and your 2027 intern role is at the top of my list. I've shipped end-to-end: PAIS (https://getpais.company), a platform of autonomous AI agent workflows run from a single Control Room, and TNFund, a live algorithmic trading bot built on Schwab's API \u2014 so low-latency, trading-adjacent systems engineering is where I've been putting my reps.\n\nWould you have 20 minutes to chat about what the 2027 intern experience at Ellipsis looks like and how to put together a strong application?",
+    "contacted": false
+  },
+  {
+    "name": "Judy Cheong",
+    "role": "Recruiting Manager",
+    "company": "Cloudflare",
+    "why": "Named co-author on Cloudflare's March 2026 'we're hiring' blog post (blog.cloudflare.com/cloudflare-1111-intern-program/) announcing 1,111 interns for 2026, confirmed on The Org (theorg.com/org/cloudflare/org-chart/judy-cheong) as Recruiting Manager. Cloudflare also has live Software Engineer Intern (Summer 2026) postings on Greenhouse. No PSU tie (UC Davis, BA International Relations/Chinese/Economics).",
+    "connect": "Hi Judy \u2014 saw you co-authored Cloudflare's 1,111-intern push. I'm a Penn State AI Eng student targeting Summer 2027 SWE roles and would love to connect with the team driving that program.",
+    "followup": "Hey Judy \u2014 thanks for connecting!\n\nThe blog post you co-authored on Cloudflare's 1,111-intern program genuinely stood out to me \u2014 especially the focus on fast-tracking candidates who build real AI-powered applications on Cloudflare. That's exactly the kind of signal I want to respond to.\n\nI'm a Penn State AI Engineering student (Class of 2028) targeting Summer 2027 SWE internships. I've shipped full-stack across the stack: PAIS (https://getpais.company), a platform of autonomous AI agent workflows run from a single Control Room, and BrainScan, an open-source AI product \u2014 Python, React, and AWS throughout.\n\nWould love to get a sense of Cloudflare's 2027 early-talent timeline, or if there's someone on your team I should connect with. Happy to jump on a quick call whenever works!",
+    "contacted": false
+  },
+  {
+    "name": "Christopher Shal",
+    "role": "Senior Manager, Enterprise Advice Technology",
+    "company": "Vanguard",
+    "why": "PSU tie confirmed: earned MS from Penn State University and also interned at Penn State (The Org profile: theorg.com/org/vanguard/org-chart/christopher-shal). Hiring signal: Vanguard has a live 'College to Corporate Internship \u2014 Application Development' posting on Workday (vanguard.wd5.myworkdayjobs.com/en-US/vanguard_external/job/College-to-Corporate-Internship---Application-Development_169667); Summer 2027 cycle applications open August\u2013September 2026 with confirmed PSU campus recruiting in September 2026.",
+    "connect": "Hi Christopher \u2014 fellow Penn Stater! I'm a PSU AI Engineering student (Class of 2028) targeting Summer 2027 SWE internships and noticed your work leading Vanguard's advice tech team. We Are!",
+    "followup": "Hey Christopher \u2014 thanks for connecting, and We Are!\n\nI'm a Penn State AI Engineering student (Class of 2028) actively pursuing Vanguard's College to Corporate Application Development internship for Summer 2027. As a PSU alum on Vanguard's engineering side, your perspective on what the team values would carry a lot of weight for me.\n\nI've built and shipped end-to-end: PAIS (https://getpais.company), a platform of autonomous AI agent workflows run from one Control Room, and TNFund, a live algorithmic trading bot on Schwab's API \u2014 full-stack Python and React throughout, with real users and real data.\n\nWould you be open to a quick 20-minute chat about the team culture and what makes a strong intern candidate? Really appreciate any insight you're willing to share.",
+    "contacted": false
   }
 ]

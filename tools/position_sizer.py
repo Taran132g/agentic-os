@@ -26,6 +26,70 @@ STOP_K    = 1.5                       # stop buffer in units of expected-move si
 HOLD_DAYS = {"crypto": 3, "stock": 5}  # typical Dr. Profit hold window
 YEAR_DAYS = {"crypto": 365, "stock": 252}
 
+# Exit management (scale-out → breakeven → trail). Backtest of Dr. Profit's
+# documented history showed a single hard TP caps the fat-tail winners that are
+# the actual edge; this replaces it with "bank 1/3 at TP1, move stop to
+# breakeven, trail the runner with no fixed target".
+TP1_R    = float(os.environ.get("PAIS_TP1_R", "2.0"))    # first target, in R
+TP1_FRAC = float(os.environ.get("PAIS_TP1_FRAC", "0.34"))  # fraction closed at TP1
+TRAIL_R  = float(os.environ.get("PAIS_TRAIL_R", "1.0"))    # trail distance, in R
+
+
+def best_entry_in_zone(
+    entry_low: float | None,
+    entry_high: float | None,
+    direction: str,
+    fallback: float | None = None,
+) -> float | None:
+    """
+    Best limit-order price inside a signal's entry zone: the favorable edge —
+    buy the LOW for a LONG, sell the HIGH for a SHORT — which maximizes R:R.
+    Falls back to the single given entry when no zone was provided.
+    """
+    if entry_low is None or entry_high is None:
+        return fallback
+    lo, hi = min(entry_low, entry_high), max(entry_low, entry_high)
+    return lo if direction.upper() == "LONG" else hi
+
+
+def build_exit_plan(
+    entry: float,
+    stop_loss: float,
+    direction: str,
+    tp1_r: float = TP1_R,
+    tp1_frac: float = TP1_FRAC,
+    trail_r: float = TRAIL_R,
+) -> dict:
+    """
+    Concrete exit plan: bank `tp1_frac` at `tp1_r`, then move the stop to
+    breakeven and trail the remainder `trail_r` behind price with no hard TP.
+    All price levels are derived from the initial stop distance (1R).
+    """
+    direction = direction.upper()
+    psign = 1 if direction == "LONG" else -1   # profit direction
+    stop_dist = abs(entry - stop_loss)
+    rnd = 6 if entry < 10 else 2
+
+    def at_R(r: float) -> float:
+        return round(entry + psign * r * stop_dist, rnd)
+
+    return {
+        "style":     "scale_out_then_trail",
+        "stop_dist": round(stop_dist, rnd),
+        "r_levels":  {str(r): at_R(r) for r in (1, 2, 3, 5)},
+        "tp1": {
+            "price":      at_R(tp1_r),
+            "r":          tp1_r,
+            "close_frac": round(tp1_frac, 2),
+            "then":       "move_stop_to_breakeven",
+        },
+        "runner": {
+            "close_frac": round(1 - tp1_frac, 2),
+            "trail_r":    trail_r,
+            "rule":       f"after TP1, trail stop {trail_r}R behind price; no fixed target",
+        },
+    }
+
 
 def compute_size(
     entry: float,
@@ -69,12 +133,16 @@ def compute_size(
     notional = units * entry
     margin   = notional / max(leverage, 1)
 
-    # Risk:reward to first take-profit
-    rr = None
+    # Risk:reward to first take-profit. With no signal TP we fall back to the
+    # planned scale-out target (TP1_R) so the ≥1.5 filter still bites.
     tps = [tp for tp in (take_profits or []) if tp]
     if tps:
         reward = abs(tps[0] - entry)
         rr = round(reward / stop_dist, 2)
+    else:
+        rr = TP1_R
+
+    exit_plan = build_exit_plan(entry, stop_loss, direction)
 
     warnings = []
     if expected_move_pct and stop_source == "signal":
@@ -102,6 +170,7 @@ def compute_size(
         "annual_vol":        round(annual_vol, 4) if annual_vol else None,
         "expected_move_pct": round(expected_move_pct * 100, 2) if expected_move_pct else None,
         "hold_days":         hold,
+        "exit_plan":         exit_plan,
         "warnings":          warnings,
     }
 
@@ -114,9 +183,10 @@ async def size_trade(
     stop_loss: float | None = None,
     take_profits: list[float] | None = None,
     leverage: int = 1,
+    risk_usd: float | None = None,
 ) -> dict:
     """
-    Fetch live price + vol, then size at fixed $RISK_USD.
+    Fetch live price + vol, then size at `risk_usd` (defaults to RISK_USD).
     entry=None means "enter at market" — the live price becomes the entry.
     Returns {"ok": bool, "error": str?, ...compute_size fields, "mark_price", "vol_source"}.
     """
@@ -140,6 +210,7 @@ async def size_trade(
             leverage     = leverage,
             annual_vol   = vol["annual_vol"] if vol else None,
             take_profits = take_profits,
+            risk_usd     = risk_usd if risk_usd is not None else RISK_USD,
         )
     except ValueError as e:
         return {"ok": False, "error": str(e)}

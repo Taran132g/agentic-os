@@ -138,14 +138,20 @@ def append_people(people: list[dict]) -> int:
     """Append new targets as `🔍 To send` rows, skipping any (name, company) already
     in the sheet. Never rewrites an existing row. Returns how many were added."""
     ensure_sheet()
-    have = _existing_keys()
+    existing = rows()
+    have = {(_norm(r["name"]), _norm(r["company"])) for r in existing}
+    # Also dedup on name alone: the scout reports the same person under company
+    # variants ("Emergent" vs "Emergent Labs"), which the (name, company) key
+    # would let through as a duplicate row.
+    have_names = {_norm(r["name"]) for r in existing}
     today = datetime.now().strftime("%Y-%m-%d")
     new_rows = []
     for p in people:
         name, company = (p.get("name") or "").strip(), (p.get("company") or "").strip()
-        if not name or (_norm(name), _norm(company)) in have:
+        if not name or (_norm(name), _norm(company)) in have or _norm(name) in have_names:
             continue
         have.add((_norm(name), _norm(company)))
+        have_names.add(_norm(name))
         new_rows.append(
             f"| {DEFAULT_STATUS} | {_cell(name)} | {_cell(p.get('role',''))} | {_cell(company)} "
             f"| {_cell(p.get('why',''))} |  | {_cell(p.get('connect',''))} | {today} |"

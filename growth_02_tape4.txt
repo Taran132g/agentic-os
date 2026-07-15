@@ -1,0 +1,15 @@
+---
+title: growth_02_TAPE4
+voice: chris_growth
+caption_style: vhs
+vhs_label: Part 4
+template_pool: stoic
+broll: local
+game: minecraft_scenic
+music: RESTOCK_NEW_BED
+---
+One night it finally hit me. I wrote a whole research paper on the machine that makes people feel not enough. And two months before that, I had asked that same machine to rate my face.
+I studied the trap. I cited sources on the trap. I explained exactly how the trap works. From inside the trap.
+And here's the part nobody warns you about. Knowing the trick does not break the spell. I could explain the attention economy like a textbook and still feel that pull every time I opened the mirror or the feed.
+You can be an expert on the cage and still live in it.
+That's when I understood this was never an information problem. I didn't need to learn more. I needed to change what I was doing.

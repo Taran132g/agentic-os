@@ -1,0 +1,79 @@
+{
+  "_comment": "Growth-niche tape registry — feeds the Control Room clips page (bridge /leads) and clip_pipeline autopost. Tapes render via content_pipeline.py (growth_01_tapeN.txt). Update status here or via the site UI.",
+  "tapes": [
+    {
+      "id": "growth_01_TAPE1",
+      "part": 1,
+      "title": "Part 1 — The Check-In",
+      "file": "~/Desktop/Stoic Renders/growth_01_TAPE1.mp4",
+      "status": "📱 Posted",
+      "posted": "",
+      "rendered": "2026-07-13",
+      "music": "alej_one_more_day",
+      "broll": "minecraft_scenic · half A",
+      "caption": "part 1 — i took a break from reality to check back into it 🌅 #growth #deep #relate #minecraft #fyp"
+    },
+    {
+      "id": "growth_01_TAPE2",
+      "part": 2,
+      "title": "Part 2 — The First Sunset",
+      "file": "~/Desktop/Stoic Renders/growth_01_TAPE2.mp4",
+      "status": "📱 Posted",
+      "posted": "",
+      "rendered": "2026-07-13",
+      "music": "alexg_waiting_for_you",
+      "broll": "minecraft_scenic · half B",
+      "caption": "part 2 — my first sunset at 20 years old 🌅 #growth #deep #relate #minecraft #fyp"
+    },
+    {
+      "id": "growth_01_TAPE3",
+      "part": 3,
+      "title": "Part 3 — The Vision",
+      "file": "~/Desktop/Stoic Renders/growth_01_TAPE3.mp4",
+      "status": "🎬 Rendered",
+      "posted": "",
+      "rendered": "2026-07-13",
+      "music": "pianaura_congratulations",
+      "broll": "raytrace scenic · pool A",
+      "caption": "part 3 — every generation watched this same sun ☀️ #growth #deep #relate #minecraft #fyp"
+    },
+    {
+      "id": "growth_01_TAPE4",
+      "part": 4,
+      "title": "Part 4 — The Answer",
+      "file": "~/Desktop/Stoic Renders/growth_01_TAPE4.mp4",
+      "status": "🎬 Rendered",
+      "posted": "",
+      "rendered": "2026-07-13",
+      "music": "cipriani_marys_theme",
+      "broll": "raytrace scenic · pool B",
+      "caption": "part 4 — you have less than 100 years. your work compounds for thousands ⏳ #growth #deep #relate #minecraft #fyp"
+    },
+    {
+      "id": "growth_01_TAPE5",
+      "part": 5,
+      "title": "Part 5 — The Wave (finale)",
+      "file": "~/Desktop/Stoic Renders/growth_01_TAPE5.mp4",
+      "status": "🎬 Rendered",
+      "posted": "",
+      "rendered": "2026-07-13",
+      "music": "nostalgic_old_piano",
+      "broll": "raytrace scenic · pool C",
+      "caption": "part 5 — you are a wave in an ocean of everyone who ever lived 🌊 #growth #deep #relate #minecraft #fyp"
+    }
+  ],
+  "music": [
+    "pianaura_congratulations",
+    "alexg_waiting_for_you",
+    "alej_one_more_day",
+    "almeida_lamp_is_low",
+    "cipriani_marys_theme",
+    "nostalgic_old_piano",
+    "c418_sweden",
+    "oneheart_snowfall",
+    "gibran_idea10"
+  ],
+  "music_history": {
+    "almeida_lamp_is_low": "Full sunset cut"
+  }
+}
