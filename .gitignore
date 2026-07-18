@@ -108,3 +108,4 @@ My Movie v3.mp4
 # Local business runtime state (booking/customer data — never commit)
 local_business/.state/
 cover_letter.*
+.venv_tts/
