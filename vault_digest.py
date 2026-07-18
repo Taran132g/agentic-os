@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Daily vault digest — morning cron (built for n8n 2026-05-31).
 
-Summarizes YESTERDAY's session log(s) + collects still-open follow-ups from the
-last week of chats, writes a dated note under `Daily Digests/`, and Telegrams a
-short version so Taran starts the day with context.
+Summarizes every session log since the LAST digest ran (a digest generated on
+day G covers through G-1, so the first uncovered day is G itself) + collects
+still-open follow-ups from the last week of chats, writes a dated note under
+`Daily Digests/`, and Telegrams a short version so Taran starts the day with
+context. Runs are on-demand now (Control Room briefing button), so the window
+is anchored to the newest previous digest, not a rigid "yesterday" — gap days
+between runs used to be silently skipped (2026-07-18 fix).
 
-Run (from the n8n Execute Command node, morning cron):
+Run:
     python3 ~/agentic_os/vault_digest.py
 
 Env:
     VAULT_DIGEST_DRY=1   print the note to stdout, don't write vault / Telegram
-    VAULT_DIGEST_DATE=YYYY-MM-DD   summarize a specific day (default: yesterday)
+    VAULT_DIGEST_DATE=YYYY-MM-DD   summarize ONLY that day (window override)
 
 Uses the `claude` CLI for a tight narrative summary when available (subscription
 -billed, no API key); falls back to a structured extract if it's not on PATH.
@@ -36,6 +40,10 @@ VAULT = (Path.home() / "Library/Mobile Documents/iCloud~md~obsidian"
          / "Documents/Digital Brain")
 CHATS = VAULT / "Chats"
 DIGESTS = VAULT / "Daily Digests"
+
+# After a long gap, cover at most this many trailing days so the prompt and the
+# note stay readable; older days fall back to the follow-ups sweep only.
+MAX_WINDOW_DAYS = 14
 
 
 def _send_telegram(text: str) -> None:
@@ -139,16 +147,23 @@ except Exception:                       # standalone/odd-cwd runs: no-op
         return ""
 
 
-def _claude_summary(raw: str) -> str | None:
-    """Tight 4-6 bullet summary via the claude CLI, or None if unavailable."""
+def _claude_summary(raw: str, span: str, multi_day: bool) -> str | None:
+    """Tight bullet summary via the claude CLI, or None if unavailable."""
     from shutil import which
     if not which("claude"):
         return None
-    prompt = ("Summarize yesterday's work session below into 4-6 crisp bullets "
-              "(what was done / decided), then a one-line 'Momentum:' note on "
+    if multi_day:
+        framing = (f"Summarize the work sessions below (covering {span}) into "
+                   "crisp bullets GROUPED BY DAY under a '**YYYY-MM-DD**' line "
+                   "each (what was done / decided; skip empty days), ")
+    else:
+        framing = ("Summarize yesterday's work session below into 4-6 crisp "
+                   "bullets (what was done / decided), ")
+    prompt = (framing +
+              "then a one-line 'Momentum:' note on "
               "where things stand. No preamble, no questions back — this is an "
-              "unattended digest. If the note is sparse, say so in one line.\n"
-              + persona_block() + "\n" + raw[:6000])
+              "unattended digest. If the notes are sparse, say so in one line.\n"
+              + persona_block() + "\n" + raw[:12000])
     try:
         res = subprocess.run(["claude", "-p", prompt], capture_output=True,
                              text=True, timeout=120)
@@ -158,39 +173,78 @@ def _claude_summary(raw: str) -> str | None:
         return None
 
 
-def main() -> int:
-    if os.environ.get("VAULT_DIGEST_DATE"):
-        day = datetime.strptime(os.environ["VAULT_DIGEST_DATE"], "%Y-%m-%d")
-    else:
-        day = datetime.now() - timedelta(days=1)
-    day_str = day.strftime("%Y-%m-%d")
-    today_str = datetime.now().strftime("%Y-%m-%d")
+def _last_digest_date(today: datetime) -> datetime | None:
+    """Generation date of the newest previous digest (filename), excluding today
+    — today's file may be a thin same-day rerun we're about to replace."""
+    if not DIGESTS.exists():
+        return None
+    best = None
+    for f in DIGESTS.glob("20*.md"):
+        m = re.match(r"(\d{4}-\d{2}-\d{2})\.md$", f.name)
+        if not m:
+            continue
+        try:
+            d = datetime.strptime(m.group(1), "%Y-%m-%d")
+        except ValueError:
+            continue
+        if d.date() >= today.date():
+            continue
+        if best is None or d > best:
+            best = d
+    return best
 
-    note = CHATS / f"{day_str}.md"
-    raw = _safe_read(note)
+
+def main() -> int:
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    if os.environ.get("VAULT_DIGEST_DATE"):
+        days = [datetime.strptime(os.environ["VAULT_DIGEST_DATE"], "%Y-%m-%d")]
+    else:
+        # Every uncovered day since the last digest: a digest generated on day G
+        # summarizes through G-1, so the window is [G .. yesterday]. No previous
+        # digest → just yesterday. Long gaps keep only the trailing days.
+        last = _last_digest_date(now)
+        start = last if last is not None else now - timedelta(days=1)
+        days, d = [], start
+        while d.date() < now.date():
+            days.append(d)
+            d += timedelta(days=1)
+        days = days[-MAX_WINDOW_DAYS:] or [now - timedelta(days=1)]
+    day_strs = [d.strftime("%Y-%m-%d") for d in days]
+    span = (day_strs[0] if len(day_strs) == 1
+            else f"{day_strs[0]} → {day_strs[-1]}")
+
+    per_day = [(ds, _safe_read(CHATS / f"{ds}.md")) for ds in day_strs]
+    sections = [(ds, raw) for ds, raw in per_day if raw.strip()]
+    raw_all = "\n\n".join(f"=== {ds} ===\n{raw[:5000]}" for ds, raw in sections)
 
     # Substance check: count non-heading, non-empty content chars. The Stop hook
     # seeds an empty template, so only summarize via claude when there's real text.
-    content_chars = sum(len(l.strip()) for l in raw.splitlines()
-                        if l.strip() and not l.strip().startswith(("#", "*", "_")))
+    content_chars = sum(len(l.strip()) for l in raw_all.splitlines()
+                        if l.strip() and not l.strip().startswith(("#", "*", "_", "=")))
 
     body_summary = ""
-    if raw.strip():
+    if sections:
         if content_chars >= 200:
-            body_summary = _claude_summary(raw) or ""
+            body_summary = _claude_summary(raw_all, span, len(day_strs) > 1) or ""
         if not body_summary:
-            # structured fallback: first ~12 non-empty content lines
-            picked = [l for l in raw.splitlines()
-                      if l.strip() and not l.strip().startswith("#")][:12]
+            # structured fallback: first non-empty content lines per day
+            picked = []
+            for ds, raw in sections:
+                picked.append(f"**{ds}**")
+                picked += [l for l in raw.splitlines()
+                           if l.strip() and not l.strip().startswith("#")][:8]
             body_summary = "\n".join(picked)
 
     followups = _open_followups()
 
     md = [f"# Daily Digest — {today_str}", "",
-          f"*Auto-generated each morning. Summarizes {day_str}.*", "",
-          "## Yesterday"]
+          f"*Auto-generated. Summarizes {span} "
+          f"({len(day_strs)} day{'s' if len(day_strs) > 1 else ''} "
+          "since the last digest).*", "",
+          "## Recap"]
     md.append(body_summary if body_summary.strip()
-              else f"_No session note found for {day_str}._")
+              else f"_No session notes found for {span}._")
     md += ["", "## Open Follow-ups (last 7 days)"]
     if followups:
         md += [f"- [ ] {it}" for it in followups]
@@ -204,11 +258,11 @@ def main() -> int:
     # its tiny whitelist (e.g. a stray "<footer>"). Only the <b>/<i> wrappers we
     # add ourselves are literal markup.
     tg = [f"<b>📓 Daily Digest — {today_str}</b>",
-          f"<i>Recap of {day_str}</i>", ""]
+          f"<i>Recap of {span}</i>", ""]
     if body_summary.strip():
-        tg.append(html.escape(body_summary[:1500]))
+        tg.append(html.escape(body_summary[:2500]))
     else:
-        tg.append("No session note yesterday.")
+        tg.append(f"No session notes for {span}.")
     if followups:
         tg += ["", f"<b>Open follow-ups ({len(followups)}):</b>"]
         tg += [f"• {html.escape(it.split('  (')[0])}" for it in followups[:8]]
@@ -225,7 +279,7 @@ def main() -> int:
         print("WARN: could not write digest note (iCloud lock) — posting feed anyway",
               file=sys.stderr)
     _send_telegram(tg_msg)
-    print(f"Vault digest written for {today_str} (recap of {day_str}); "
+    print(f"Vault digest written for {today_str} (recap of {span}); "
           f"{len(followups)} follow-ups.")
     return 0
 
