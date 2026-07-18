@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Trainer — PAIS</title>
+<base href="/poker/">
+<link rel="icon" href="/favicon.ico">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/table.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/trainer.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>♠ Poker Trainer</h1>
+  <div class="session-stats">
+    <span id="sessionProfit"></span>
+    <svg id="profitSpark" width="120" height="32" aria-hidden="true"></svg>
+  </div>
+  <nav class="controls" aria-label="Session controls">
+    <label class="control-label" for="tableSize">Players</label>
+    <select id="tableSize" aria-label="Number of players">
+      <option value="2">2-handed</option>
+      <option value="3">3-handed</option>
+      <option value="4">4-handed</option>
+      <option value="5">5-handed</option>
+      <option value="6">6-handed</option>
+      <option value="7">7-handed</option>
+      <option value="8">8-handed</option>
+    </select>
+    <button id="btnCoach">Coach</button>
+    <button id="btnHistory">History</button>
+    <button id="btnNewSession">New Session</button>
+    <a href="trainer" class="btn-drill" title="Scenario Trainer">Drill</a>
+    <button id="btnVolume" aria-label="Toggle sound">🔊</button>
+    <a href="/" class="back-link" aria-label="Back to PAIS">← PAIS</a>
+  </nav>
+</header>
+
+<main class="table-wrap">
+  <section class="table" aria-label="Poker table">
+    <div class="felt">
+      <div class="board" id="board" aria-label="Community cards"></div>
+      <div class="pot" id="pot">
+        <span class="pot-label">POT</span>
+        <span id="potAmt">0</span>
+        <span class="pot-unit">bb</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="hero-hole-cards" id="heroHoleCards" aria-label="Your hole cards" aria-live="polite"></div>
+
+<!-- Game log strip above action bar -->
+<div class="game-log-wrap" id="gameLogWrap" aria-label="Game log"></div>
+
+<footer class="action-bar" id="actionBar" aria-label="Your action">
+  <div class="ab-status-row">
+    <div class="ab-strength" id="abStrength"></div>
+    <div class="ab-facing"   id="abFacing"></div>
+    <div class="ab-waiting"  id="abWaiting">Dealing next hand…</div>
+  </div>
+
+  <!-- Raise panel -->
+  <div class="ab-sizing" id="abSizing" aria-label="Raise sizing">
+    <div class="ab-presets">
+      <button data-preset="min"  disabled>Min</button>
+      <button data-preset="33"   disabled>⅓</button>
+      <button data-preset="50"   disabled>½</button>
+      <button data-preset="66"   disabled>⅔</button>
+      <button data-preset="100"  disabled>Pot</button>
+      <button data-preset="allin" disabled>All-in</button>
+    </div>
+    <div class="ab-slider-row">
+      <input type="range"  id="raiseSlider" min="0" max="100" step="1" disabled aria-label="Raise amount slider">
+      <input type="number" id="raiseInput"  step="0.5" min="0"         disabled aria-label="Raise amount in BB">
+    </div>
+  </div>
+
+  <div class="ab-buttons">
+    <button id="btnFold"      class="ab-fold" disabled>Fold</button>
+    <button id="btnCheckCall"                 disabled>Check</button>
+    <button id="btnRaise"                     disabled>Raise to <span id="raiseAmt">0</span></button>
+    <button id="btnCheck" style="display:none" disabled aria-hidden="true"></button>
+    <button id="btnCall"  style="display:none" disabled aria-hidden="true">
+      <span id="callAmt"></span>
+    </button>
+  </div>
+
+  <div class="ab-keys" aria-hidden="true">
+    <kbd>F</kbd> Fold &nbsp;
+    <kbd>C</kbd> Call &nbsp;
+    <kbd>R</kbd> Raise &nbsp;
+    <kbd>←→</kbd> Size
+  </div>
+</footer>
+
+<!-- Coach drawer (right side) — stays open during play -->
+<div class="coach-drawer" id="coachDrawer" role="complementary" aria-label="GTO Coach" aria-hidden="true">
+  <div class="drawer-header">
+    <h2>⚡ Coach</h2>
+    <button id="btnCloseCoach" aria-label="Close coach">✕</button>
+  </div>
+  <div class="coach-mode-row">
+    <label class="control-label" for="coachMode">Advice</label>
+    <select id="coachMode" aria-label="Coach advice mode">
+      <option value="off">Off</option>
+      <option value="live">Live</option>
+      <option value="review">Review</option>
+    </select>
+  </div>
+  <div class="coach-content">
+    <div class="coach-rec"    id="coachRec"></div>
+    <div class="coach-note"   id="coachNote"></div>
+    <div class="coach-equity" id="coachEquity"></div>
+    <div class="coach-actions" id="coachActions"></div>
+    <div class="coach-read"   id="coachRead"></div>
+    <div class="coach-divider"></div>
+    <div class="coach-learn-section" id="coachLearnSection">
+      <div class="coach-learn-title">Your Patterns</div>
+      <div class="coach-learn-dials" id="coachLearnDials"></div>
+      <div class="coach-learn-notes" id="coachLearnNotes">Play more hands for personalized insights.</div>
+    </div>
+  </div>
+</div>
+
+<!-- History drawer (left side) -->
+<div class="drawer" id="historyDrawer" role="dialog" aria-label="Hand history" aria-modal="true" aria-hidden="true">
+  <div class="drawer-header">
+    <h2>Hand History</h2>
+    <button id="btnCloseHistory" aria-label="Close history">✕</button>
+  </div>
+  <div id="historyList"></div>
+  <div id="historyReplay" hidden></div>
+</div>
+
+<!-- Click-outside scrim (history drawer only) -->
+<div class="drawer-scrim" id="drawerScrim" hidden></div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+<div class="toast" id="toastModal" hidden role="status" aria-live="polite"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

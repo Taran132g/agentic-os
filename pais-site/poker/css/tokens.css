@@ -1,0 +1,59 @@
+:root {
+  --felt:        #0d2418;
+  --felt-edge:   #081810;
+  --room:        #14100c;
+  --panel:       #1b1512;
+  --panel-edge:  #2a221c;
+  --rail:        #3a2c1e;
+  --brass:       #c9a35a;
+  --brass-dim:   #8a6f3e;
+  --hero:        #b33939;
+  --win:         #59c98a;
+  --lose:        #e05c5c;
+  --card-face:   #f4ead8;
+  --card-red:    #c0392b;
+  --card-black:  #1c1c1c;
+  --card-back:   #5a2328;
+  --card-back-2: #7a3238;
+  --ink:         #e8ddc8;
+  --ink-dim:     #9a8f7a;
+  --ink-faint:   #5f574a;
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-ui: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Courier New', monospace;
+  --text-sm: 0.78rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.25rem;
+  --text-pot: 1.6rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 28px;
+  --radius-card: 7px;
+  --radius-panel: 12px;
+  --dur-deal: 320ms;
+  --dur-chip: 260ms;
+  --dur-flip: 240ms;
+  --dur-bet:  300ms;
+  --ease-deal: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Chip denomination colors */
+  --chip-1:   #ddd8c8;
+  --chip-5:   #c0392b;
+  --chip-25:  #27ae60;
+  --chip-100: #2471a3;
+  --chip-500: #8e44ad;
+
+  /* Turn timer ring */
+  --timer-size: 50px;
+  --timer-r: 21;
+  --timer-circ: 131.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-deal: 0ms;
+    --dur-chip: 0ms;
+    --dur-flip: 0ms;
+  }
+}

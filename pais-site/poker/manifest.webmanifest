@@ -1,0 +1,12 @@
+{
+  "name": "Dead Man's Drill",
+  "short_name": "DMH Drill",
+  "description": "GTO poker scenario trainer — play hands, get instant advisor feedback",
+  "start_url": "/poker/trainer.html",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}

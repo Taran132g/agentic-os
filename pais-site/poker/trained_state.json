@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "tightness": 0.82,
+  "aggression": 0.998,
+  "handsLearned": 2830,
+  "buckets": {
+    "preflop|pre|fold": {
+      "n": 2382,
+      "sumNetBB": -526.75,
+      "sumNetPot": -143.16419512115098
+    },
+    "preflop|pre|bet-raise": {
+      "n": 366,
+      "sumNetBB": 777.5,
+      "sumNetPot": 452.4406752667625
+    },
+    "preflop|pre|check-call": {
+      "n": 119,
+      "sumNetBB": -15.75,
+      "sumNetPot": 7.980695262208894
+    },
+    "flop|<40|check-call": {
+      "n": 57,
+      "sumNetBB": -75,
+      "sumNetPot": -9.913848161642282
+    },
+    "turn|85+|bet-raise": {
+      "n": 4,
+      "sumNetBB": 20,
+      "sumNetPot": 2.219114219114219
+    },
+    "flop|40-55|check-call": {
+      "n": 23,
+      "sumNetBB": 92.75,
+      "sumNetPot": -0.398150087486613
+    },
+    "turn|40-55|check-call": {
+      "n": 17,
+      "sumNetBB": 121.5,
+      "sumNetPot": 3.9509487287738057
+    },
+    "river|40-55|check-call": {
+      "n": 12,
+      "sumNetBB": -64.25,
+      "sumNetPot": 1.851457645334718
+    },
+    "turn|<40|check-call": {
+      "n": 42,
+      "sumNetBB": -51.25,
+      "sumNetPot": -5.931971504605883
+    },
+    "river|<40|check-call": {
+      "n": 31,
+      "sumNetBB": 40,
+      "sumNetPot": -4.4537749788910785
+    },
+    "flop|70-85|bet-raise": {
+      "n": 21,
+      "sumNetBB": 87,
+      "sumNetPot": 17.75586754643206
+    },
+    "river|<40|fold": {
+      "n": 11,
+      "sumNetBB": -31.5,
+      "sumNetPot": -2.3401692136400647
+    },
+    "preflop|pre|all-in": {
+      "n": 1,
+      "sumNetBB": 101.5,
+      "sumNetPot": 3.8666666666666667
+    },
+    "flop|55-70|check-call": {
+      "n": 9,
+      "sumNetBB": 34,
+      "sumNetPot": 2.896861471861472
+    },
+    "turn|55-70|check-call": {
+      "n": 10,
+      "sumNetBB": -53.5,
+      "sumNetPot": 2.5726132554485694
+    },
+    "river|85+|bet-raise": {
+      "n": 2,
+      "sumNetBB": 14.5,
+      "sumNetPot": 1.1474358974358974
+    },
+    "flop|<40|fold": {
+      "n": 44,
+      "sumNetBB": -128.5,
+      "sumNetPot": -9.885013558570702
+    },
+    "turn|<40|fold": {
+      "n": 12,
+      "sumNetBB": -39,
+      "sumNetPot": -1.9994970194529804
+    },
+    "flop|<40|bet-raise": {
+      "n": 18,
+      "sumNetBB": 57.5,
+      "sumNetPot": 8.978438228438227
+    },
+    "flop|40-55|bet-raise": {
+      "n": 27,
+      "sumNetBB": 68.5,
+      "sumNetPot": 11.665201465201461
+    },
+    "river|55-70|check-call": {
+      "n": 2,
+      "sumNetBB": 11,
+      "sumNetPot": 1.375
+    },
+    "flop|85+|bet-raise": {
+      "n": 8,
+      "sumNetBB": 138.5,
+      "sumNetPot": 16.58120842572062
+    },
+    "flop|55-70|bet-raise": {
+      "n": 27,
+      "sumNetBB": 133,
+      "sumNetPot": 20.20887284758253
+    },
+    "river|55-70|bet-raise": {
+      "n": 5,
+      "sumNetBB": 57.5,
+      "sumNetPot": 2.5533910533910533
+    },
+    "river|70-85|bet-raise": {
+      "n": 6,
+      "sumNetBB": 23.5,
+      "sumNetPot": 3.169856459330143
+    },
+    "turn|70-85|bet-raise": {
+      "n": 5,
+      "sumNetBB": 71,
+      "sumNetPot": 3.7825624521494357
+    },
+    "turn|55-70|bet-raise": {
+      "n": 2,
+      "sumNetBB": 16,
+      "sumNetPot": 1.050125313283208
+    },
+    "turn|<40|bet-raise": {
+      "n": 2,
+      "sumNetBB": 29.5,
+      "sumNetPot": 1.3606465997770345
+    },
+    "river|<40|bet-raise": {
+      "n": 1,
+      "sumNetBB": 19.5,
+      "sumNetPot": 0.5
+    },
+    "flop|85+|all-in": {
+      "n": 1,
+      "sumNetBB": 103,
+      "sumNetPot": 1.9807692307692308
+    }
+  },
+  "notes": [
+    "Aggression on the turn at 85+% equity is printing +5.0bb/hand (4 samples) — kept.",
+    "Calling down on the river at 40-55% equity is bleeding 5.4bb/hand (12 samples) — folding more.",
+    "Aggression on the flop at 70-85% equity is printing +4.1bb/hand (21 samples) — kept.",
+    "Calling down on the turn at 55-70% equity is bleeding 5.3bb/hand (10 samples) — folding more.",
+    "Aggression on the flop at <40% equity is printing +3.2bb/hand (18 samples) — kept.",
+    "Aggression on the flop at 85+% equity is printing +17.3bb/hand (8 samples) — kept.",
+    "Aggression on the flop at 55-70% equity is printing +4.9bb/hand (27 samples) — kept.",
+    "Aggression on the river at 55-70% equity is printing +11.5bb/hand (5 samples) — kept.",
+    "Aggression on the river at 70-85% equity is printing +3.9bb/hand (6 samples) — kept.",
+    "Aggression on the turn at 70-85% equity is printing +14.2bb/hand (5 samples) — kept."
+  ],
+  "_meta": {
+    "source": "self-play",
+    "agent": "Ag3_T80_A92",
+    "epochs": 10,
+    "handsPerEpoch": 300,
+    "totalHands": 3000,
+    "totalProfitBB": "694.50",
+    "generatedAt": "2026-07-15T13:20:55.321Z"
+  }
+}

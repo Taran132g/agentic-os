@@ -1,0 +1,402 @@
+/* panels.css — Coach panel, history drawer, profit graph, replay */
+
+/* ── Drawer shared slide behaviour ───────────────────────────────────────── */
+
+.coach-drawer,
+.drawer {
+  position: fixed;
+  top: 0;
+  height: 100vh;
+  z-index: 20;  /* low enough not to block action bar or table */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--panel);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 230ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 230ms;
+}
+
+.coach-drawer.drawer-open,
+.drawer.drawer-open {
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0) !important;
+  transition:
+    transform 230ms cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0ms;
+}
+
+/* ── Coach drawer (right side) ───────────────────────────────────────────── */
+
+.coach-drawer {
+  right: 0;
+  width: 300px;
+  border-left: 1px solid var(--panel-edge);
+  transform: translateX(100%);
+}
+
+/* ── History drawer (left side) ──────────────────────────────────────────── */
+
+.drawer {
+  left: 0;
+  width: 360px;
+  border-right: 1px solid var(--panel-edge);
+  transform: translateX(-100%);
+}
+
+.coach-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--panel-edge);
+  flex-shrink: 0;
+}
+
+.coach-mode-row select {
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  padding: 4px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.coach-content {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coach-divider {
+  height: 1px;
+  background: var(--panel-edge);
+  margin: 4px 0;
+}
+
+.coach-rec {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: var(--brass);
+  min-height: 1.5em;
+}
+
+.coach-note {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+  font-style: italic;
+  line-height: 1.4;
+  min-height: 1em;
+}
+
+.coach-equity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  margin: 2px 0;
+  min-height: 1em;
+}
+
+.eq-label {
+  color: var(--ink-dim);
+  min-width: 44px;
+}
+
+.eq-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--panel-edge);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.eq-bar {
+  height: 100%;
+  background: var(--brass);
+  border-radius: 3px;
+  transition: width 300ms;
+}
+
+.eq-pct {
+  color: var(--brass);
+  font-family: var(--font-mono);
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Backwards-compat shell kept in case anything references old names */
+.coach-equity-bar {
+  height: 4px;
+  background: var(--panel-edge);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.coach-equity-fill {
+  height: 100%;
+  background: var(--win);
+  border-radius: 2px;
+  transition: width var(--dur-chip);
+}
+
+/* ── Coach ranked actions ────────────────────────────────────────────────────── */
+
+.coach-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coach-action-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  padding: 3px 0;
+  color: var(--ink-dim);
+}
+
+.coach-action-best {
+  color: var(--brass);
+  font-weight: bold;
+}
+
+.coa-action {}
+
+.coa-ev {
+  font-family: var(--font-mono);
+}
+
+.coach-read {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.04em;
+  min-height: 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coach-opp-read {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.read-name {
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+  min-width: 80px;
+}
+
+.read-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.06em;
+}
+
+.read-balanced { background: rgba(255,255,255,0.06); color: var(--ink-dim); }
+.read-folder   { background: rgba(76,175,80,0.18);  color: #81c784; }
+.read-station  { background: rgba(229,115,0,0.18);  color: #ffb74d; }
+.read-maniac   { background: rgba(229,57,53,0.18);  color: #ef9a9a; }
+
+.read-hands {
+  color: var(--ink-faint);
+  font-size: 0.60rem;
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+
+/* ── Coach learning section ──────────────────────────────────────────────── */
+
+.coach-learn-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coach-learn-title {
+  font-size: 0.7rem;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  color: var(--brass-dim);
+  text-transform: uppercase;
+}
+
+.coach-learn-dials {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.learn-dial {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--brass);
+  background: rgba(201, 163, 90, 0.08);
+  border: 1px solid var(--brass-dim);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.learn-hands {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  align-self: center;
+}
+
+.coach-learn-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coach-learn-note {
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  line-height: 1.45;
+  border-left: 2px solid var(--brass-dim);
+  padding-left: 8px;
+}
+
+/* ── Profit sparkline ───────────────────────────────────────────────────────── */
+
+#profitSpark {
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+#profitSpark polyline {
+  fill: none;
+  stroke: var(--win);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#profitSpark polyline.losing {
+  stroke: var(--lose);
+}
+
+/* ── History replay ─────────────────────────────────────────────────────────── */
+
+#historyReplay {
+  padding: 12px 20px;
+  border-top: 1px solid var(--panel-edge);
+  flex-shrink: 0;
+}
+
+.replay-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.replay-nav button {
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.replay-nav button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.replay-nav span {
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+}
+
+.replay-board {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+
+.replay-board .card-sm {
+  display: inline-block;
+  background: var(--card-face);
+  color: var(--card-black);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  margin: 0 2px;
+}
+
+.replay-board .card-sm.card-red-suit {
+  color: var(--card-red);
+}
+
+.replay-action {
+  font-size: var(--text-sm);
+  color: var(--brass);
+  font-weight: bold;
+  min-height: 1.4em;
+}
+
+/* ── History drawer coach review ────────────────────────────────────────────── */
+
+.coach-review-entry {
+  font-size: var(--text-sm);
+  padding: 4px 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+}
+
+.coach-match {
+  background: rgba(89, 201, 138, 0.1);
+  color: var(--win);
+}
+
+.coach-miss {
+  background: rgba(224, 92, 92, 0.1);
+  color: var(--lose);
+}
+
+/* ── Control label ──────────────────────────────────────────────────────────── */
+
+.control-label {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+
+/* ── Responsive tweaks ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .coach-drawer,
+  .drawer {
+    width: 100vw;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .session-stats {
+    margin-left: 0;
+  }
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker Drill — PAIS</title>
+<base href="/poker/">
+<link rel="icon" href="/favicon.ico">
+<link rel="manifest" href="/poker/manifest.webmanifest">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/table.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/trainer.css">
+</head>
+<body>
+
+<header class="drill-header">
+  <a href="/poker/" class="drill-back" aria-label="Back to poker">♠</a>
+  <h1 class="drill-title">Dead Man's Drill</h1>
+  <div class="drill-stats">
+    <span class="drill-hand-count" id="drillHandCount">Hand #0</span>
+    <span class="drill-sep">·</span>
+    <span class="drill-accuracy" id="drillAccuracy">—</span>
+  </div>
+  <nav class="drill-controls">
+    <label class="control-label" for="drillTableSize">Players</label>
+    <select id="drillTableSize" aria-label="Number of players">
+      <option value="6">6-max</option>
+      <option value="8" selected>8-max</option>
+    </select>
+    <button id="btnLeaks"  class="btn-icon" aria-label="View your leaks">Leaks</button>
+    <button id="btnImport" class="btn-icon" aria-label="Import hand history">Import</button>
+    <button id="btnDrillVolume" aria-label="Toggle sound">🔊</button>
+    <a href="/app" class="back-link" aria-label="Back to PAIS app">← App</a>
+  </nav>
+</header>
+
+<main class="table-wrap">
+  <section class="table" aria-label="Poker table">
+    <div class="felt">
+      <div class="board" id="board" aria-label="Community cards"></div>
+      <div class="pot" id="pot">
+        <span class="pot-label">POT</span>
+        <span id="potAmt">0</span>
+        <span class="pot-unit">bb</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="hero-hole-cards" id="heroHoleCards" aria-label="Your hole cards" aria-live="polite"></div>
+
+<!-- GTO reveal panel — appears after user acts -->
+<div class="gto-reveal" id="gtoReveal" aria-live="polite" hidden>
+  <span class="gto-verdict"  id="gtoVerdict"></span>
+  <span class="gto-detail"   id="gtoDetail"></span>
+  <span class="gto-equity"   id="gtoEquity"></span>
+  <span class="gto-ev-loss"  id="gtoEvLoss"></span>
+</div>
+
+<!-- Leak panel -->
+<div class="leak-panel" id="leakPanel" hidden aria-label="Your poker leaks">
+  <div class="leak-panel-header">
+    <span class="leak-panel-title">Your Leaks</span>
+    <button class="leak-panel-close" id="btnLeakClose" aria-label="Close leaks panel">×</button>
+  </div>
+  <div class="leak-stats" id="leakStats">
+    <p class="leak-empty">Play more hands to see your leaks.</p>
+  </div>
+</div>
+
+<!-- Import modal -->
+<div class="import-modal" id="importModal" hidden role="dialog" aria-label="Import hand history">
+  <div class="import-dialog">
+    <div class="import-dialog-header">
+      <h2 class="import-dialog-title">Import PokerNow History</h2>
+      <button class="import-close" id="btnImportClose" aria-label="Close">×</button>
+    </div>
+    <div class="import-body">
+      <p class="import-instructions">
+        Export your hand history from PokerNow (Game → Download CSV), then upload it here.
+        Postflop decisions in showdown hands will be scored against the GTO advisor.
+      </p>
+      <label class="import-field-label" for="importHeroName">Your player name (exact match from the CSV)</label>
+      <input class="import-input" id="importHeroName" type="text" placeholder='e.g. "Taran @ abcdef"' autocomplete="off">
+      <label class="import-field-label" for="importFile">Hand history CSV file</label>
+      <input class="import-file" id="importFile" type="file" accept=".csv,.txt">
+      <button class="import-analyze-btn" id="btnAnalyze">Analyze</button>
+    </div>
+    <div class="import-results" id="importResults"></div>
+  </div>
+</div>
+
+<!-- Action bar -->
+<footer class="action-bar" id="actionBar" aria-label="Your action">
+  <div class="ab-status-row">
+    <div class="ab-strength" id="abStrength"></div>
+    <div class="ab-facing"   id="abFacing"></div>
+    <div class="ab-waiting"  id="abWaiting">Scanning for good hands…</div>
+  </div>
+
+  <div class="ab-sizing" id="abSizing" aria-label="Raise sizing">
+    <div class="ab-presets">
+      <button data-preset="min"   disabled>Min</button>
+      <button data-preset="33"    disabled>⅓</button>
+      <button data-preset="50"    disabled>½</button>
+      <button data-preset="66"    disabled>⅔</button>
+      <button data-preset="100"   disabled>Pot</button>
+      <button data-preset="allin" disabled>All-in</button>
+    </div>
+    <div class="ab-slider-row">
+      <input type="range"  id="raiseSlider" min="0" max="100" step="1" disabled aria-label="Raise amount slider">
+      <input type="number" id="raiseInput"  step="0.5" min="0"         disabled aria-label="Raise amount in BB">
+    </div>
+  </div>
+
+  <div class="ab-buttons">
+    <button id="btnFold"      class="ab-fold" disabled>Fold</button>
+    <button id="btnCheckCall"                 disabled>Check</button>
+    <button id="btnRaise"                     disabled>Raise to <span id="raiseAmt">0</span></button>
+    <button id="btnCheck"  style="display:none" disabled aria-hidden="true"></button>
+    <button id="btnCall"   style="display:none" disabled aria-hidden="true"><span id="callAmt"></span></button>
+  </div>
+
+  <div class="ab-keys" aria-hidden="true">
+    <kbd>F</kbd> Fold &nbsp;
+    <kbd>C</kbd> Call &nbsp;
+    <kbd>R</kbd> Raise &nbsp;
+    <kbd>←→</kbd> Size
+  </div>
+</footer>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+<div class="toast" id="toastModal" hidden role="status" aria-live="polite"></div>
+
+<script type="module" src="js/trainer.js"></script>
+</body>
+</html>

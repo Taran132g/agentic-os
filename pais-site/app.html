@@ -696,6 +696,10 @@ function renderHub(){ const g=$("grid"); g.innerHTML="";
       <div class="nm">${a.name}</div><div class="rl">${a.role}</div>
       <div class="st"><span class="dot"></span>${agoLabel(lastRun[a.id])}</div>`;
     c.onclick=()=> a.id==="trader"? openTraderPage() : openAgentPage(a); g.appendChild(c); });
+  const poker=document.createElement("button"); poker.className="card"; poker.style.borderColor="rgba(92,139,255,.35)";
+  poker.innerHTML=`<div class="ic" style="display:grid;place-items:center;font-size:26px;background:rgba(92,139,255,.08);border-color:rgba(92,139,255,.3)">♠</div>
+    <div class="nm">Poker Trainer</div><div class="rl">GTO coach vs AI</div><div class="st"><span class="dot" style="background:#5c8bff;box-shadow:0 0 8px #5c8bff"></span>open trainer</div>`;
+  poker.onclick=()=>window.open("/poker","_blank"); g.appendChild(poker);
   const chief=document.createElement("button"); chief.className="card"; chief.style.borderColor="rgba(217,164,65,.4)";
   chief.innerHTML=`<div class="ic" style="display:grid;place-items:center;color:var(--gold);font-size:24px">🎖</div>
     <div class="nm">Chief of Staff</div><div class="rl">Ask your brain anything</div><div class="st"><span class="dot" style="background:var(--gold)"></span>chat</div>`;

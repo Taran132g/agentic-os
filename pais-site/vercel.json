@@ -13,6 +13,9 @@
     { "source": "/app", "headers": [
       { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
     ]},
+    { "source": "/poker/(.*)", "headers": [
+      { "key": "Cache-Control", "value": "no-cache" }
+    ]},
     { "source": "/voices2/(.*)", "headers": [
       { "key": "Cache-Control", "value": "no-cache" }
     ]},

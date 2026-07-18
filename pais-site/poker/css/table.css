@@ -1,0 +1,1012 @@
+/* table.css — Saloon Noir visual direction */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--room);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Topbar ─────────────────────────────────────────────────────────────────── */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--panel);
+  border-bottom: 1px solid var(--brass-dim);
+  padding: 10px 20px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.topbar h1 {
+  color: var(--brass);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.session-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--brass);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  margin-left: auto;
+}
+
+#sessionProfit {
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  min-width: 70px;
+  text-align: right;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#coachMode,
+#tableSize,
+.controls button,
+#btnVolume {
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  padding: 5px 11px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 160ms, background 160ms;
+}
+
+#coachMode:hover,
+#tableSize:hover,
+.controls button:hover,
+#btnVolume:hover {
+  border-color: var(--brass);
+  background: rgba(201, 163, 90, 0.08);
+}
+
+#coachMode,
+#tableSize {
+  padding-right: 6px;
+}
+
+#btnVolume {
+  font-size: 1rem;
+  padding: 4px 10px;
+  line-height: 1;
+}
+
+#btnVolume.muted {
+  opacity: 0.45;
+}
+
+/* ── Main layout ────────────────────────────────────────────────────────────── */
+
+.table-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px;
+}
+
+/* ── Table oval ─────────────────────────────────────────────────────────────── */
+
+.table {
+  position: relative;
+  width: min(72vw, 700px);
+  height: min(48vw, 460px);
+  background: radial-gradient(ellipse at 50% 44%, #155230 20%, #0f3820 50%, var(--felt) 72%, var(--felt-edge) 100%);
+  border: 10px solid var(--rail);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 80px rgba(0, 0, 0, 0.6),
+    inset 0 4px 20px rgba(255, 255, 255, 0.02),
+    0 8px 40px rgba(0, 0, 0, 0.75),
+    0 0 0 3px rgba(201, 163, 90, 0.18);
+  flex-shrink: 0;
+}
+
+.felt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* Felt texture overlay */
+.felt::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    repeating-conic-gradient(rgba(0,0,0,0.025) 0deg 90deg, transparent 90deg 180deg);
+  background-size: 6px 6px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Watermark */
+.felt::after {
+  content: '♠ DEAD MAN\'S HAND ♠';
+  position: absolute;
+  bottom: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.028);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.4em;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+}
+
+.felt > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Board cards ────────────────────────────────────────────────────────────── */
+
+.board {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-1);
+  min-height: 66px;
+  align-items: center;
+}
+
+/* ── Pot display ────────────────────────────────────────────────────────────── */
+
+.pot {
+  color: var(--brass);
+  font-family: var(--font-display);
+  font-size: var(--text-pot);
+  text-align: center;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pot-label {
+  font-size: 0.5em;
+  color: var(--brass-dim);
+  letter-spacing: 0.15em;
+}
+
+.pot-unit {
+  font-size: 0.48em;
+  color: var(--brass-dim);
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  width: 44px;
+  height: 62px;
+  background: var(--card-face);
+  border-radius: var(--radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  color: var(--card-black);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.38);
+  transition:
+    transform var(--dur-deal) var(--ease-deal),
+    opacity var(--dur-deal);
+  user-select: none;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.card.card-red-suit { color: var(--card-red); }
+
+.card.dealing {
+  transform: translateY(-18px) scale(0.88);
+  opacity: 0;
+}
+
+/* Corner rank+suit indices */
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  gap: 0;
+}
+
+.card-corner-tl { top: 3px; left: 4px; }
+
+.card-corner-br {
+  bottom: 3px;
+  right: 4px;
+  transform: rotate(180deg);
+}
+
+.card-rank {
+  font-size: 0.7rem;
+  font-weight: bold;
+  display: block;
+  line-height: 1.1;
+}
+
+.card-csuit {
+  font-size: 0.58rem;
+  display: block;
+  line-height: 1;
+}
+
+.card-center {
+  font-size: 1.15rem;
+  pointer-events: none;
+  user-select: none;
+  margin-top: 4px; /* shift center below top corner */
+}
+
+/* Card back with brasss-line pattern */
+.card-back {
+  background: linear-gradient(135deg, var(--card-back) 0%, var(--card-back-2) 100%);
+  color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-back-inner {
+  position: absolute;
+  inset: 4px;
+  border: 1.5px solid rgba(201, 163, 90, 0.3);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 4px,
+      rgba(201, 163, 90, 0.07) 4px,
+      rgba(201, 163, 90, 0.07) 5px
+    );
+}
+
+/* 4-color deck support */
+.card-suit-blue  { color: #2471a3; }
+.card-suit-green { color: #1a8a4a; }
+.card-suit-red   { color: var(--card-red); }
+.card-suit-black { color: var(--card-black); }
+
+/* Winning cards get brass outline */
+.card.card-winner {
+  box-shadow:
+    0 0 0 2px var(--brass),
+    0 2px 10px rgba(201, 163, 90, 0.55);
+}
+
+/* Small card used in history drawer */
+.card-sm {
+  display: inline-flex;
+  align-items: center;
+  background: var(--card-face);
+  color: var(--card-black);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin: 0 2px;
+  user-select: none;
+}
+
+.card-sm.card-red-suit { color: var(--card-red); }
+
+/* ── Seat pods ──────────────────────────────────────────────────────────────── */
+
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 84px;
+  transform: translate(-50%, -50%);
+  transition: opacity var(--dur-chip);
+}
+
+.seat.folded {
+  opacity: 0.38;
+}
+
+/* Avatar + timer ring container */
+.seat-timer {
+  position: relative;
+  width: var(--timer-size);
+  height: var(--timer-size);
+  flex-shrink: 0;
+}
+
+.timer-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.timer-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 3;
+}
+
+.timer-arc {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: var(--timer-circ);
+  stroke-dashoffset: var(--timer-circ); /* starts empty */
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+@keyframes timerDrain {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: var(--timer-circ); }
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 0.45; stroke-dashoffset: 0; }
+  50%       { opacity: 1;    stroke-dashoffset: 0; }
+}
+
+.timer-arc.draining {
+  animation: timerDrain var(--timer-ms, 900ms) linear forwards;
+}
+
+.timer-arc.pulsing {
+  stroke: var(--brass);
+  animation: timerPulse 1.3s ease-in-out infinite;
+}
+
+.seat-avatar {
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--avatar-bg, var(--rail));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.seat.hero .seat-avatar {
+  background: var(--hero);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.avatar-initials {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.68rem;
+  font-weight: bold;
+  font-family: var(--font-ui);
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+/* Name plate */
+.seat-plate {
+  background: rgba(18, 14, 11, 0.88);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  padding: 3px 7px;
+  text-align: center;
+  min-width: 70px;
+  max-width: 84px;
+  backdrop-filter: blur(2px);
+}
+
+.seat.hero .seat-plate {
+  border-color: var(--brass-dim);
+  background: rgba(27, 17, 8, 0.9);
+}
+
+.seat.hero.your-turn .seat-plate {
+  border-color: var(--brass);
+  box-shadow: 0 0 12px rgba(201, 163, 90, 0.28);
+}
+
+.seat-name {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.7rem;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.seat-pos {
+  color: var(--brass-dim);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  display: block;
+}
+
+.seat-stack {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-dim);
+  font-size: 0.66rem;
+  display: block;
+}
+
+/* Cards above the seat plate */
+.seat-cards {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  order: -1;
+}
+
+/* Bet chip stack — between seat and pot center */
+.seat-bet {
+  min-height: 22px;
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Chip disc stacks ───────────────────────────────────────────────────────── */
+
+.chip-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.chip-disc {
+  width: 22px;
+  height: 9px;
+  border-radius: 50%;
+  position: relative;
+  margin-top: 14px; /* room for shadow layers above */
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.chip-1   { background: var(--chip-1);   color: var(--chip-1); }
+.chip-5   { background: var(--chip-5);   color: var(--chip-5); }
+.chip-25  { background: var(--chip-25);  color: var(--chip-25); }
+.chip-100 { background: var(--chip-100); color: var(--chip-100); }
+.chip-500 { background: var(--chip-500); color: var(--chip-500); }
+
+.chip-label {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.62rem;
+  color: var(--brass);
+  white-space: nowrap;
+}
+
+/* ── Seat badges ────────────────────────────────────────────────────────────── */
+
+.seat-badge {
+  position: absolute;
+  top: -12px;
+  right: -4px;
+  font-size: 0.58rem;
+  font-weight: bold;
+  letter-spacing: 0.07em;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.seat-badge.badge-fold {
+  background: rgba(179, 57, 57, 0.28);
+  color: var(--lose);
+  border: 1px solid rgba(224, 92, 92, 0.35);
+}
+
+.seat-badge.badge-allin {
+  background: linear-gradient(135deg, rgba(201, 163, 90, 0.22), rgba(201, 163, 90, 0.08));
+  color: var(--brass);
+  border: 1px solid var(--brass);
+  letter-spacing: 0.1em;
+}
+
+.seat-badge.badge-winner {
+  background: rgba(89, 201, 138, 0.18);
+  color: var(--win);
+  border: 1px solid rgba(89, 201, 138, 0.5);
+  animation: winnerPulse 0.6s ease-out;
+}
+
+@keyframes winnerPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(89, 201, 138, 0.6); }
+  70%  { box-shadow: 0 0 0 8px rgba(89, 201, 138, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(89, 201, 138, 0); }
+}
+
+/* ── Dealer button (brass coin) ─────────────────────────────────────────────── */
+
+.dealer-btn {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: radial-gradient(circle at 38% 35%, #e8c870, var(--brass) 60%, var(--brass-dim));
+  color: var(--room);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: bold;
+  border: 2px solid #ead07a;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.55),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition:
+    left var(--dur-chip) var(--ease-deal),
+    top  var(--dur-chip) var(--ease-deal);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ── Hero hole cards strip ──────────────────────────────────────────────────── */
+
+.hero-hole-cards {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 0 4px;
+  min-height: 70px;
+  background: var(--room);
+  flex-shrink: 0;
+}
+
+.hero-hole-cards .card {
+  width: 52px;
+  height: 74px;
+  font-size: 1rem;
+}
+
+.hero-hole-cards .card:hover {
+  transform: translateY(-4px);
+  transition: transform 140ms var(--ease-deal);
+}
+
+/* ── Game log ───────────────────────────────────────────────────────────────── */
+
+.game-log-wrap {
+  flex-shrink: 0;
+}
+
+.game-log {
+  background: rgba(12, 9, 7, 0.9);
+  border-top: 1px solid var(--panel-edge);
+  padding: 3px 16px 4px;
+  font-size: 0.7rem;
+  color: var(--ink-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 52px;
+  overflow-y: hidden;
+  cursor: pointer;
+  transition: max-height 200ms var(--ease-deal);
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-edge) transparent;
+}
+
+.game-log-expanded {
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.game-log-line { line-height: 1.4; }
+
+.log-street {
+  color: var(--brass-dim);
+  font-weight: 600;
+  border-top: 1px solid rgba(201, 163, 90, 0.12);
+  margin-top: 2px;
+  padding-top: 2px;
+}
+
+.log-hand {
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 1px 0;
+}
+
+.log-hero  { color: var(--ink); }
+.log-win   { color: var(--win); font-weight: 600; }
+
+/* ── Action bar ─────────────────────────────────────────────────────────────── */
+
+.action-bar {
+  background: var(--panel);
+  border-top: 2px solid var(--brass-dim);
+  padding: 10px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.action-bar.hero-acting {
+  border-top-color: var(--brass);
+  box-shadow: 0 -2px 14px rgba(201, 163, 90, 0.12);
+}
+
+/* Status row: hand strength + facing info */
+.ab-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 18px;
+}
+
+.ab-strength {
+  font-size: var(--text-sm);
+  color: var(--win);
+  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+}
+
+.ab-strength:empty { display: none; }
+
+.ab-facing {
+  font-size: var(--text-sm);
+  color: var(--brass);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.ab-waiting {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.ab-facing:empty  { display: none; }
+.ab-waiting:empty { display: none; }
+
+/* Raise panel */
+.ab-sizing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ab-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ab-presets button[data-preset] {
+  padding: 4px 9px;
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink-dim);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-family: var(--font-ui);
+  transition: border-color 140ms, color 140ms;
+}
+
+.ab-presets button[data-preset]:not(:disabled):hover {
+  border-color: var(--brass);
+  color: var(--brass);
+}
+
+.ab-presets button[data-preset]:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.ab-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+#raiseSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  min-width: 80px;
+  max-width: 200px;
+  height: 4px;
+  background: var(--panel-edge);
+  border-radius: 2px;
+  outline: none;
+}
+
+#raiseSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--brass);
+  cursor: pointer;
+  border: 2px solid var(--room);
+}
+
+#raiseSlider:disabled { opacity: 0.28; }
+
+#raiseInput {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink);
+  border-radius: 5px;
+  padding: 4px 8px;
+  width: 76px;
+  font-size: var(--text-sm);
+  text-align: right;
+}
+
+#raiseInput:disabled { opacity: 0.28; }
+#raiseInput:focus    { outline: none; border-color: var(--brass); }
+
+/* Action buttons */
+.ab-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.ab-buttons button {
+  padding: 11px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: opacity 140ms, filter 140ms, transform 80ms;
+  border: 1px solid transparent;
+}
+
+.ab-buttons button:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
+.ab-buttons button:not(:disabled):hover {
+  filter: brightness(1.2);
+  transform: translateY(-1px);
+}
+
+.ab-buttons button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+#btnFold {
+  background: rgba(179, 57, 57, 0.18);
+  color: var(--hero);
+  border-color: var(--hero);
+}
+
+#btnCheckCall {
+  background: rgba(201, 163, 90, 0.12);
+  color: var(--ink);
+  border-color: var(--brass-dim);
+}
+
+#btnCheckCall.can-call {
+  background: rgba(201, 163, 90, 0.18);
+  color: var(--brass);
+  border-color: var(--brass);
+}
+
+#btnRaise {
+  background: rgba(201, 163, 90, 0.22);
+  color: var(--brass);
+  border-color: var(--brass);
+}
+
+/* Keyboard hints */
+.ab-keys {
+  font-size: 0.65rem;
+  color: var(--ink-faint);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+
+.ab-keys kbd {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--panel-edge);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--ink-dim);
+}
+
+/* ── Drawer shared ── see panels.css ────────────────────────────────────────── */
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--panel-edge);
+  flex-shrink: 0;
+}
+
+.drawer-header h2 {
+  color: var(--brass);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+#btnCloseHistory,
+#btnCloseCoach {
+  background: transparent;
+  border: 1px solid var(--ink-faint);
+  color: var(--ink-dim);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+#btnCloseHistory:hover,
+#btnCloseCoach:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+#historyList {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.hand-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--panel-edge);
+  cursor: pointer;
+  transition: background 120ms;
+  font-size: var(--text-sm);
+}
+
+.hand-item:hover {
+  background: rgba(201, 163, 90, 0.05);
+}
+
+.hand-no {
+  color: var(--ink-dim);
+  min-width: 58px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hand-cards {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+
+.hand-item > :last-child { margin-left: auto; }
+
+.hand-item .win  { color: var(--win);  font-family: var(--font-mono); font-weight: bold; }
+.hand-item .lose { color: var(--lose); font-family: var(--font-mono); font-weight: bold; }
+
+.empty {
+  color: var(--ink-faint);
+  text-align: center;
+  padding: 40px 20px;
+  font-size: var(--text-sm);
+}
+
+/* ── Toast stack ────────────────────────────────────────────────────────────── */
+
+.toast-container {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 6px;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--panel);
+  border: 1px solid var(--brass-dim);
+  color: var(--ink);
+  padding: 9px 16px;
+  border-radius: 7px;
+  font-size: var(--text-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  animation: toastIn 180ms var(--ease-deal) both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Drawer scrim (mobile click-outside) ────────────────────────────────────── */
+
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+  cursor: pointer;
+}
+
+/* ── Floating profit text ───────────────────────────────────────────────────── */
+
+.profit-float {
+  position: fixed;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-weight: bold;
+  font-size: 1.05rem;
+  z-index: 150;
+  white-space: nowrap;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .table {
+    width: 96vw;
+    height: 58vw;
+  }
+
+  .ab-buttons button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
