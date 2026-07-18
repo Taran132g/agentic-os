@@ -155,10 +155,17 @@ def _maybe_voice(s: dict, st: dict, now: float) -> None:
         line = (f"Hey Taran. Analytics are warming up — {s['total']:,} total views "
                 f"across {s['posts']} posts so far. Daily numbers land tomorrow.")
     try:
-        from content_pipeline import generate_voiceover
-        generate_voiceover(line, VOICE_MP3, "adam")
+        # Local Kokoro TTS (2026-07-18) — replaced ElevenLabs generate_voiceover:
+        # this line was burning ~700 chars/day of shared tape quota.
+        import subprocess
+        venv_py = Path.home() / "agentic_os" / ".venv_tts" / "bin" / "python"
+        say = Path.home() / "agentic_os" / "kokoro_say.py"
+        r = subprocess.run([str(venv_py), str(say), line, str(VOICE_MP3), "am_adam"],
+                           capture_output=True, text=True, timeout=180)
+        if r.returncode != 0:
+            raise RuntimeError(r.stderr.strip()[-200:])
         st["voice_ts"] = now
-        print(f"🔊 voice line regenerated: {line[:70]}…")
+        print(f"🔊 voice line regenerated (local kokoro): {line[:70]}…")
     except Exception as e:  # noqa: BLE001 — stats must survive TTS failures
         print(f"voice generation skipped: {e}")
 
