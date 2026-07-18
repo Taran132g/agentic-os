@@ -196,6 +196,9 @@ def _growth_mark(clip_id: str, status: str, post: str | None = None) -> bool:
     return hit
 
 
+GROWTH_BROLL_GAMES = (("minecraft_scenic", ""), ("minecraft_pmmos", "pmmos/"), ("minecraft_dantdm", "dantdm/"))
+
+
 def _growth_libraries() -> dict:
     """B-roll + music libraries with usage attribution for the Libraries tab.
     B-roll usage is filesystem-encoded (used_tapeN/ subdirs); music usage comes
@@ -205,28 +208,36 @@ def _growth_libraries() -> dict:
     for t in reg.get("tapes", []):
         m = t.get("music")
         if m:
-            used_by_music.setdefault(m, []).append(f"Part {t.get('part', '?')}")
+            p = str(t.get("part", "?"))
+            tag = f"Loose {p[1:]}" if p.upper().startswith("L") else f"Part {p}"
+            used_by_music.setdefault(m, []).append(tag)
     hist = reg.get("music_history", {})
     music = []
     for name in reg.get("music", []):
         used = ", ".join(used_by_music.get(name, [])) or hist.get(name, "")
         music.append({"name": name, "used_in": used})
     broll = []
-    bdir = Path.home() / "agentic_os" / "broll_cache" / "minecraft_scenic"
-    if bdir.is_dir():
+    for game, pre in GROWTH_BROLL_GAMES:
+        bdir = Path.home() / "agentic_os" / "broll_cache" / game
+        if not bdir.is_dir():
+            continue
         for f in sorted(bdir.glob("*.mp4")):
-            broll.append({"name": f.name, "used_in": "",
+            broll.append({"name": pre + f.name, "used_in": "",
                           "size_mb": round(f.stat().st_size / 1e6)})
         for f in sorted((bdir / "reserve").glob("*.mp4")):
-            broll.append({"name": f"reserve/{f.name}", "used_in": "",
+            broll.append({"name": f"{pre}reserve/{f.name}", "used_in": "",
                           "size_mb": round(f.stat().st_size / 1e6)})
         for sub in sorted(bdir.glob("used_*")):
-            label = ("Part " + sub.name.replace("used_tape", "")
-                     if sub.name.startswith("used_tape") else sub.name)
+            if sub.name.startswith("used_tape"):
+                label = "Part " + sub.name.replace("used_tape", "")
+            elif sub.name.startswith("used_loose"):
+                label = "Loose " + (sub.name.replace("used_loose", "").lstrip("0") or "?")
+            else:
+                label = sub.name
             for f in sorted(sub.glob("*.mp4")):
                 used = ("master (split into halves)" if f.stem == "full_original"
                         else label)
-                broll.append({"name": f.name, "used_in": used,
+                broll.append({"name": pre + f.name, "used_in": used,
                               "size_mb": round(f.stat().st_size / 1e6)})
     return {"music": music, "broll": broll}
 
@@ -851,11 +862,19 @@ class Handler(BaseHTTPRequestHandler):
                 libs = _growth_libraries()
                 if not any(r["name"] == name for r in libs.get(kind, [])):
                     return self._send(404, {"error": "not in the library"})
-                base = (Path(AGENTIC_DIR) / "music_cache" if kind == "music" else
-                        Path.home() / "agentic_os" / "broll_cache" / "minecraft_scenic")
-                path = base / name
+                rel = name
+                if kind == "music":
+                    base = Path(AGENTIC_DIR) / "music_cache"
+                else:
+                    game = "minecraft_scenic"
+                    if rel.startswith("pmmos/"):
+                        game, rel = "minecraft_pmmos", rel[len("pmmos/"):]
+                    elif rel.startswith("dantdm/"):
+                        game, rel = "minecraft_dantdm", rel[len("dantdm/"):]
+                    base = Path.home() / "agentic_os" / "broll_cache" / game
+                path = base / rel
                 if not path.exists() and kind == "broll":
-                    hits = sorted(base.glob(f"*/{name}"))  # used_tapeN/ subdirs
+                    hits = sorted(base.glob(f"*/{rel}"))  # used_tapeN/ subdirs
                     if hits:
                         path = hits[0]
                 if not path.exists():
