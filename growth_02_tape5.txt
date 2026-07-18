@@ -5,7 +5,7 @@ caption_style: vhs
 vhs_label: Part 5
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: c418 sweden
 ---
 So here's what I actually did about the seven out of ten.

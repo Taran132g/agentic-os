@@ -3,9 +3,11 @@ title: growth_01_TAPE5
 voice: chris_growth
 caption_style: vhs
 vhs_label: Part 5
+orientation: ytbox
+yt_title: You're One Wave In An Ocean...
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: nostalgic old piano
 ---
 So there I was. Twenty years old, watching my first sunset. And the last thing it taught me is the one I can't stop thinking about.

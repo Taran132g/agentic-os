@@ -3,9 +3,11 @@ title: growth_01_TAPE4
 voice: chris_growth
 caption_style: vhs
 vhs_label: Part 4
+orientation: ytbox
+yt_title: You Have Less Than 100 Years...
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: cipriani marys theme
 ---
 The point of the work was never the money. It's not even about you.

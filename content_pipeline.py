@@ -31,12 +31,15 @@ import tempfile
 from pathlib import Path
 
 import re
+import hashlib
+import shutil
 import requests
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 FFMPEG         = "/opt/homebrew/bin/ffmpeg"
 FFPROBE        = "/opt/homebrew/bin/ffprobe"
 OUT_W, OUT_H   = 1080, 1920
+FRAME_MODE     = "full"   # "full" = footage fills canvas | "ytbox" = 16:9 strip boxed in fake YouTube chrome
 FONT_PATH      = "/System/Library/Fonts/Helvetica.ttc"
 VOICE_ID       = "pNInz6obpgDQGcFmaJgB"  # ElevenLabs "Adam" — deep American male, AITA-tier default
 VOICE_SPEED    = 1.0                       # storytime cadence — faster than introspective
@@ -103,11 +106,19 @@ CAPTION_SHADOW = "black@0.7"
 BG_MUSIC_VOL   = 0.12                      # audible but beneath the voice
 OUTRO_TAIL     = 1.0                       # seconds of music-only outro after the last spoken line
 MUSIC_DELAY_DEFAULT = 3.0                  # seconds before the music bed enters (override per-script via music_delay:)
+# VHS ambience (ambience: static — default when caption_style is vhs).
+# "Rain on window" flavor (Taran's pick 2026-07-17 from the static-flavor audition):
+# lowpassed white noise with slow tremolo swells, sits ~-30dB under the mix.
+# Previous flavor (smooth pink cassette hiss, shipped LOOSE03-06):
+#   SRC "anoisesrc=color=pink:amplitude=0.05:seed=42"  SHAPE "highpass=f=400,lowpass=f=9000,volume=0.55"
+STATIC_NOISE_SRC   = "anoisesrc=color=white:amplitude=0.05:seed=42"
+STATIC_NOISE_SHAPE = "highpass=f=300,lowpass=f=6000,tremolo=f=0.3:d=0.3,volume=0.28"  # 0.55 was too loud for the rain flavor (Taran, 2026-07-18)
 MUSIC_PATH     = Path.home() / "agentic_os" / "bg_music.mp3"
 BROLL_SOURCE   = "youtube"    # "youtube", "pexels", or "local"
 GAME_TAG       = "LittleBigPlanet"  # prepended to yt-dlp searches
 BROLL_CACHE    = Path.home() / "agentic_os" / "broll_cache"  # local pre-downloaded loops
 MUSIC_CACHE    = Path.home() / "agentic_os" / "music_cache"  # royalty-free track library
+VOICE_CACHE    = Path.home() / "agentic_os" / "voice_cache"  # narrator takes keyed by (voice, settings, text) — re-renders with an unchanged script cost 0 ElevenLabs chars
 MUSIC_QUERY    = "calm ambient piano soft background music no copyright"
 
 ELEVENLABS_KEY = os.environ.get("ELEVENLABS_API_KEY", "")
@@ -190,6 +201,17 @@ def generate_voiceover(text: str, out_path: Path, voice_profile: str = "adam") -
     profile = VOICE_PROFILES.get(voice_profile, VOICE_PROFILES["adam"])
     voice_id, speed, stability, similarity_boost = profile
 
+    # Voice cache: same voice + settings + exact text → reuse the saved take.
+    # Lets a tape re-render (music/footage/format changes) without re-burning quota.
+    cache_key = hashlib.sha1(
+        f"{voice_id}|{speed}|{stability}|{similarity_boost}|eleven_multilingual_v2|{text}".encode()
+    ).hexdigest()
+    cached_take = VOICE_CACHE / f"{cache_key}.mp3"
+    if cached_take.exists() and cached_take.stat().st_size > 1_000:
+        shutil.copyfile(cached_take, out_path)
+        print("  ♻ voice cache hit (0 chars burned)")
+        return
+
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     payload = {
         "text": text,
@@ -221,6 +243,8 @@ def generate_voiceover(text: str, out_path: Path, voice_profile: str = "adam") -
         if label != "primary":
             print(f"  ↻ used {label} ElevenLabs key")
         out_path.write_bytes(r.content)
+        VOICE_CACHE.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(out_path, cached_take)
         return
 
     if last_err is not None:
@@ -304,7 +328,7 @@ def pick_cached_music(mood_query: str) -> Path | None:
     tracks = sorted(MUSIC_CACHE.glob("*.mp3"))
     if not tracks:
         return None
-    query_words = {w.lower() for w in mood_query.split() if len(w) > 2}
+    query_words = {w.lower() for w in mood_query.replace("_", " ").split() if len(w) > 2}
     best_track, best_score = None, -1
     for t in tracks:
         name_words = set(t.stem.lower().replace("_", " ").split())
@@ -445,6 +469,15 @@ def fetch_broll_local(category: str, duration_needed: float, out_path: Path) -> 
         "-i", str(clip),
         "-t", str(duration_needed + 1),
         "-an",
+    ]
+    if "camR" in clip.name and FRAME_MODE != "ytbox":
+        # source has a top-right facecam (e.g. PopularMMOs) — pre-crop the slice
+        # vertical with a RIGHT-anchored window so the cam survives; the centered
+        # crop in assemble_segment then becomes a no-op on the already-9:16 slice.
+        # (ytbox shows the full 16:9 frame, so no crop is needed there at all)
+        cmd += ["-vf", (f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
+                        f"crop={OUT_W}:{OUT_H}:iw-ow:(ih-oh)/2,setsar=1")]
+    cmd += [
         "-c:v", "libx264", "-crf", "22",
         "-pix_fmt", "yuv420p",
         str(out_path),
@@ -545,11 +578,21 @@ def assemble_segment(audio: Path, broll: Path, caption: str, out: Path,
     used on the final segment so the music can linger."""
     dur = get_duration(audio) + tail
 
-    scale_filter = (
-        f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
-        f"crop={OUT_W}:{OUT_H},"
-        f"setsar=1,fps=30"
-    )
+    if FRAME_MODE == "ytbox":
+        strip_h = (OUT_W * 9 // 16) & ~1          # 16:9 strip, even height
+        strip_y = (OUT_H - strip_h) // 2
+        scale_filter = (
+            f"scale={OUT_W}:{strip_h}:force_original_aspect_ratio=increase,"
+            f"crop={OUT_W}:{strip_h},"
+            f"pad={OUT_W}:{OUT_H}:0:{strip_y}:color=black,"
+            f"setsar=1,fps=30"
+        )
+    else:
+        scale_filter = (
+            f"scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
+            f"crop={OUT_W}:{OUT_H},"
+            f"setsar=1,fps=30"
+        )
 
     cmd = [
         FFMPEG, "-y",
@@ -571,11 +614,13 @@ def assemble_segment(audio: Path, broll: Path, caption: str, out: Path,
 
 
 # ── Color grade + music mix ─────────────────────────────────────────────────────
-def apply_grade(inp: Path, out: Path, music_delay: float = 0.0) -> None:
+def apply_grade(inp: Path, out: Path, music_delay: float = 0.0, ambience: str = "none") -> None:
     """Warm nostalgic grade + optional background music mix.
 
     music_delay: seconds of silence before the music bed enters — used to hold
-    the music until the narrator's first line has landed (then 1.2s fade-in)."""
+    the music until the narrator's first line has landed (then 1.2s fade-in).
+    ambience: "static" layers VHS tape hiss (band-limited pink noise) under the
+    whole mix — audible in pauses, sits below narration. Default for vhs style."""
     # Slightly warm, slightly vibrant — evokes early-era gaming/YouTube nostalgia
     vf = (
         "eq=saturation=0.88:contrast=1.03:brightness=-0.01,"
@@ -593,12 +638,39 @@ def apply_grade(inp: Path, out: Path, music_delay: float = 0.0) -> None:
             FFMPEG, "-y",
             "-i", str(inp),
             "-stream_loop", "-1", "-i", str(MUSIC_PATH),
-            "-filter_complex",
-                f"[0:v]{vf}[v];"
-                f"[1:a]{','.join(music_filters)}[m];"
-                f"[0:a][m]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a]",
+        ]
+        if ambience == "static":
+            print("  → static ambience layered (tape hiss)")
+            cmd += ["-f", "lavfi", "-i", STATIC_NOISE_SRC]
+            mix = (f"[0:v]{vf}[v];"
+                   f"[1:a]{','.join(music_filters)}[m];"
+                   f"[2:a]{STATIC_NOISE_SHAPE}[st];"
+                   f"[0:a][m][st]amix=inputs=3:duration=first:dropout_transition=2:normalize=0[a]")
+        else:
+            mix = (f"[0:v]{vf}[v];"
+                   f"[1:a]{','.join(music_filters)}[m];"
+                   f"[0:a][m]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[a]")
+        cmd += [
+            "-filter_complex", mix,
             "-map", "[v]",
             "-map", "[a]",
+            "-t", str(vid_dur),
+            "-c:v", "libx264", "-crf", "18",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            str(out),
+        ]
+    elif ambience == "static":
+        print("  (no music bed — static ambience only)")
+        vid_dur = get_duration(inp)
+        cmd = [
+            FFMPEG, "-y", "-i", str(inp),
+            "-f", "lavfi", "-i", STATIC_NOISE_SRC,
+            "-filter_complex",
+                f"[0:v]{vf}[v];"
+                f"[1:a]{STATIC_NOISE_SHAPE}[st];"
+                f"[0:a][st]amix=inputs=2:duration=first:normalize=0[a]",
+            "-map", "[v]", "-map", "[a]",
             "-t", str(vid_dur),
             "-c:v", "libx264", "-crf", "18",
             "-pix_fmt", "yuv420p",
@@ -698,45 +770,114 @@ CAPTION_STYLES = {
 
 VHS_DEFAULT_DATE = "AUG 12 2014"
 
-def _build_vhs_overlay_png(path: Path, date_text: str, w: int, h: int, label: str = "") -> None:
+def _build_vhs_overlay_png(path: Path, date_text: str, w: int, h: int, label: str = "",
+                           yt_title: str = "") -> None:
     """Transparent camcorder UI layer: ● REC, PLAY ▸ (drawn triangle), date stamp.
 
-    Optional `label` (e.g. "TAPE 1 OF 5") stamps top-right for series branding."""
+    Optional `label` (e.g. "TAPE 1 OF 5") stamps top-right for series branding.
+    In FRAME_MODE "ytbox" the stamps anchor INSIDE the 16:9 footage strip and a
+    fake YouTube player panel (title, channel row, Subscribe, like pills) is
+    drawn under the strip — the vanshon-style screen-recording look."""
     from PIL import Image, ImageDraw, ImageFont
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    f = ImageFont.truetype("/System/Library/Fonts/Supplemental/Courier New Bold.ttf",
-                           int(h * 0.026))
+    COURIER = "/System/Library/Fonts/Supplemental/Courier New Bold.ttf"
+
+    if FRAME_MODE == "ytbox":
+        strip_h = (w * 9 // 16) & ~1
+        strip_y = (h - strip_h) // 2
+        f = ImageFont.truetype(COURIER, int(strip_h * 0.052))
+        top_y, bot_y = strip_y + int(strip_h * 0.05), strip_y + strip_h - int(strip_h * 0.115)
+    else:
+        strip_h, strip_y = h, 0
+        f = ImageFont.truetype(COURIER, int(h * 0.026))
+        top_y, bot_y = int(h * 0.055), h - int(h * 0.075)
+
     def stamped(pos, text, fill):
         x, y = pos
         d.text((x + 3, y + 3), text, font=f, fill=(0, 0, 0, 150))
         d.text((x, y), text, font=f, fill=fill)
-    margin = int(w * 0.06)
-    stamped((margin, int(h * 0.055)), "● REC", (255, 59, 48, 255))
+
+    margin = int(w * (0.045 if FRAME_MODE == "ytbox" else 0.06))
+    stamped((margin, top_y), "● REC", (255, 59, 48, 255))
     if label:
         lw = d.textlength(label, font=f)
-        stamped((w - lw - margin, int(h * 0.055)), label, (255, 59, 48, 255))
-    play_y = h - int(h * 0.075)
-    stamped((margin, play_y), "PLAY", (255, 255, 255, 235))
+        stamped((w - lw - margin, top_y), label, (255, 59, 48, 255))
+    stamped((margin, bot_y), "PLAY", (255, 255, 255, 235))
     # Courier New has no ▶ glyph — draw the triangle as a polygon instead
     tri_x = margin + int(d.textlength("PLAY ", font=f))
     box = f.getbbox("P")
     tri_h = box[3] - box[1]
-    tri_y = play_y + box[1]
+    tri_y = bot_y + box[1]
     d.polygon([(tri_x + 3, tri_y + tri_h + 3), (tri_x + 3, tri_y + 3),
                (tri_x + 3 + int(tri_h * 0.9), tri_y + 3 + tri_h // 2)], fill=(0, 0, 0, 150))
     d.polygon([(tri_x, tri_y + tri_h), (tri_x, tri_y),
                (tri_x + int(tri_h * 0.9), tri_y + tri_h // 2)], fill=(255, 255, 255, 235))
     tw = d.textlength(date_text, font=f)
-    stamped((w - tw - margin, play_y), date_text, (255, 255, 255, 235))
+    stamped((w - tw - margin, bot_y), date_text, (255, 255, 255, 235))
+
+    if FRAME_MODE == "ytbox":
+        # ── fake YouTube player chrome under the strip ──
+        AB = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+        AR = "/System/Library/Fonts/Supplemental/Arial.ttf"
+        title_f = ImageFont.truetype(AB, 46)
+        meta_f  = ImageFont.truetype(AR, 30)
+        pill_f  = ImageFont.truetype(AB, 30)
+        pad = 40
+        ty = strip_y + strip_h + 38
+        t = yt_title or "growth tapes"
+        while d.textlength(t + "…", font=title_f) > w - 2 * pad and len(t) > 8:
+            t = t[:-1]
+        d.text((pad, ty), t if t == (yt_title or "growth tapes") else t + "…",
+               font=title_f, fill=(255, 255, 255, 255))
+        d.text((pad, ty + 68), "@selfImprovement  1.2K views  2d ago",
+               font=meta_f, fill=(170, 170, 170, 255))
+        ry = ty + 132
+        av = Path.home() / "agentic_os" / "growth_avatar.jpg"
+        if av.exists():
+            a = Image.open(av).convert("RGB")
+            s = min(a.size)
+            a = a.crop(((a.width - s) // 2, (a.height - s) // 2,
+                        (a.width + s) // 2, (a.height + s) // 2)).resize((72, 72))
+            m = Image.new("L", (72, 72), 0)
+            ImageDraw.Draw(m).ellipse([0, 0, 72, 72], fill=255)
+            img.paste(a, (pad, ry), m)
+        else:
+            d.ellipse([pad, ry, pad + 72, ry + 72], fill=(140, 30, 30, 255))
+            gw = d.textlength("G", font=pill_f)
+            d.text((pad + 36 - gw / 2, ry + 20), "G", font=pill_f, fill=(255, 255, 255, 255))
+        sub_x = pad + 96
+        d.rounded_rectangle([sub_x, ry + 2, sub_x + 232, ry + 70], radius=34,
+                            fill=(255, 255, 255, 255))
+        sw = d.textlength("Subscribe", font=pill_f)
+        d.text((sub_x + 116 - sw / 2, ry + 20), "Subscribe", font=pill_f, fill=(15, 15, 15, 255))
+        lx = sub_x + 262
+        d.rounded_rectangle([lx, ry + 2, lx + 236, ry + 70], radius=34, fill=(45, 45, 45, 255))
+        px, py = lx + 26, ry + 18
+        d.polygon([(px + 10, py + 14), (px + 17, py + 1), (px + 23, py + 5), (px + 19, py + 14),
+                   (px + 34, py + 14), (px + 36, py + 32), (px + 10, py + 36)],
+                  fill=(255, 255, 255, 255))
+        d.text((px + 48, py + 4), "15", font=pill_f, fill=(255, 255, 255, 255))
+        d.line([lx + 128, ry + 16, lx + 128, ry + 56], fill=(90, 90, 90, 255), width=2)
+        qx, qy = lx + 158, ry + 20
+        d.polygon([(qx + 26, qy + 22), (qx + 19, qy + 35), (qx + 13, qy + 31), (qx + 17, qy + 22),
+                   (qx + 2, qy + 22), (qx, qy + 4), (qx + 26, qy)],
+                  fill=(255, 255, 255, 255))
+        sx = lx + 260
+        d.rounded_rectangle([sx, ry + 2, sx + 120, ry + 70], radius=34, fill=(45, 45, 45, 255))
+        ax, ay = sx + 34, ry + 16
+        d.polygon([(ax, ay + 22), (ax + 22, ay + 22), (ax + 22, ay + 34), (ax + 44, ay + 16),
+                   (ax + 22, ay - 2), (ax + 22, ay + 10), (ax, ay + 12)],
+                  fill=(255, 255, 255, 255))
+
     img.save(path)
 
 
 def apply_vhs_overlay(inp: Path, out: Path, date_text: str = VHS_DEFAULT_DATE,
-                      label: str = "") -> None:
+                      label: str = "", yt_title: str = "") -> None:
     """Composite the camcorder UI over the video + add light analog tape noise."""
     overlay_png = inp.parent / "vhs_overlay.png"
-    _build_vhs_overlay_png(overlay_png, date_text, OUT_W, OUT_H, label)
+    _build_vhs_overlay_png(overlay_png, date_text, OUT_W, OUT_H, label, yt_title)
     cmd = [
         FFMPEG, "-y",
         "-i", str(inp),
@@ -771,6 +912,16 @@ def main():
     voice_profile = meta.get("voice", "adam").lower()
     caption_style = meta.get("caption_style", "default").lower()
     music_delay   = float(meta.get("music_delay", MUSIC_DELAY_DEFAULT))
+    orientation   = meta.get("orientation", "portrait").lower()
+    global OUT_W, OUT_H, FRAME_MODE
+    if orientation in ("landscape", "horizontal", "16:9"):
+        # 16:9 output — every downstream helper (slice crop, assemble,
+        # VHS overlay, Ken Burns) reads these module globals
+        OUT_W, OUT_H = 1920, 1080
+    elif orientation in ("ytbox", "youtube", "boxed"):
+        # vanshon-style: portrait canvas, full 16:9 footage strip centered
+        # between black bars, fake YouTube player chrome under the strip
+        FRAME_MODE = "ytbox"
     # Optional per-speaker voice map. Header format:
     #   voices: N=bill_horror,V=sarah_horror
     # When a segment has a speaker tag ([N]/[V]), look it up here; otherwise
@@ -878,13 +1029,14 @@ def main():
         # Color grade — music bed enters after music_delay seconds (default 4.0)
         print("Applying color grade…")
         graded = tmp / "graded.mp4" if captions_on else output
-        apply_grade(raw_out, graded, music_delay=music_delay)
+        ambience = meta.get("ambience", "static" if caption_style == "vhs" else "none").lower()
+        apply_grade(raw_out, graded, music_delay=music_delay, ambience=ambience)
 
         if not captions_on and caption_style == "vhs":
             print("Applying VHS overlay…")
             vhs_only = tmp / "vhs.mp4"
             apply_vhs_overlay(graded, vhs_only, meta.get("vhs_date", VHS_DEFAULT_DATE),
-                              meta.get("vhs_label", ""))
+                              meta.get("vhs_label", ""), meta.get("yt_title", ""))
             vhs_only.replace(output)
 
         # Burn-in captions (skippable via `captions: false` header)
@@ -902,7 +1054,7 @@ def main():
                     vhs_out = tmp / "vhs.mp4"
                     try:
                         apply_vhs_overlay(captioned, vhs_out, meta.get("vhs_date", VHS_DEFAULT_DATE),
-                                          meta.get("vhs_label", ""))
+                                          meta.get("vhs_label", ""), meta.get("yt_title", ""))
                         captioned = vhs_out
                     except Exception as e:
                         print(f"  VHS overlay failed ({e}) — continuing without")

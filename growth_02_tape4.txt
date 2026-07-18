@@ -5,7 +5,7 @@ caption_style: vhs
 vhs_label: Part 4
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: RESTOCK_NEW_BED
 ---
 One night it finally hit me. I wrote a whole research paper on the machine that makes people feel not enough. And two months before that, I had asked that same machine to rate my face.

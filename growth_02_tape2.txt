@@ -5,7 +5,7 @@ caption_style: vhs
 vhs_label: Part 2
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: oneheart snowfall
 ---
 Two months after that question, I did something worse. I asked an AI to rate my face.

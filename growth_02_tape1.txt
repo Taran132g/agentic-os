@@ -5,7 +5,7 @@ caption_style: vhs
 vhs_label: Part 1
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
 music: gibran idea 10
 ---
 Last September, at two in the morning, I typed a question into an AI that I have never said out loud to a single person.

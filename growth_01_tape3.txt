@@ -5,7 +5,8 @@ caption_style: vhs
 vhs_label: Part 3
 template_pool: stoic
 broll: local
-game: minecraft_scenic
+game: minecraft_pmmos
+orientation: landscape
 music: pianaura congratulations
 ---
 Sitting at that sunset, I could feel every generation before me. Farmers. Sailors. My own ancestors. All of them watched this exact same sun.
