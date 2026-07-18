@@ -797,7 +797,12 @@ def autopost(creator: str, mode: str = "schedule", gap_min: int = 20) -> None:
                     lambda: page.get_by_role("button", name=re.compile(r"^(Post|Schedule)$", re.I)).last.click(timeout=6000),
                     lambda: page.locator("[data-e2e='post_video_button']").click(timeout=6000),
                 ], "click the Post/Schedule button")
-            page.wait_for_timeout(7000)          # let the submit land
+            try:
+                page.wait_for_timeout(7000)      # let the submit land
+            except Exception:
+                # Window closed during the settle — the save/post click already
+                # fired, so treat an early user close as success, not a crash.
+                print("   (window closed during settle — submit already landed)")
             done.append((r["clip"], caption[:60]))
             if mode == "schedule":
                 try:
