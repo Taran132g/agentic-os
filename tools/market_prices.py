@@ -28,9 +28,29 @@ _UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) PAIS/1.0"}
 # Kraken ticker quirks
 _KRAKEN_ALIASES = {"BTC": "XBT", "DOGE": "XDG"}
 
-# Index/CFD tickers as quoted by trading platforms → Yahoo symbols
-_YAHOO_ALIASES = {"SP500": "^GSPC", "SPX": "^GSPC", "US500": "^GSPC",
-                  "NAS100": "^NDX", "NASDAQ": "^IXIC", "US30": "^DJI"}
+# Index / commodity / forex tickers as quoted by trading platforms → Yahoo symbols.
+# Lets us price CFD-style tickers (DJ30, GER30, DXY, PALLADIUM, ...) that don't
+# exist under their platform name on Yahoo.
+_YAHOO_ALIASES = {
+    # US indices
+    "SP500": "^GSPC", "SPX": "^GSPC", "SPX500": "^GSPC", "US500": "^GSPC",
+    "NAS100": "^NDX", "US100": "^NDX", "NASDAQ": "^IXIC", "NDX": "^NDX",
+    "US30": "^DJI", "DJ30": "^DJI", "DJIA": "^DJI", "DOW": "^DJI",
+    "RUSSELL2000": "^RUT", "US2000": "^RUT", "VIX": "^VIX",
+    # International indices
+    "GER30": "^GDAXI", "GER40": "^GDAXI", "DAX": "^GDAXI", "DE30": "^GDAXI", "DE40": "^GDAXI",
+    "UK100": "^FTSE", "FTSE": "^FTSE", "FTSE100": "^FTSE",
+    "NI225": "^N225", "JP225": "^N225", "NIKKEI": "^N225",
+    "FRA40": "^FCHI", "CAC40": "^FCHI", "EU50": "^STOXX50E", "STOXX50": "^STOXX50E",
+    "HK50": "^HSI", "HSI": "^HSI", "AUS200": "^AXJO", "ES35": "^IBEX",
+    # Forex / dollar index
+    "DXY": "DX-Y.NYB", "USDX": "DX-Y.NYB",
+    # Commodities (Yahoo continuous futures)
+    "GOLD": "GC=F", "XAUUSD": "GC=F", "SILVER": "SI=F", "XAGUSD": "SI=F",
+    "PALLADIUM": "PA=F", "XPDUSD": "PA=F", "PLATINUM": "PL=F", "XPTUSD": "PL=F",
+    "OIL": "CL=F", "WTI": "CL=F", "USOIL": "CL=F", "CRUDE": "CL=F",
+    "BRENT": "BZ=F", "UKOIL": "BZ=F", "NATGAS": "NG=F", "COPPER": "HG=F",
+}
 
 # symbol → (value, expires_at)
 _price_cache: dict = {}
@@ -63,7 +83,32 @@ async def _kraken_price(client: httpx.AsyncClient, symbol: str) -> float | None:
     return float(first["c"][0])
 
 
+async def _coinbase_price(client: httpx.AsyncClient, symbol: str) -> float | None:
+    r = await client.get(f"https://api.coinbase.com/v2/prices/{symbol}-USD/spot")
+    amount = ((r.json().get("data") or {}).get("amount"))
+    return float(amount) if amount else None
+
+
+async def _okx_price(client: httpx.AsyncClient, symbol: str) -> float | None:
+    r = await client.get("https://www.okx.com/api/v5/market/ticker",
+                         params={"instId": f"{symbol}-USDT"})
+    rows = r.json().get("data") or []
+    if not rows:
+        return None
+    last = rows[0].get("last")
+    return float(last) if last else None
+
+
+async def _kucoin_price(client: httpx.AsyncClient, symbol: str) -> float | None:
+    r = await client.get("https://api.kucoin.com/api/v1/market/orderbook/level1",
+                         params={"symbol": f"{symbol}-USDT"})
+    px = ((r.json().get("data") or {}) or {}).get("price")
+    return float(px) if px else None
+
+
 async def _binance_price(client: httpx.AsyncClient, symbol: str) -> float | None:
+    # Binance.com is geo-blocked in the US (HTTP 451); kept last so US hosts fall
+    # through the others first, while non-US deployments (e.g. Oracle) can use it.
     r = await client.get("https://api.binance.com/api/v3/ticker/price",
                          params={"symbol": f"{symbol}USDT"})
     data = r.json()
@@ -100,7 +145,8 @@ async def get_price(symbol: str, asset_class: str = "crypto") -> float | None:
     if cached is not None:
         return cached
 
-    sources = ([_kraken_price, _binance_price] if asset_class == "crypto"
+    sources = ([_kraken_price, _coinbase_price, _okx_price, _kucoin_price, _binance_price]
+               if asset_class == "crypto"
                else [_yahoo_price, _stooq_price])
     async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
         for fn in sources:

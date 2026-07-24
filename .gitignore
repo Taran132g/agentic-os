@@ -32,6 +32,7 @@ aita_blocklist.json
 schedules.json
 trades.json
 monitor_state.json
+execution_state.json
 chroma_db/
 chroma_meta.json
 aita_cache/
@@ -41,6 +42,7 @@ broll_yt/
 music_cache/
 stoic_cache/
 stoic_corpus/
+voice_cache/
 screenshots/
 
 # Logs and PIDs

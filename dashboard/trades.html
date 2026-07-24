@@ -83,6 +83,11 @@ body::after{content:'';position:fixed;inset:0;
   font-size:10px;font-weight:700;letter-spacing:.08em;}
 .badge-long{background:rgba(0,255,127,.12);color:var(--g);border:1px solid rgba(0,255,127,.2);}
 .badge-short{background:rgba(255,77,77,.12);color:var(--r);border:1px solid rgba(255,77,77,.2);}
+.paper-badge,.import-badge,.mine-badge{display:inline-block;margin-left:5px;padding:1px 5px;
+  border-radius:3px;font-family:var(--sans);font-size:8.5px;font-weight:700;letter-spacing:.1em;}
+.paper-badge{background:rgba(255,193,64,.14);color:#ffc140;border:1px solid rgba(255,193,64,.35);}
+.import-badge{background:rgba(138,148,255,.14);color:#8a94ff;border:1px solid rgba(138,148,255,.35);}
+.mine-badge{background:rgba(0,255,127,.16);color:var(--g);border:1px solid rgba(0,255,127,.45);}
 .pnl-pos{color:var(--g);font-weight:700;}
 .pnl-neg{color:var(--r);font-weight:700;}
 .pnl-null{color:var(--dim);}
@@ -269,6 +274,16 @@ body::after{content:'';position:fixed;inset:0;
     <div class="stat-label">Open Trades</div>
     <div class="stat-value" id="statOpen2">—</div>
   </div>
+  <div class="divider"></div>
+  <div class="stat-block">
+    <div class="stat-label">Net of Fees</div>
+    <div class="stat-value" id="statNetFees">—</div>
+  </div>
+  <div class="divider"></div>
+  <div class="stat-block">
+    <div class="stat-label">Beating $60 Fee?</div>
+    <div class="stat-value" id="statBeatFee">—</div>
+  </div>
 </div>
 
 <!-- Tabs -->
@@ -434,6 +449,30 @@ function renderBankroll(s) {
   oEl.className = 'stat-value ' + pnlClass(s.open_pnl);
   document.getElementById('statWinRate').textContent = s.win_rate + '%';
   document.getElementById('statOpen2').textContent = s.open_trades;
+
+  // Subscription-fee drag (Dr. Profit $60/mo) — only if configured
+  if (s.monthly_fee) {
+    const nf = document.getElementById('statNetFees');
+    if (nf) { nf.textContent = fmtPnl(s.net_after_fees); nf.className = 'stat-value ' + pnlClass(s.net_after_fees); }
+    const bf = document.getElementById('statBeatFee');
+    if (bf) {
+      bf.textContent = (s.beating_fee ? '✅ ' : '❌ ') + fmtPnl(s.realized_this_month) + ' / ' + fmt$(s.monthly_fee);
+      bf.className = 'stat-value ' + (s.beating_fee ? 'pnl-pos' : 'pnl-neg');
+    }
+  }
+}
+
+// Badge shown next to a trade's asset: your position, an imported Dr. Profit
+// tracking row, or a dry-run paper trade.
+function tradeBadge(t) {
+  const ex = t.extra || {};
+  let b = '';
+  if (ex.mine) b += '<span class="mine-badge" title="Your live mirror position">YOU’RE IN</span>';
+  if (t.source === 'dr_profit_history')
+    b += '<span class="import-badge" title="Imported from Dr. Profit — tracking only, not your position">DP</span>';
+  else if (ex.paper)
+    b += '<span class="paper-badge" title="Dry-run paper trade — no real order placed">PAPER</span>';
+  return b;
 }
 
 // ── Active trades ─────────────────────────────────────────────────────────────
@@ -451,7 +490,7 @@ function renderActive(trades) {
   for (const t of trades) {
     const tps = (t.take_profit||[]).map(p=>fmt$(p)).join(' / ') || '—';
     html += `<tr id="row-${t.id}" class="clickable" onclick="openTradeDetail('${t.id}')">
-      <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span></td>
+      <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span>${tradeBadge(t)}</td>
       <td><span class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}</span></td>
       <td class="price">${fmt$(t.entry_price)}</td>
       <td class="price dim">${t.stop_loss ? fmt$(t.stop_loss) : '—'}</td>
@@ -493,7 +532,7 @@ function renderClosed(trades) {
   for (const t of [...trades].reverse()) {
     const won = (t.pnl||0) > 0;
     html += `<tr class="clickable" onclick="openTradeDetail('${t.id}')">
-      <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span></td>
+      <td><span class="asset-badge ${t.direction==='LONG'?'badge-long':'badge-short'}">${t.asset}</span>${tradeBadge(t)}</td>
       <td class="${t.direction==='LONG'?'pnl-pos':'pnl-neg'}">${t.direction}</td>
       <td class="price">${fmt$(t.entry_price)}</td>
       <td class="price dim">${t.exit_price ? fmt$(t.exit_price) : '—'}</td>

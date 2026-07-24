@@ -96,11 +96,48 @@ def _save(data: dict):
 
 # ── Read ──────────────────────────────────────────────────────────────────────
 
+def _is_paper(t: dict) -> bool:
+    """Paper / imported (dry-run, dr_profit_history) trades are tracking-only."""
+    return bool((t.get("extra") or {}).get("paper"))
+
+
+def _subscription_fee() -> dict:
+    """Signal-service subscription drag (e.g. Dr. Profit $60/mo), env-driven."""
+    from datetime import date
+    fee = 0.0
+    try:
+        fee = float(os.environ.get("DR_PROFIT_FEE_USD", "0") or "0")
+    except ValueError:
+        fee = 0.0
+    if fee <= 0:
+        return {"monthly_fee": 0.0, "months_billed": 0, "fees_paid": 0.0}
+    start = date.today()
+    try:
+        y, m, d = (int(x) for x in os.environ.get("DR_PROFIT_SUB_START", "").split("-"))
+        start = date(y, m, d)
+    except (ValueError, TypeError):
+        pass
+    today = date.today()
+    months = max(1, (today.year - start.year) * 12 + (today.month - start.month) + 1)
+    return {"monthly_fee": fee, "months_billed": months, "fees_paid": round(fee * months, 2)}
+
+
+def _realized_this_month(closed: list) -> float:
+    from datetime import date
+    ym = date.today().strftime("%Y-%m")
+    return round(sum(t.get("pnl", 0) or 0 for t in closed
+                     if str(t.get("closed_at", "")).startswith(ym)), 2)
+
+
 def get_bankroll() -> dict:
-    """Return bankroll summary: current, starting, realized PnL, open PnL, win rate."""
+    """Return bankroll summary: current, starting, realized PnL, open PnL, win rate.
+
+    Paper / imported trades (dry-run paper, Dr. Profit backfill) are EXCLUDED —
+    the bankroll must reflect only real trades so tracking data can't skew it.
+    """
     data = _load()
-    closed = data["closed_trades"]
-    active = data["active_trades"]
+    closed = [t for t in data["closed_trades"] if not _is_paper(t)]
+    active = [t for t in data["active_trades"] if not _is_paper(t)]
 
     realized_pnl = sum(t.get("pnl", 0) or 0 for t in closed)
     open_pnl = sum(t.get("pnl", 0) or 0 for t in active if t.get("pnl") is not None)
@@ -110,6 +147,11 @@ def get_bankroll() -> dict:
     settled = [t for t in closed if t.get("status") != "cancelled"]
     wins = [t for t in settled if (t.get("pnl") or 0) > 0]
     losses = [t for t in settled if (t.get("pnl") or 0) <= 0]
+
+    fee = _subscription_fee()
+    realized_month = _realized_this_month(settled)
+    monthly_fee = fee["monthly_fee"]
+    hurdle_pct = round(monthly_fee / data["bankroll"] * 100, 2) if data["bankroll"] > 0 else 0.0
 
     return {
         "bankroll":        data["bankroll"],
@@ -122,6 +164,14 @@ def get_bankroll() -> dict:
         "losses":          len(losses),
         "open_trades":     len(active),
         "closed_trades":   len(settled),
+        # ── subscription-fee accounting (signal-service drag) ──
+        "monthly_fee":       monthly_fee,
+        "fees_paid":         fee["fees_paid"],
+        "months_billed":     fee["months_billed"],
+        "net_after_fees":    round(realized_pnl - fee["fees_paid"], 2),
+        "realized_this_month": realized_month,
+        "fee_hurdle_pct":    hurdle_pct,
+        "beating_fee":       realized_month >= monthly_fee if monthly_fee > 0 else None,
     }
 
 

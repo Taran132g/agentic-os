@@ -161,6 +161,21 @@ def parse_signal(text: str) -> dict | None:
     }
 
 
+# Free-text trade-intent hint. Dr. Profit posts mostly free text the strict regex
+# parser misses ("I bought CIRCLE at $65", "#ONDO buying spot here"). If a post
+# mentions a trade action we hand the raw text to the executor's LLM parse, which
+# does the real filtering via its confidence gate. Pure commentary is skipped so we
+# don't fire the LLM on chatter.
+_TRADE_HINT = re.compile(
+    r"\b(buy|buying|bought|long|longed|short|shorted|sell|selling|sold|entry|enter|"
+    r"entered|accumulat\w*|closing|closed|take[\s-]?profit|stop[\s-]?loss|leverage|"
+    r"position|spot|grabbed|ape[ds]?|order|target|tp\d?|\bsl\b)\b", re.I)
+
+
+def _looks_tradeable(text: str) -> bool:
+    return bool(_TRADE_HINT.search(text))
+
+
 # ── Trade brief formatter ─────────────────────────────────────────────────────
 
 def format_trade_brief(sig: dict) -> str:
@@ -272,7 +287,7 @@ async def start_monitor():
         return
 
     try:
-        from pyrogram import Client, filters
+        from pyrogram import Client
         from pyrogram.types import Message
     except ImportError:
         log.warning("[dr_profit] pyrogram not installed: pip install pyrogram tgcrypto")
@@ -293,40 +308,87 @@ async def start_monitor():
     except ValueError:
         channel_target = CHANNEL
 
-    @app.on_message(filters.chat(channel_target))
+    @app.on_message()
     async def on_message(client: Client, message: Message):
+        # Manual channel match instead of filters.chat() — the built-in chat filter
+        # can silently miss channel updates on a fresh session. The diagnostic line
+        # confirms whether updates are arriving at all and from which chats.
+        chat = message.chat
+        cid = chat.id if chat else None
+        if cid != channel_target:
+            log.info("[dr_profit] (ignored) update from chat %s", cid)
+            return
+
         raw = message.text or message.caption or ""
         if not raw.strip():
             return
 
-        log.info("[dr_profit] New message (%d chars)", len(raw))
+        log.info("[dr_profit] New message from target channel (%d chars)", len(raw))
 
-        sig = parse_signal(raw)
-        if sig is None:
-            return  # not a trade signal
+        sig = parse_signal(raw)   # strict regex — often None on his free-text posts
 
-        log.info("[dr_profit] Signal detected: %s %s @ %s", sig["asset"], sig["direction"], sig["entry"])
+        # Route to the executor when the regex found a structured signal OR the post
+        # reads like a trade action. The executor's LLM parse handles free text and its
+        # confidence gate filters chatter. Pure commentary is dropped here.
+        if sig is None and not _looks_tradeable(raw):
+            return
 
-        # Log to vault
-        _log_signal_to_vault(sig, raw)
-
-        # Risk gate — advisory verdict appended to the alert.
-        # Wrapped: any failure falls back to the raw alert so a signal is never lost.
         verdict_block = ""
-        try:
-            from risk_gate_workflow import evaluate_signal, format_verdict_block
-            verdict = await evaluate_signal(sig)
-            verdict_block = format_verdict_block(verdict)
-            log.info("[dr_profit] Risk gate verdict: %s (conf %.0f)",
-                     verdict["verdict"], verdict["confidence"])
-        except Exception as e:
-            log.warning("[dr_profit] Risk gate skipped: %s", e)
+        if sig is not None:
+            log.info("[dr_profit] Signal detected: %s %s @ %s",
+                     sig["asset"], sig["direction"], sig["entry"])
+            _log_signal_to_vault(sig, raw)
+            # Advisory risk gate only when we have a structured signal to score.
+            try:
+                from risk_gate_workflow import evaluate_signal, format_verdict_block
+                verdict = await evaluate_signal(sig)
+                verdict_block = format_verdict_block(verdict)
+                log.info("[dr_profit] Risk gate verdict: %s (conf %.0f)",
+                         verdict["verdict"], verdict["confidence"])
+            except Exception as e:
+                log.warning("[dr_profit] Risk gate skipped: %s", e)
+        else:
+            log.info("[dr_profit] Free-text trade post — handing to executor's LLM parse")
 
-        alert = format_trade_brief(sig) + verdict_block
-        await _send_bot_message(alert)
+        # Executor: agent parse + risk gate + caps + (paper/real) placement. Fail-safe.
+        exec_block, exec_res = "", {}
+        try:
+            from execution_workflow import execute_signal, format_exec_block
+            exec_res = await execute_signal(raw, source="dr_profit")
+            disarmed = (exec_res.get("status") == "blocked"
+                        and "auto-execute is OFF" in (exec_res.get("reason") or ""))
+            if not disarmed:
+                exec_block = format_exec_block(exec_res)
+            log.info("[dr_profit] executor: %s — %s", exec_res.get("status"),
+                     exec_res.get("reason") or f"{exec_res.get('mode')} placed")
+        except Exception as e:
+            log.warning("[dr_profit] executor error (alert still sent): %s", e)
+
+        # Alert body: structured brief when the regex parsed a signal, else the raw post.
+        brief = format_trade_brief(sig) if sig is not None else \
+            "📩 DR PROFIT (free-text)\n" + raw.strip()[:400]
+
+        # For free-text posts, only alert when the executor actually acted (placed/
+        # failed) so chatter that the LLM filters out stays silent. Regex signals
+        # always alert (existing behaviour).
+        meaningful = (sig is not None or exec_res.get("executed")
+                      or exec_res.get("status") == "failed")
+        if meaningful:
+            await _send_bot_message(brief + verdict_block + exec_block)
 
     try:
         await app.start()
+        # Prime the peer cache. A fresh Pyrogram login silently drops updates from
+        # channels it hasn't "seen" yet — iterating dialogs once caches the peer so
+        # incoming channel messages actually reach the on_message handler.
+        try:
+            found = False
+            async for d in app.get_dialogs():
+                if d.chat and d.chat.id == channel_target:
+                    found = True
+            log.info("[dr_profit] Peer cache primed (target channel in dialogs: %s)", found)
+        except Exception as e:
+            log.warning("[dr_profit] dialog prime failed: %s", e)
         log.info("[dr_profit] Monitor running.")
         # Keep alive until cancelled
         await asyncio.Event().wait()

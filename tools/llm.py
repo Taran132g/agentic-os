@@ -40,6 +40,7 @@ MODEL_BY_AGENT = {
     "briefing":      "opus",
     "coding":        "opus",
     "risk_gate":     "opus",
+    "classify":      "haiku",   # cheap first-pass signal gate (executor)
 }
 
 def _model_for(agent_name: str | None) -> str:
@@ -252,7 +253,14 @@ async def run_llm_command(
     Run a prompt with Claude. If a usage limit is detected, waits 30 s and
     retries once. Returns the result dict on success or the error result on
     second failure.
+
+    When PAIS_LLM_BACKEND=api (machines with no `claude` CLI, e.g. Oracle), the
+    call is served by the Anthropic Messages API instead of the CLI subprocess.
     """
+    if os.environ.get("PAIS_LLM_BACKEND") == "api":
+        from tools.llm_api import run_llm_api
+        return await run_llm_api(prompt, agent_name=agent_name)
+
     result = await _run_claude(prompt, broadcast, session_id, allowed_tools,
                                send_telegram, sandbox_dir, agent_name, task_id)
 

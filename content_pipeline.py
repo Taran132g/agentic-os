@@ -50,6 +50,7 @@ VOICE_PROFILES = {
     "adam":          ("pNInz6obpgDQGcFmaJgB", 1.0,  0.72, 0.75),  # AITA storytime default
     "will_growth":   ("bIHbv24MWmeRgasZH58o", 0.95, 0.60, 0.75),  # relaxed young male — Growth/journal niche
     "chris_growth":  ("iP95p4xoKVk53GoZ742B", 0.95, 0.60, 0.75),  # casual down-to-earth — Growth niche pick
+    "chris_vanshon": ("iP95p4xoKVk53GoZ742B", 0.80, 0.75, 0.72),  # Chris voice, Vanshon pace (slow); depth via VOICE_PITCH_ST=-4.6
     "bill":          ("pqHfZKP75CvOlQylNhV4", 0.92, 0.80, 0.78),  # gravelly elder — Stoic / motivational
     "daniel":        ("onwK4e9ZLuTAKqWW03F9", 0.95, 0.78, 0.75),  # deep British narrator
     "drew":          ("29vD33N1CtxCmqQRPOHJ", 1.0,  0.72, 0.75),  # deep American narrative
@@ -188,6 +189,24 @@ def parse_script(path: Path) -> tuple[dict, list[dict]]:
 
 
 # ── ElevenLabs voiceover ────────────────────────────────────────────────────────
+def _pitch_shift(path: Path, semitones: float) -> None:
+    """Shift an audio file's pitch by `semitones` in place, preserving duration.
+    Uses asetrate (resample = pitch+speed change) then atempo to restore length."""
+    factor = 2 ** (semitones / 12.0)          # <1 = deeper
+    probe = subprocess.run(
+        [FFPROBE, "-v", "error", "-select_streams", "a:0", "-show_entries",
+         "stream=sample_rate", "-of", "default=nk=1:nw=1", str(path)],
+        capture_output=True, text=True)
+    sr = int((probe.stdout.strip() or "44100"))
+    tmp = path.with_suffix(".pshift.mp3")
+    cmd = [FFMPEG, "-y", "-i", str(path),
+           "-af", f"asetrate={sr}*{factor},aresample={sr},atempo={1/factor:.6f}",
+           "-c:a", "libmp3lame", "-q:a", "2", str(tmp)]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode == 0:
+        tmp.replace(path)
+
+
 def generate_voiceover(text: str, out_path: Path, voice_profile: str = "adam") -> None:
     """Generate MP3 voiceover via ElevenLabs API.
 
@@ -201,10 +220,27 @@ def generate_voiceover(text: str, out_path: Path, voice_profile: str = "adam") -
     profile = VOICE_PROFILES.get(voice_profile, VOICE_PROFILES["adam"])
     voice_id, speed, stability, similarity_boost = profile
 
+    # TTS_BACKEND=local → free on-device Kokoro TTS instead of ElevenLabs.
+    # Used for preview renders when quota is dry; voice mapping is approximate.
+    if os.environ.get("TTS_BACKEND", "elevenlabs") == "local":
+        kokoro_map = {"chris_growth": "am_michael", "adam": "am_adam"}
+        kvoice = kokoro_map.get(voice_profile, "am_michael")
+        venv_py = Path.home() / "agentic_os" / ".venv_tts" / "bin" / "python"
+        say = Path.home() / "agentic_os" / "kokoro_say.py"
+        r = subprocess.run([str(venv_py), str(say), text, str(out_path), kvoice, str(speed)],
+                           capture_output=True, text=True, timeout=300)
+        if r.returncode != 0:
+            raise RuntimeError(f"local TTS failed: {r.stderr.strip()[-300:]}")
+        print(f"  🖥 local kokoro voice [{kvoice}] (0 chars)")
+        return
+
     # Voice cache: same voice + settings + exact text → reuse the saved take.
     # Lets a tape re-render (music/footage/format changes) without re-burning quota.
+    # Optional post-gen pitch shift (semitones) — deepens the voice while keeping
+    # duration. VOICE_PITCH_ST=-4.6 drops Chris (~119Hz) toward Vanshon (~91Hz).
+    pitch_st = float(os.environ.get("VOICE_PITCH_ST", "0"))
     cache_key = hashlib.sha1(
-        f"{voice_id}|{speed}|{stability}|{similarity_boost}|eleven_multilingual_v2|{text}".encode()
+        f"{voice_id}|{speed}|{stability}|{similarity_boost}|{pitch_st}|eleven_multilingual_v2|{text}".encode()
     ).hexdigest()
     cached_take = VOICE_CACHE / f"{cache_key}.mp3"
     if cached_take.exists() and cached_take.stat().st_size > 1_000:
@@ -243,6 +279,8 @@ def generate_voiceover(text: str, out_path: Path, voice_profile: str = "adam") -
         if label != "primary":
             print(f"  ↻ used {label} ElevenLabs key")
         out_path.write_bytes(r.content)
+        if pitch_st:
+            _pitch_shift(out_path, pitch_st)
         VOICE_CACHE.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(out_path, cached_take)
         return

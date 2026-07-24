@@ -120,6 +120,19 @@ FOCUS:
 - Prefer companies with real, currently-open Summer-2027 intern programs and a
   DIRECT application URL.
 
+ATTAINABILITY — optimize for REPLY RATE, not prestige:
+- AVOID ultra-competitive employers: FAANG/MANGA, OpenAI/Anthropic-tier AI labs,
+  quant firms (Jane Street, Citadel, Two Sigma, HRT), and other household-name
+  tech with 1000+ applicants per intern seat.
+- Most matches should be: mid-size or lesser-known software companies, funded
+  startups (seed-Series C), or non-tech industry companies hiring software/AI
+  interns (insurance, banks, healthcare, logistics, manufacturing, defense,
+  retail).
+- Bonus for Pennsylvania / Philadelphia / Pittsburgh area employers and
+  companies that actively recruit at Penn State.
+- Fold attainability INTO match_score: a realistic shot at an interview
+  outranks a dream company.
+
 {persona_block()}
 Prefer Workday / Greenhouse / official career-page postings with a DIRECT
 application URL. Use WebFetch to verify each is a real, currently-open Summer-2027

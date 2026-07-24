@@ -19,8 +19,9 @@ FFMPEG = "/opt/homebrew/bin/ffmpeg"
 def main() -> None:
     text, out = sys.argv[1], Path(sys.argv[2])
     voice = sys.argv[3] if len(sys.argv) > 3 else "am_adam"
+    speed = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
     pipe = KPipeline(lang_code="a")
-    audio = np.concatenate([a for _, _, a in pipe(text, voice=voice, speed=1.0)])
+    audio = np.concatenate([a for _, _, a in pipe(text, voice=voice, speed=speed)])
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         wav = Path(f.name)
     sf.write(wav, audio, 24000)

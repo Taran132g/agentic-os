@@ -61,6 +61,11 @@ DENY_NAMES = re.compile(
 NAME_EXCEPTIONS = {
     "quant-os-ui/.env.production",
 }
+# Env TEMPLATE files (.env.example / .env.sample / .env.template / .env.dist) are
+# the standard way to ship a documented, placeholder-only env file in a public
+# repo. Safe-by-name and waived from the filename block — but they STILL run
+# through the content scan below, so a real key pasted into one is still caught.
+ENV_TEMPLATE = re.compile(r"(^|/)\.env\.(example|sample|template|dist)$", re.I)
 # Secret guard — content patterns (high-signal API key / token shapes)
 DENY_CONTENT = re.compile(
     r"(sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_\-]{30,}|xox[baprs]-[0-9A-Za-z\-]{10,}|"
@@ -94,7 +99,7 @@ def _secret_guard(repo: Path, status: list[tuple[str, str]]) -> list[str]:
     for code, f in status:
         if code.startswith("D"):
             continue  # deletions can't leak content or files
-        if DENY_NAMES.search(f) and f not in NAME_EXCEPTIONS:
+        if DENY_NAMES.search(f) and f not in NAME_EXCEPTIONS and not ENV_TEMPLATE.search(f):
             bad.append(f"filename:{f}")
             continue
         # scan ADDED lines of this staged file for real secret shapes
