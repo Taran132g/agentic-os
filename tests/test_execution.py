@@ -417,6 +417,39 @@ def test_classify_gate_skips_without_extraction(monkeypatch, tmp_path):
     assert res["executed"] is False and "classifier" in res["reason"]
 
 
+# ── horizon-aware sizing: long-term gets a wider stop at the same $-risk ──────
+
+def test_infer_horizon():
+    from live_signal_workflow import _infer_horizon
+    assert _infer_horizon("Buying ETH for the long term") == "long_term"
+    assert _infer_horizon("Accumulating BTC spot to hold this cycle") == "long_term"
+    assert _infer_horizon("rebalancing allocation into ETH") == "long_term"
+    assert _infer_horizon("scalping a quick ETH swing here") == "short_term"
+    assert _infer_horizon("BTC long entry 65000 tp 67000") == "short_term"
+
+
+def test_normalize_carries_horizon():
+    base = {"asset": "BTC", "direction": "LONG", "confidence": 80}
+    assert _normalize({**base, "horizon": "long_term"})["horizon"] == "long_term"
+    assert _normalize({**base, "horizon": "short_term"})["horizon"] == "short_term"
+    assert _normalize({**base})["horizon"] == "short_term"          # default
+    assert _normalize({**base, "horizon": "junk"})["horizon"] == "short_term"
+
+
+def test_long_term_widens_stop_and_shrinks_size():
+    from tools.position_sizer import compute_size
+    kw = dict(entry=2000, stop_loss=None, direction="LONG", asset_class="crypto",
+              annual_vol=0.8, risk_usd=60)
+    short = compute_size(horizon="short_term", **kw)
+    lng = compute_size(horizon="long_term", **kw)
+    # same $-risk, but long-term uses a wider hold window -> wider stop -> fewer units
+    assert lng["hold_days"] > short["hold_days"]
+    assert lng["stop_pct"] > short["stop_pct"]
+    assert lng["units"] < short["units"]
+    assert short["risk_usd"] == lng["risk_usd"] == 60
+    assert lng["horizon"] == "long_term" and short["horizon"] == "short_term"
+
+
 def test_llm_api_model_tiers(monkeypatch):
     for k in ("PAIS_LLM_MODEL_CLASSIFY", "PAIS_LLM_MODEL_EXTRACT",
               "PAIS_LLM_MODEL_RISK", "PAIS_LLM_API_MODEL"):

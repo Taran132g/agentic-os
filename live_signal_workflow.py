@@ -60,6 +60,12 @@ Extract the trade into JSON. Rules:
 - "stop_loss": number or null.
 - "take_profits": array of numbers (may be empty). Order nearest-first.
 - "leverage": integer, 1 if not mentioned. Cap at 50.
+- "horizon": "long_term" or "short_term", from the trade's INTENT:
+    * "long_term" — accumulation / DCA / "for the long term" / core spot holds / cycle
+      positioning / "buying to hold" / portfolio allocation moves.
+    * "short_term" — swing / scalp / momentum trade with a target / "sell within days" /
+      tactical entries he plans to close soon.
+  Default "short_term" if genuinely unclear.
 - "confidence": 0-100, how confident you are this is a real actionable trade signal
   (a price-chat or recap message is NOT a signal — score it below 40).
 - "note": one sentence — your read of the setup (quality of levels, anything odd or missing).
@@ -159,6 +165,17 @@ def _infer_entry_type(text: str, entry) -> str:
     return "limit" if entry is not None else "market"
 
 
+# Phrases that mean a core / hold position => long-term sizing (wider stop).
+_LONG_TERM_HINT = re.compile(
+    r"\b(long[\s-]?term|for the long|accumulat\w*|\bdca\b|holding|to hold|core|"
+    r"cycle|allocat\w*|rebalanc\w*|spot for)\b", re.I)
+
+
+def _infer_horizon(text: str) -> str:
+    """Heuristic long- vs short-term when the LLM didn't tag one."""
+    return "long_term" if _LONG_TERM_HINT.search(text) else "short_term"
+
+
 def _regex_fallback(text: str) -> dict | None:
     """Crypto-only fallback via the monitor's regex parser."""
     from dr_profit_monitor import parse_signal
@@ -171,6 +188,7 @@ def _regex_fallback(text: str) -> dict | None:
         "direction":    sig["direction"],
         "entry":        sig["entry"],
         "entry_type":   _infer_entry_type(text, sig["entry"]),
+        "horizon":      _infer_horizon(text),
         "stop_loss":    sig.get("stop_loss"),
         "take_profits": sig.get("take_profit") or [],
         "leverage":     sig.get("leverage", 1),
@@ -200,12 +218,15 @@ def _normalize(parsed: dict) -> dict | None:
     ac = parsed.get("asset_class")
     et = str(parsed.get("entry_type", "")).lower().strip()
     entry_type = et if et in ("limit", "market") else ("limit" if entry is not None else "market")
+    hz = str(parsed.get("horizon", "")).lower().strip()
+    horizon = hz if hz in ("long_term", "short_term") else "short_term"
     return {
         "asset":        asset,
         "asset_class":  ac if ac in ("crypto", "stock") else "crypto",
         "direction":    "SHORT" if str(parsed.get("direction", "")).upper() == "SHORT" else "LONG",
         "entry":        entry,
         "entry_type":   entry_type,
+        "horizon":      horizon,
         "entry_low":    elo,
         "entry_high":   ehi,
         "stop_loss":    sl,

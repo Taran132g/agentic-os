@@ -1077,6 +1077,7 @@ class Handler(BaseHTTPRequestHandler):
                         "asset":       t.get("asset"),
                         "asset_class": t.get("asset_class", "crypto"),
                         "direction":   t.get("direction"),
+                        "status":      t.get("status"),
                         "entry":       t.get("entry_price"),
                         "stop_loss":   t.get("stop_loss"),
                         "take_profit": t.get("take_profit") or [],

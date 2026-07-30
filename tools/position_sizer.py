@@ -23,7 +23,11 @@ log = logging.getLogger(__name__)
 
 RISK_USD  = float(os.environ.get("PAIS_TRADE_RISK_USD", "60"))
 STOP_K    = 1.5                       # stop buffer in units of expected-move sigma
-HOLD_DAYS = {"crypto": 3, "stock": 5}  # typical Dr. Profit hold window
+HOLD_DAYS = {"crypto": 3, "stock": 5}  # short-term / tactical hold window
+# Long-term / core-accumulation window — a much wider vol stop so a core position
+# can ride a cycle drawdown without a noise stop-out, at the same $-risk.
+LONG_HOLD_DAYS = {"crypto": int(os.environ.get("PAIS_LONG_HOLD_CRYPTO", "45")),
+                  "stock":  int(os.environ.get("PAIS_LONG_HOLD_STOCK", "60"))}
 YEAR_DAYS = {"crypto": 365, "stock": 252}
 
 # Exit management (scale-out → breakeven → trail). Backtest of Dr. Profit's
@@ -100,16 +104,22 @@ def compute_size(
     annual_vol: float | None = None,
     take_profits: list[float] | None = None,
     risk_usd: float = RISK_USD,
+    horizon: str = "short_term",
 ) -> dict:
     """
     Deterministic sizing. If stop_loss is None, derives a vol stop
     (requires annual_vol; falls back to a 2% assumed stop without it).
+
+    horizon: "short_term" (tight stop, quick hold) or "long_term" (wide stop over a
+    core-accumulation window so the position can ride a cycle drawdown). Only affects
+    a vol-DERIVED stop; an explicit stop from the signal is always respected as-is.
     """
     direction = direction.upper()
     asset_class = asset_class if asset_class in HOLD_DAYS else "crypto"
     sign = -1 if direction == "LONG" else 1  # stop side relative to entry
 
-    hold = HOLD_DAYS[asset_class]
+    hold_map = LONG_HOLD_DAYS if horizon == "long_term" else HOLD_DAYS
+    hold = hold_map[asset_class]
     expected_move_pct = None
     if annual_vol:
         expected_move_pct = annual_vol * math.sqrt(hold / YEAR_DAYS[asset_class])
@@ -118,7 +128,7 @@ def compute_size(
     if stop_loss is None:
         if expected_move_pct:
             stop_loss = entry * (1 + sign * STOP_K * expected_move_pct)
-            stop_source = f"vol ({STOP_K}σ over {hold}d hold)"
+            stop_source = f"vol ({STOP_K}σ over {hold}d {horizon} hold)"
         else:
             stop_loss = entry * (1 + sign * 0.02)
             stop_source = "assumed 2% (no vol data)"
@@ -170,6 +180,7 @@ def compute_size(
         "annual_vol":        round(annual_vol, 4) if annual_vol else None,
         "expected_move_pct": round(expected_move_pct * 100, 2) if expected_move_pct else None,
         "hold_days":         hold,
+        "horizon":           horizon,
         "exit_plan":         exit_plan,
         "warnings":          warnings,
     }
@@ -184,10 +195,12 @@ async def size_trade(
     take_profits: list[float] | None = None,
     leverage: int = 1,
     risk_usd: float | None = None,
+    horizon: str = "short_term",
 ) -> dict:
     """
     Fetch live price + vol, then size at `risk_usd` (defaults to RISK_USD).
     entry=None means "enter at market" — the live price becomes the entry.
+    horizon "short_term"|"long_term" widens the vol stop for core positions.
     Returns {"ok": bool, "error": str?, ...compute_size fields, "mark_price", "vol_source"}.
     """
     from tools.market_prices import get_price, get_volatility
@@ -211,6 +224,7 @@ async def size_trade(
             annual_vol   = vol["annual_vol"] if vol else None,
             take_profits = take_profits,
             risk_usd     = risk_usd if risk_usd is not None else RISK_USD,
+            horizon      = horizon,
         )
     except ValueError as e:
         return {"ok": False, "error": str(e)}

@@ -228,20 +228,18 @@ async def _execute_signal_inner(text: str, source: str, broadcast) -> dict:
         asset=sig["asset"], asset_class=sig["asset_class"], direction=sig["direction"],
         entry=size_entry, stop_loss=sig["stop_loss"], take_profits=sig["take_profits"],
         leverage=sig["leverage"], risk_usd=risk_usd,
+        horizon=sig.get("horizon", "short_term"),
     )
     if not sizing.get("ok"):
         return _skip("skipped", sizing.get("error", "sizing failed"), mode=cfg.mode, sig=sig)
 
-    # ── risk gate (advisory verdict; can block or resize) ──
+    # ── risk gate (BINARY APPROVE/REJECT — every taken trade is the full $60) ──
     verdict = await _run_risk_gate(sig, sizing, text, broadcast)
     if cfg.risk_gate_blocks and verdict.get("verdict") == "REJECT":
         return _skip("skipped", f"risk gate REJECT — {verdict.get('reasoning', '')}",
                      mode=cfg.mode, sig=sig, sizing=sizing, verdict=verdict)
 
-    resize_factor = 1.0
-    if verdict.get("verdict") == "RESIZE":
-        pct = float(verdict.get("suggested_risk_pct") or 20) or 20
-        resize_factor = max(0.1, min(1.0, pct / 20.0))
+    resize_factor = 1.0  # locked to full $60 — no trimming, regardless of verdict
 
     # ── apply caps: leverage, notional, resize ──
     leverage = min(int(sizing["leverage"]), cfg.max_leverage)
@@ -284,7 +282,7 @@ async def _execute_signal_inner(text: str, source: str, broadcast) -> dict:
     # but flagged paper=True (no real order was placed). testnet/live record as real.
     trade_id = _record_trade(sig, sizing, result, leverage, units,
                              risk_usd * resize_factor, text, verdict,
-                             paper=cfg.is_dry_run)
+                             paper=cfg.is_dry_run, order_type=order_type)
     state.setdefault("executions", []).append({
         "hash": sig_hash, "ts": datetime.now(timezone.utc).isoformat(),
         "asset": sig["asset"], "direction": sig["direction"],
@@ -326,7 +324,7 @@ async def _run_risk_gate(sig: dict, sizing: dict, text: str, broadcast) -> dict:
 
 
 def _record_trade(sig, sizing, result, leverage, units, risk_usd, text, verdict,
-                  paper: bool = False) -> str | None:
+                  paper: bool = False, order_type: str = "MARKET") -> str | None:
     from tools.trade_tracker import add_trade
     try:
         trade = add_trade(
@@ -342,7 +340,14 @@ def _record_trade(sig, sizing, result, leverage, units, risk_usd, text, verdict,
                 "order_id": result.order_id,
                 "stop_order_id": result.stop_order_id, "tp_order_ids": list(result.tp_order_ids),
                 "protected": result.protected, "confidence": sig.get("confidence"),
+                "horizon": sig.get("horizon"), "stop_pct": sizing.get("stop_pct"),
                 "agent_note": sig.get("note"), "risk_verdict": verdict.get("verdict"),
+                # Order classification so the risk gate can distinguish a live
+                # POSITION from a resting (unfilled) LIMIT order in its context.
+                "order_type": order_type,
+                "order_state": ("filled" if ((result.filled_units or 0) > 0
+                                             or result.avg_fill_price) else "resting"),
+                "filled_units": result.filled_units,
             },
         )
         return trade.get("id")
@@ -376,6 +381,11 @@ def format_exec_block(res: dict) -> str:
         f"Order:  {o.get('units')} units @ ${(o.get('fill') or 0):,.4f}  "
         f"({o.get('leverage')}x, ≈${o.get('notional', 0):,.0f})",
     ]
+    hz = (res.get("sizing") or {}).get("horizon")
+    if hz:
+        sp = (res.get("sizing") or {}).get("stop_pct")
+        lines.append(f"Type:   {hz.replace('_', ' ')}"
+                     + (f"  ·  stop {sp}% away" if sp else ""))
     if o.get("order_id"):
         lines.append(f"ID:     {o.get('order_id')}")
     if res.get("clamp_note"):

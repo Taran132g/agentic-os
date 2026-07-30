@@ -257,6 +257,45 @@ def _log_signal_to_vault(sig: dict, raw_text: str):
 
 # ── Pyrogram monitor ──────────────────────────────────────────────────────────
 
+def _decision_tag(exec_res: dict) -> str:
+    """One-line decision header so every alert reads at a glance."""
+    status = exec_res.get("status")
+    reason = (exec_res.get("reason") or "").lower()
+    if exec_res.get("executed") or status == "placed":
+        return "✅ TAKE — risk gate APPROVED (full $60)"
+    if "reject" in reason:
+        return "❌ REJECT — risk gate blocked it (full $60 or nothing)"
+    if "confidence" in reason:
+        return "⚠️ LOW-CONFIDENCE — auto-skipped by PAIS, your call"
+    if status == "failed":
+        return "⛔ EXECUTION FAILED"
+    return f"⏭️ SKIPPED — {exec_res.get('reason', 'not actioned')}"
+
+
+async def _sizing_line(exec_res: dict, parsed: dict | None) -> str:
+    """The $60 sizing for the alert. Reuse the executor's sizing when it got that
+    far; otherwise size the parsed signal on the fly so EVERY alert shows numbers."""
+    s = exec_res.get("sizing")
+    if (not s) and parsed:
+        try:
+            from tools.position_sizer import size_trade
+            from tools.trade_tracker import resolve_risk_usd
+            s = await size_trade(
+                asset=parsed["asset"], asset_class=parsed.get("asset_class", "crypto"),
+                direction=parsed["direction"], entry=parsed.get("entry"),
+                stop_loss=parsed.get("stop_loss"), take_profits=parsed.get("take_profits") or [],
+                leverage=parsed.get("leverage", 1), risk_usd=resolve_risk_usd(),
+                horizon=parsed.get("horizon", "short_term"))
+        except Exception as e:
+            log.warning("[dr_profit] alert sizing failed: %s", e)
+            return ""
+    if not s or not s.get("ok"):
+        return ""
+    return ("\n─ $60 SIZE ─\n"
+            f"{s['units']:.6f} units (~${s['notional']:,.0f} notional) · "
+            f"entry ${s['entry']:,.2f} · stop ${s['stop_loss']:,.2f}")
+
+
 async def _send_bot_message(text: str):
     """Send a message via the PAIS Telegram bot."""
     import httpx
@@ -288,7 +327,6 @@ async def start_monitor():
 
     try:
         from pyrogram import Client
-        from pyrogram.types import Message
     except ImportError:
         log.warning("[dr_profit] pyrogram not installed: pip install pyrogram tgcrypto")
         return
@@ -308,23 +346,8 @@ async def start_monitor():
     except ValueError:
         channel_target = CHANNEL
 
-    @app.on_message()
-    async def on_message(client: Client, message: Message):
-        # Manual channel match instead of filters.chat() — the built-in chat filter
-        # can silently miss channel updates on a fresh session. The diagnostic line
-        # confirms whether updates are arriving at all and from which chats.
-        chat = message.chat
-        cid = chat.id if chat else None
-        if cid != channel_target:
-            log.info("[dr_profit] (ignored) update from chat %s", cid)
-            return
-
-        raw = message.text or message.caption or ""
-        if not raw.strip():
-            return
-
-        log.info("[dr_profit] New message from target channel (%d chars)", len(raw))
-
+    async def _handle_post(raw: str):
+        """Process one channel post: parse -> route -> execute -> alert. Never raises."""
         sig = parse_signal(raw)   # strict regex — often None on his free-text posts
 
         # Route to the executor when the regex found a structured signal OR the post
@@ -368,30 +391,65 @@ async def start_monitor():
         brief = format_trade_brief(sig) if sig is not None else \
             "📩 DR PROFIT (free-text)\n" + raw.strip()[:400]
 
-        # For free-text posts, only alert when the executor actually acted (placed/
-        # failed) so chatter that the LLM filters out stays silent. Regex signals
-        # always alert (existing behaviour).
-        meaningful = (sig is not None or exec_res.get("executed")
+        # Notify on EVERY parsed signal — take / low-confidence / reject — always with
+        # the $60 sizing attached, so nothing is silently dropped. Pure chatter that
+        # never yields a parsed signal (classifier "not a signal" / parse fail) stays
+        # quiet: it has no sig and never executed.
+        parsed = exec_res.get("sig") or sig
+        has_signal = (parsed is not None or exec_res.get("executed")
                       or exec_res.get("status") == "failed")
-        if meaningful:
-            await _send_bot_message(brief + verdict_block + exec_block)
+        if has_signal:
+            tag = _decision_tag(exec_res)
+            size_line = await _sizing_line(exec_res, parsed)
+            await _send_bot_message(f"{tag}\n{brief}{verdict_block}{exec_block}{size_line}")
 
     try:
         await app.start()
-        # Prime the peer cache. A fresh Pyrogram login silently drops updates from
-        # channels it hasn't "seen" yet — iterating dialogs once caches the peer so
-        # incoming channel messages actually reach the on_message handler.
+        # Prime the peer cache so get_chat_history reliably resolves the channel.
         try:
             found = False
             async for d in app.get_dialogs():
                 if d.chat and d.chat.id == channel_target:
                     found = True
-            log.info("[dr_profit] Peer cache primed (target channel in dialogs: %s)", found)
+            log.info("[dr_profit] Peer cache primed (target channel found: %s)", found)
         except Exception as e:
             log.warning("[dr_profit] dialog prime failed: %s", e)
-        log.info("[dr_profit] Monitor running.")
-        # Keep alive until cancelled
-        await asyncio.Event().wait()
+
+        # Baseline the latest message id so startup doesn't reprocess old history.
+        last_id = 0
+        try:
+            async for m in app.get_chat_history(channel_target, limit=1):
+                last_id = m.id
+        except Exception as e:
+            log.warning("[dr_profit] initial history read failed: %s", e)
+
+        poll_secs = int(os.environ.get("DR_PROFIT_POLL_SECS", "45") or "45")
+        log.info("[dr_profit] Monitor running (polling every %ss from msg id %s).",
+                 poll_secs, last_id)
+
+        # Poll loop. get_chat_history is a plain request/response call that always
+        # works — unlike push updates, which proved unreliable for this channel on a
+        # fresh session. Fetch anything newer than last_id, process oldest-first.
+        while True:
+            try:
+                new_msgs = []
+                async for m in app.get_chat_history(channel_target, limit=30):
+                    if m.id <= last_id:
+                        break
+                    new_msgs.append(m)
+                for m in reversed(new_msgs):
+                    last_id = max(last_id, m.id)
+                    raw = m.text or m.caption or ""
+                    if not raw.strip():
+                        continue
+                    log.info("[dr_profit] New message from channel (id %s, %d chars)",
+                             m.id, len(raw))
+                    await _handle_post(raw)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                log.warning("[dr_profit] poll error: %s", e)
+            await asyncio.sleep(poll_secs)
     except asyncio.CancelledError:
         pass
     finally:

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chart · PAIS Desk</title>
+<style>
+  :root{--bg:#0b0b12;--parch:#e9e2cf;--muted:#9aa0ad;--gold:#c9a14a;--green:#3ecf8e;--red:#ff7a7a;--blue:#3ea6ff}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--parch);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  body{display:flex;flex-direction:column}
+  #hdr{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,rgba(201,161,74,.06),transparent)}
+  #hdr .sym{font-size:17px;font-weight:800}
+  #hdr .dir{font-size:11px;font-weight:700;border:1px solid;border-radius:6px;padding:2px 8px;letter-spacing:.08em}
+  #hdr .tvsym{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted)}
+  #tf{display:flex;gap:4px}
+  #tf button{background:#12111b;border:1px solid rgba(255,255,255,.1);color:var(--muted);
+    border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer;font-family:ui-monospace,Menlo,monospace}
+  #tf button.on{background:rgba(201,161,74,.16);border-color:var(--gold);color:var(--gold)}
+  #hdr .chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  #hdr .chip{display:flex;flex-direction:column;line-height:1.12;
+    border:1px solid rgba(255,255,255,.09);border-radius:8px;padding:3px 9px;min-width:60px}
+  #hdr .chip span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  #hdr .chip b{font-size:12px}
+  #legend{width:100%;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--muted)}
+  #legend b{color:var(--gold)}
+  #chart{flex:1;min-height:0;position:relative}
+  #msg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    text-align:center;color:var(--muted);font-size:13px;padding:30px}
+</style>
+</head>
+<body>
+  <header id="hdr"></header>
+  <div id="chart"><div id="msg"></div></div>
+
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    const $=id=>document.getElementById(id);
+    const Q=new URLSearchParams(location.search);
+    const asset=(Q.get("asset")||"").toUpperCase().trim();
+    const ac=(Q.get("ac")||"crypto").toLowerCase();
+    const dir=(Q.get("dir")||"").toUpperCase();
+    const num=v=>(v==null||v==="")?null:+v;
+    const entry=num(Q.get("entry")), sl=num(Q.get("sl")), tp=num(Q.get("tp")), mark=num(Q.get("mark"));
+    const money=v=>(v==null)?"—":"$"+Number(v).toLocaleString("en-US",{maximumFractionDigits:Math.abs(v)<10?4:(Math.abs(v)<1000?2:0)});
+
+    // ── asset → Yahoo symbol + kind ──
+    function ymap(a,ac){
+      const idx={SP500:"^GSPC",SPX500:"^GSPC",SPX:"^GSPC",ES:"^GSPC",NAS100:"^NDX",NDX:"^NDX",NQ:"^NDX",
+                 US30:"^DJI",DJI:"^DJI",DXY:"DX-Y.NYB",UK100:"^FTSE"};
+      const comm={XAU:"GC=F",GOLD:"GC=F",XAG:"SI=F",SILVER:"SI=F",OIL:"CL=F",WTI:"CL=F",USOIL:"CL=F"};
+      if(idx[a])  return {sym:idx[a], kind:"index"};
+      if(comm[a]) return {sym:comm[a],kind:"index"};
+      if(ac==="crypto") return {sym:a+"-USD", kind:"crypto"};
+      return {sym:a, kind:"stock"};
+    }
+    const {sym,kind}=ymap(asset,ac);
+
+    // ── timeframes (Yahoo interval + range; agg = client-side bucketing e.g. 4h from 1h) ──
+    const TFS=[
+      {k:"5m", label:"5m", interval:"5m", range:"5d",  agg:1},
+      {k:"15m",label:"15m",interval:"15m",range:"1mo", agg:1},
+      {k:"30m",label:"30m",interval:"30m",range:"1mo", agg:1},
+      {k:"1h", label:"1h", interval:"60m",range:"3mo", agg:1},
+      {k:"4h", label:"4h", interval:"60m",range:"6mo", agg:4},
+      {k:"1d", label:"1D", interval:"1d", range:"2y",  agg:1},
+      {k:"1w", label:"1W", interval:"1wk",range:"5y",  agg:1}
+    ];
+    let curTf="1h", chart=null;
+
+    const isLong=dir==="LONG", dc=isLong?"#3ecf8e":dir==="SHORT"?"#ff7a7a":"#e9e2cf";
+    const rr=(sl!=null&&tp!=null&&entry!=null&&Math.abs(entry-sl)>0)?Math.abs(tp-entry)/Math.abs(entry-sl):null;
+
+    // header
+    const chip=(l,v,c)=>v!=null?`<div class="chip"><span>${l}</span><b style="color:${c||'#e9e2cf'}">${money(v)}</b></div>`:"";
+    $("hdr").innerHTML=`
+      <div class="sym">${asset||sym}</div>
+      ${dir?`<span class="dir" style="color:${dc};border-color:${dc}">${dir}</span>`:""}
+      <span class="tvsym">${sym}</span>
+      <div id="tf">${TFS.map(t=>`<button data-k="${t.k}" class="${t.k===curTf?'on':''}">${t.label}</button>`).join("")}</div>
+      <div class="chips">
+        ${chip("Avg entry",entry,"#e9e2cf")}${chip("Mark",mark,"#c9a14a")}
+        ${chip("Stop",sl,"#ff7a7a")}${chip("Target",tp,"#3ecf8e")}
+        ${rr!=null?`<div class="chip"><span>R:R</span><b>${rr.toFixed(2)}</b></div>`:""}
+      </div>
+      <div id="legend"><b>EMA</b> 21/50 · <b>RSI</b> 14 · <b>MACD</b> 12/26/9 · <b>Volume</b> — position box: stop / target</div>`;
+    document.title=(asset||sym)+" "+(dir||"")+" · Chart";
+    $("tf").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b)return;
+      curTf=b.dataset.k; [...$("tf").children].forEach(x=>x.classList.toggle("on",x.dataset.k===curTf)); render(); });
+
+    function showMsg(t){ const m=$("msg"); m.textContent=t; m.style.display="flex"; }
+    function hideMsg(){ $("msg").style.display="none"; }
+
+    // ── indicators ──
+    function ema(vals,p){ const k=2/(p+1); let e; return vals.map((v,i)=>{ e=i?v*k+e*(1-k):v; return e; }); }
+    function rsi(cl,p=14){ const out=new Array(cl.length).fill(null); let g=0,l=0;
+      for(let i=1;i<cl.length;i++){ const d=cl[i]-cl[i-1], up=Math.max(d,0), dn=Math.max(-d,0);
+        if(i<=p){ g+=up; l+=dn; if(i===p){ g/=p; l/=p; out[i]=100-100/(1+(l===0?100:g/l)); } }
+        else{ g=(g*(p-1)+up)/p; l=(l*(p-1)+dn)/p; out[i]=100-100/(1+(l===0?100:g/l)); } }
+      return out; }
+    function macd(cl,f=12,s=26,sig=9){ const ef=ema(cl,f), es=ema(cl,s);
+      const line=cl.map((_,i)=>ef[i]-es[i]); const signal=ema(line,sig);
+      return { line, signal, hist:line.map((v,i)=>v-signal[i]) }; }
+    function aggregate(c,n){ if(n<=1)return c; const out=[];
+      for(let i=0;i<c.length;i+=n){ const g=c.slice(i,i+n); if(!g.length)break;
+        out.push({time:g[0].time,open:g[0].open,close:g[g.length-1].close,
+          high:Math.max(...g.map(x=>x.high)),low:Math.min(...g.map(x=>x.low)),
+          volume:g.reduce((a,x)=>a+(x.volume||0),0)}); }
+      return out; }
+
+    if(!asset){ showMsg("No symbol provided — open this from a position on the desk."); }
+    else if(!window.LightweightCharts){ showMsg("Chart library failed to load."); }
+    else render();
+
+    async function render(){
+      hideMsg();
+      if(chart){ chart.remove(); chart=null; }
+      const tf=TFS.find(t=>t.k===curTf);
+      let data;
+      try{
+        const r=await fetch(`/api/candles?symbol=${encodeURIComponent(sym)}&interval=${tf.interval}&range=${tf.range}`);
+        data=await r.json();
+        if(!r.ok||!data.candles||!data.candles.length) throw new Error(data.error||"no candles");
+      }catch(e){ showMsg("Couldn't load price data for "+sym+" ("+e.message+")."); return; }
+
+      let candles=aggregate(data.candles,tf.agg);
+      const closes=candles.map(c=>c.close);
+      const LC=window.LightweightCharts, L=LC.LineStyle;
+
+      chart=LC.createChart($("chart"),{
+        layout:{background:{type:"solid",color:"#0b0b12"},textColor:"#c9c3b3",fontFamily:"ui-monospace,Menlo,monospace"},
+        grid:{vertLines:{color:"rgba(255,255,255,.04)"},horzLines:{color:"rgba(255,255,255,.04)"}},
+        rightPriceScale:{borderColor:"rgba(255,255,255,.12)"},
+        timeScale:{borderColor:"rgba(255,255,255,.12)",timeVisible:curTf!=="1d"&&curTf!=="1w",secondsVisible:false},
+        crosshair:{mode:LC.CrosshairMode.Normal}, autoSize:true
+      });
+
+      // price + EMAs (top band)
+      const candle=chart.addCandlestickSeries({upColor:"#3ecf8e",downColor:"#ff7a7a",
+        borderUpColor:"#3ecf8e",borderDownColor:"#ff7a7a",wickUpColor:"#3ecf8e",wickDownColor:"#ff7a7a"});
+      candle.setData(candles.map(c=>({time:c.time,open:c.open,high:c.high,low:c.low,close:c.close})));
+      const mkLine=(vals,color,scale)=>{ const s=chart.addLineSeries({color,lineWidth:1,priceScaleId:scale,
+          priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false});
+        s.setData(vals.map((v,i)=>v==null?null:({time:candles[i].time,value:v})).filter(Boolean)); return s; };
+      mkLine(ema(closes,21),"rgba(201,161,74,.9)");   // EMA 21
+      mkLine(ema(closes,50),"rgba(120,160,255,.85)"); // EMA 50
+
+      // volume
+      if(data.hasVolume){
+        const vol=chart.addHistogramSeries({priceScaleId:"vol",priceFormat:{type:"volume"}});
+        vol.setData(candles.map(c=>({time:c.time,value:c.volume,
+          color:c.close>=c.open?"rgba(62,207,142,.4)":"rgba(255,122,122,.4)"})));
+      }
+
+      // RSI band
+      const rsiS=mkLine(rsi(closes,14),"#c9a14a","rsi");
+      rsiS.applyOptions({lastValueVisible:true});
+      rsiS.createPriceLine({price:70,color:"rgba(255,122,122,.4)",lineWidth:1,lineStyle:L.Dotted,axisLabelVisible:false});
+      rsiS.createPriceLine({price:30,color:"rgba(62,207,142,.4)",lineWidth:1,lineStyle:L.Dotted,axisLabelVisible:false});
+
+      // MACD band
+      const m=macd(closes);
+      const mh=chart.addHistogramSeries({priceScaleId:"macd"});
+      mh.setData(candles.map((c,i)=>({time:c.time,value:m.hist[i]||0,
+        color:(m.hist[i]||0)>=0?"rgba(62,207,142,.5)":"rgba(255,122,122,.5)"})));
+      mkLine(m.line,"#3ea6ff","macd");
+      mkLine(m.signal,"#ff9800","macd");
+
+      // stacked layout
+      chart.priceScale("right").applyOptions({scaleMargins:{top:0.04,bottom:0.56}});
+      if(data.hasVolume) chart.priceScale("vol").applyOptions({scaleMargins:{top:0.45,bottom:0.47}});
+      chart.priceScale("rsi").applyOptions({scaleMargins:{top:0.55,bottom:0.26}});
+      chart.priceScale("macd").applyOptions({scaleMargins:{top:0.76,bottom:0.02}});
+
+      // ── position overlay: avg entry + stop + target ──
+      if(entry!=null) candle.createPriceLine({price:entry,color:isLong?"#3ecf8e":"#ff7a7a",lineWidth:2,
+        lineStyle:L.Solid,axisLabelVisible:true,title:`${isLong?"BUY":"SELL"} avg ${money(entry)}`});
+      if(sl!=null) candle.createPriceLine({price:sl,color:"#ff7a7a",lineWidth:2,lineStyle:L.Dashed,axisLabelVisible:true,title:`STOP ${money(sl)}`});
+      if(tp!=null) candle.createPriceLine({price:tp,color:"#3ecf8e",lineWidth:2,lineStyle:L.Dashed,axisLabelVisible:true,title:`TARGET ${money(tp)}`});
+
+      chart.timeScale().fitContent();
+    }
+  </script>
+</body>
+</html>

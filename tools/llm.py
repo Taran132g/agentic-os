@@ -39,7 +39,7 @@ MODEL_BY_AGENT = {
     "vault_curator": "haiku",
     "briefing":      "opus",
     "coding":        "opus",
-    "risk_gate":     "opus",
+    "risk_gate":     "sonnet",  # structured risk reasoning — Sonnet is plenty, saves the Pro Opus window
     "classify":      "haiku",   # cheap first-pass signal gate (executor)
 }
 

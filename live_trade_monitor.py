@@ -31,8 +31,9 @@ POLL_SECS    = int(os.environ.get("PAIS_MONITOR_POLL_SECS", "600"))  # 10 min
 # when a trade actually needs adjusting. Set PAIS_MONITOR_ALERTS_ONLY=0 for a
 # snapshot every cycle.
 ALERTS_ONLY  = os.environ.get("PAIS_MONITOR_ALERTS_ONLY", "1") != "0"
-NEAR_STOP_R  = 0.25   # warn when within 0.25R of the stop
-TRAIL_STEP_R = 0.5    # only re-suggest a trail move after +0.5R of new progress
+NEAR_STOP_R  = 0.25   # "about to hit stop" = within 0.25R of the stop
+NEAR_TP_PCT  = float(os.environ.get("PAIS_MONITOR_NEAR_TP_PCT", "0.02"))  # "almost at TP" = within 2% of target
+TRAIL_STEP_R = 0.5    # (unused) kept for compatibility
 STATE_FILE   = Path(__file__).parent / "monitor_state.json"
 
 
@@ -87,8 +88,12 @@ def _r_now(trade: dict, mark: float) -> float | None:
 
 def evaluate(trade: dict, mark: float, st: dict) -> tuple[list[str], dict]:
     """
-    Return (action_lines, new_state) for one trade. `st` is this trade's prior
-    monitor state; the returned state carries de-dup flags forward.
+    Alert ONLY on the three things Taran asked for:
+      1. a pending order FILLS (its limit price is crossed),
+      2. price is ABOUT TO HIT / has hit the stop-loss,
+      3. price is ALMOST AT / has hit the take-profit.
+    Everything else stays silent. De-dup flags in `st` stop re-nagging; they
+    reset once price leaves the trigger zone so a later approach can re-fire.
     """
     actions: list[str] = []
     st = dict(st or {})
@@ -97,60 +102,52 @@ def evaluate(trade: dict, mark: float, st: dict) -> tuple[list[str], dict]:
     is_long = direction == "LONG"
     entry = trade.get("entry_price")
     stop  = trade.get("initial_stop") or trade.get("stop_loss")
-    plan  = trade.get("exit_plan") or {}
-    dist  = abs(entry - stop) if (entry and stop) else None
+    tps   = trade.get("take_profit") or []
+    tp    = tps[0] if tps else None
 
-    # --- pending order: nudge toward the best entry ---
+    # 1) FILL — resting limit order whose price has been reached
     if trade.get("status") == "waiting_entry":
         best = (trade.get("extra") or {}).get("best_entry") or entry
         if best:
-            gap = (mark - best) / best * 100
             fillable = (is_long and mark <= best) or (not is_long and mark >= best)
             if fillable and not st.get("fill_alerted"):
-                actions.append(f"🎯 {asset}: price {mark:g} reached best entry {best:g} — "
-                               f"place the {direction} now.")
+                actions.append(f"✅ {asset} {direction} FILLED at {best:g} (mark {mark:g}).")
                 st["fill_alerted"] = True
-            elif not fillable:
-                actions.append(f"⏳ {asset}: waiting for {best:g} to {direction} "
-                               f"(now {mark:g}, {gap:+.1f}%).")
         return actions, st
 
-    r = _r_now(trade, mark)
-    if r is None or dist is None:
-        return actions, st
+    # 2) STOP — about to hit / hit
+    if entry and stop:
+        dist = abs(entry - stop)
+        if dist > 0:
+            r = (mark - entry) / dist * (1 if is_long else -1)
+            if r <= -1.0:
+                if not st.get("stop_hit"):
+                    actions.append(f"🛑 {asset} {direction}: STOP {stop:g} HIT (mark {mark:g}). Close it.")
+                    st["stop_hit"] = True
+            elif r <= -1.0 + NEAR_STOP_R:
+                if not st.get("near_stop"):
+                    actions.append(f"⚠️ {asset} {direction}: about to hit STOP {stop:g} "
+                                   f"(mark {mark:g}, {(-1.0 - r):.2f}R away).")
+                    st["near_stop"] = True
+            else:
+                st.pop("near_stop", None); st.pop("stop_hit", None)
 
-    tp1_r   = (plan.get("tp1") or {}).get("r", 2.0)
-    trail_r = (plan.get("runner") or {}).get("trail_r", 1.0)
-
-    # --- past the stop → close ---
-    if r <= -1.0:
-        if not st.get("stopped_alerted"):
-            actions.append(f"🛑 {asset}: hit stop ({mark:g}, {r:+.2f}R) — close it, that's -1R.")
-            st["stopped_alerted"] = True
-        return actions, st
-
-    # --- approaching stop ---
-    if r <= -1.0 + NEAR_STOP_R and not st.get("near_stop_alerted"):
-        actions.append(f"⚠️ {asset}: {r:+.2f}R, within {NEAR_STOP_R:g}R of stop {stop:g} — watch it.")
-        st["near_stop_alerted"] = True
-
-    # --- TP1 reached: bank partial + move stop to breakeven (one time) ---
-    if r >= tp1_r and not st.get("be_moved"):
-        frac = int((plan.get("tp1") or {}).get("close_frac", 0.34) * 100)
-        actions.append(f"✅ {asset}: TP1 hit ({mark:g}, +{r:.2f}R) — bank ~{frac}% and "
-                       f"move stop to breakeven {entry:g}.")
-        st["be_moved"] = True
-        st["last_trail_r"] = r
-
-    # --- runner: suggest trailing the stop as new progress accrues ---
-    if st.get("be_moved") and r >= tp1_r:
-        last = st.get("last_trail_r", tp1_r)
-        if r >= last + TRAIL_STEP_R:
-            new_stop = mark - (1 if is_long else -1) * trail_r * dist
-            locked = r - trail_r
-            actions.append(f"🔵 {asset}: {r:+.2f}R — trail stop to {new_stop:g} "
-                           f"(locks ~+{locked:.2f}R).")
-            st["last_trail_r"] = r
+    # 3) TARGET — almost at / hit
+    if entry and tp:
+        in_profit = (is_long and mark > entry) or (not is_long and mark < entry)
+        hit  = (is_long and mark >= tp) or (not is_long and mark <= tp)
+        near = abs(mark - tp) / tp <= NEAR_TP_PCT
+        if hit:
+            if not st.get("tp_hit"):
+                actions.append(f"🎯 {asset} {direction}: TARGET {tp:g} HIT (mark {mark:g})! Take profit.")
+                st["tp_hit"] = True
+        elif near and in_profit:
+            if not st.get("near_tp"):
+                actions.append(f"🎯 {asset} {direction}: almost at TARGET {tp:g} "
+                               f"(mark {mark:g}, within {NEAR_TP_PCT*100:g}%).")
+                st["near_tp"] = True
+        else:
+            st.pop("near_tp", None); st.pop("tp_hit", None)
 
     return actions, st
 
@@ -166,31 +163,21 @@ async def poll_once() -> dict:
         [(t["asset"], t.get("asset_class", "crypto")) for t in active])
 
     state = _load_state()
-    snap_lines, action_lines, total_open = [], [], 0.0
+    action_lines: list[str] = []
 
     for t in active:
         mark = prices.get(t["asset"])
         if not mark:
-            snap_lines.append(f"• {t['asset']} {t.get('direction','')}: no price")
             continue
 
-        # mark-to-market + persist (same math as /api/live/prices)
-        pnl = None
+        # mark-to-market + persist so the desk's open PnL stays current
         if t.get("entry_price") and t.get("position_size"):
             sign = 1 if t["direction"] == "LONG" else -1
             pnl = round((mark - t["entry_price"]) * t["position_size"] * sign, 2)
-            total_open += pnl
             try:
                 update_trade_pnl(t["id"], pnl, exit_price=None)
             except Exception as e:
                 log.warning("[monitor] pnl persist failed for %s: %s", t["id"], e)
-
-        r = _r_now(t, mark)
-        rtxt = f"{r:+.2f}R" if r is not None else "—"
-        pnltxt = f"${pnl:+.2f}" if pnl is not None else "pending"
-        tag = "⏳" if t.get("status") == "waiting_entry" else ""
-        snap_lines.append(f"• {t['asset']} {t.get('direction','')}{tag}: "
-                          f"{mark:g}  {pnltxt}  {rtxt}")
 
         acts, new_st = evaluate(t, mark, state.get(t["id"], {}))
         if acts:
@@ -202,16 +189,9 @@ async def poll_once() -> dict:
     state = {k: v for k, v in state.items() if k in live_ids}
     _save_state(state)
 
-    bank = get_bankroll()
-    header = (f"📊 Trade monitor — open PnL ${total_open:+.2f} | "
-              f"bankroll ${bank['bankroll']:.2f}")
-    msg = header + "\n" + "\n".join(snap_lines)
+    # Only ping on a real event — a fill, an approaching/hit stop, or a near/hit target.
     if action_lines:
-        msg += "\n\n⚠️ ADJUST:\n" + "\n".join(action_lines)
-
-    # Alerts-only: stay silent on quiet cycles (price/PnL were still persisted).
-    if action_lines or not ALERTS_ONLY:
-        await _send_telegram(msg)
+        await _send_telegram("\n".join(action_lines))
         return {"active": len(active), "sent": True, "actions": len(action_lines)}
     return {"active": len(active), "sent": False, "actions": 0}
 

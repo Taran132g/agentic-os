@@ -47,6 +47,10 @@ You must role-play four distinct voices in sequence, then output a single JSON v
 - Leverage:   {leverage}x
 - Raw text:   {raw}
 
+### Position sizing (fixed-risk — already computed in code)
+- The trade is sized so a stop-out loses a FIXED **$60**, whatever the asset: units = $60 / |entry - stop|.
+- You are NOT allocating a percent of bankroll. Judge signal QUALITY and whether to take the full $60 or trim it.
+
 ### Bankroll snapshot
 - Current bankroll:    ${bankroll:,.2f}
 - Starting bankroll:   ${starting:,.2f}
@@ -67,7 +71,7 @@ Run a structured debate in your head, then output ONLY a JSON object.
 
 1. AGGRESSIVE debator — argues FOR the trade. Cites momentum, conviction, Dr. Profit's track record, asymmetric upside. Bullish on size.
 
-2. CONSERVATIVE debator — argues AGAINST or for SMALLER size. Cites bankroll preservation, correlation with existing positions, drawdown risk, stop-loss distance vs upside.
+2. CONSERVATIVE debator — argues AGAINST taking the trade. Cites correlation with existing positions, drawdown risk, stop-loss distance vs upside, weak or missing levels.
 
 3. NEUTRAL debator — synthesizes. Looks at risk:reward ratio, signal quality, position concentration.
 
@@ -75,19 +79,21 @@ Run a structured debate in your head, then output ONLY a JSON object.
 
 ## Decision rules
 
-- REJECT if: no stop loss AND signal direction conflicts with existing open position; or risk:reward < 1:1.5; or new trade would push total open risk > 40% of bankroll.
-- RESIZE if: signal is directionally sound but proposed 20% bankroll risk is too high for current conditions (suggest a lower risk_pct, 5-15%).
-- APPROVE if: setup is clean, R:R >= 1:2, doesn't over-concentrate, bankroll can absorb full 20% risk.
+This is a BINARY gate: every trade taken is the full fixed $60 risk — there is no trimming or partial sizing. You either APPROVE the full $60 or REJECT.
+
+- REJECT if: there is no stop loss (risk would be unbounded); or, when take-profits are given, risk:reward is worse than 1:1.5; or the signal directly contradicts a sound existing position; or the setup is too weak or vague to deserve a full $60 commitment (e.g. no defined entry logic, no targets AND an unusually wide stop, or passive/non-actionable wording).
+- APPROVE if: the setup is sound enough to justify the full $60 — take it.
+- Do NOT reject for portfolio concentration, position count, or total open risk — aggregate exposure is context, NOT a blocker. There is no bankroll-percentage ceiling.
 
 ## Output format
 
 Output ONLY a JSON object on a single line, no other text, no markdown fences:
 
-{{"verdict":"APPROVE|RESIZE|REJECT","confidence":0-100,"suggested_risk_pct":FLOAT,"reasoning":"one paragraph","debate_summary":"AGG: ... | CON: ... | NEU: ..."}}
+{{"verdict":"APPROVE|REJECT","confidence":0-100,"suggested_risk_pct":FLOAT,"reasoning":"one paragraph","debate_summary":"AGG: ... | CON: ... | NEU: ..."}}
 
 Constraints:
-- `verdict` must be one of: APPROVE, RESIZE, REJECT
-- `suggested_risk_pct`: if APPROVE, equals 20; if RESIZE, between 5 and 15; if REJECT, 0
+- `verdict` must be one of: APPROVE, REJECT
+- `suggested_risk_pct`: APPROVE -> 20 (the full standard $60); REJECT -> 0. There is no in-between — never suggest a partial size.
 - `reasoning`: 2-4 sentences, plain prose, no markdown
 - `debate_summary`: pipe-separated, ~20 words per voice
 """
@@ -104,18 +110,61 @@ def _load_dr_profit_context(max_chars: int = 2000) -> str:
         return f"(Could not read performance file: {e})"
 
 
+# Sources that are NOT real exposure — seeded Dr. Profit history + explicit
+# backfills. The risk gate must never count these (or any paper/dry-run row)
+# toward open risk, or it rejects live signals against imaginary positions.
+_NON_REAL_SOURCES = {"dr_profit_history", "backfill"}
+
+
+def _real_positions_only(trades: list[dict]) -> list[dict]:
+    """Keep only REAL open exposure: drop paper/dry-run rows and seeded/backfilled
+    historical rows so they don't inflate the open-risk math Opus reasons over."""
+    real = []
+    for t in trades:
+        ex = t.get("extra") or {}
+        if ex.get("paper") is True:
+            continue
+        if str(t.get("source", "")).lower() in _NON_REAL_SOURCES:
+            continue
+        real.append(t)
+    return real
+
+
 def _format_active_trades(active: list[dict]) -> str:
+    """Split the executor's open book into live POSITIONS vs resting (unfilled)
+    LIMIT orders so the risk gate reasons about each distinctly — a resting limit
+    is not real exposure yet, but it IS pending commitment at a price level.
+    Records logged before order-state tracking existed fall back to POSITION
+    (their fill state is unknowable). Reads classification from t["extra"]."""
     if not active:
-        return "(No active trades.)"
-    lines = []
+        return "(No open positions or resting limit orders.)"
+
+    positions, resting = [], []
     for t in active:
-        pnl = t.get("pnl")
-        pnl_str = f"PnL ${pnl:+.2f}" if pnl is not None else "PnL pending"
-        lines.append(
-            f"- {t['asset']} {t['direction']} @ ${t['entry_price']:,.2f}  "
-            f"(risk ${t['risk_usd']:.2f}, {pnl_str})"
+        ex = t.get("extra") or {}
+        state = ex.get("order_state")
+        is_resting = state == "resting" or (
+            state is None
+            and str(ex.get("order_type", "")).upper() == "LIMIT"
+            and not ex.get("filled_units")
         )
-    return "\n".join(lines)
+        (resting if is_resting else positions).append(t)
+
+    def _line(t: dict) -> str:
+        lev = t.get("leverage")
+        lev_str = f", {int(lev)}x" if lev else ""
+        stop = t.get("stop_loss")
+        stop_str = f", stop ${stop:,.2f}" if stop else ", NO STOP"
+        pnl = t.get("pnl")
+        pnl_str = f", PnL ${pnl:+.2f}" if pnl is not None else ", PnL pending"
+        return (f"  - {t['asset']} {t['direction']} @ ${t.get('entry_price', 0):,.2f} "
+                f"(risk ${t.get('risk_usd', 0):.2f}{lev_str}{stop_str}{pnl_str})")
+
+    out = ["OPEN POSITIONS (live exposure):"]
+    out += ([_line(t) for t in positions] or ["  (none)"])
+    out += ["", "RESTING LIMIT ORDERS (placed, awaiting fill — not yet exposure):"]
+    out += ([_line(t) for t in resting] or ["  (none)"])
+    return "\n".join(out)
 
 
 def _safe_verdict(reason: str) -> dict:
@@ -159,7 +208,7 @@ async def evaluate_signal(sig: dict, broadcast=None) -> dict:
 
     try:
         br = get_bankroll()
-        active = get_active_trades()
+        active = _real_positions_only(get_active_trades())
     except Exception as e:
         log.warning("[risk_gate] Bankroll/trade read failed: %s", e)
         return _safe_verdict("bankroll read error")
@@ -175,11 +224,11 @@ async def evaluate_signal(sig: dict, broadcast=None) -> dict:
         bankroll     = br["bankroll"],
         starting     = br["starting"],
         realized_pnl = br["realized_pnl"],
-        open_pnl     = br["open_pnl"],
+        open_pnl     = sum((t.get("pnl") or 0) for t in active),
         win_rate     = br["win_rate"],
         wins         = br["wins"],
         losses       = br["losses"],
-        open_trades  = br["open_trades"],
+        open_trades  = len(active),
         active_trades_block = _format_active_trades(active),
         dr_profit_context   = _load_dr_profit_context(),
     )

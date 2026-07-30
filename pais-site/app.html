@@ -170,17 +170,10 @@ textarea:focus-visible,input:focus-visible{outline-offset:0}
   border-radius:15px;padding:16px 18px;margin-top:12px}
 .td-sec{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--gold);text-transform:uppercase;display:flex;align-items:center;gap:10px}
 .td-sec .rule{flex:1;height:1px;background:linear-gradient(90deg,rgba(201,161,74,.35),transparent)}
-#tdCanvas{width:100%;height:132px;display:block;margin-top:10px}
-.td-signal textarea{width:100%;min-height:58px;background:rgba(5,6,9,.8);border:1px solid rgba(255,255,255,.1);color:var(--parch);
-  border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:13px;resize:vertical;transition:border-color .15s,box-shadow .15s;margin-top:10px}
-.td-signal textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 22px -6px rgba(201,161,74,.45)}
-.td-sigrow{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}
 .td-status{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
 .td-status.working{color:var(--gold);animation:tdPulse 1.5s infinite}
 .td-status.err{color:#ff7a7a;animation:none}
 .td-status.ok{color:var(--green);animation:none}
-.td-result{display:none;margin-top:10px;padding:11px 13px;border:1px solid rgba(62,207,142,.25);background:rgba(62,207,142,.05);
-  border-radius:10px;font-family:var(--mono);font-size:11.5px;line-height:1.75}
 .td-row{display:grid;grid-template-columns:minmax(96px,1.1fr) minmax(150px,1.6fr) minmax(150px,1.8fr) minmax(120px,1.2fr);
   gap:14px;align-items:center;padding:13px 15px;border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-top:8px;
   background:rgba(255,255,255,.018);transition:border-color .15s,background .15s}
@@ -437,22 +430,10 @@ textarea:focus-visible,input:focus-visible{outline-offset:0}
       <button class="td-close" onclick="closeTraderPage()">✕</button>
     </div>
     <div class="td-chips" id="tdChips"></div>
-    <div class="td-panel td-signal">
-      <div class="td-sec">New trade — paste the signal<span class="rule"></span></div>
-      <textarea id="tdSignal" rows="2" placeholder="> paste Dr. Profit's signal — crypto or stock, any format…"></textarea>
-      <div class="td-sigrow">
-        <button class="btn" id="tdEnterBtn" onclick="tdEnter()">⚡ Size &amp; enter</button>
-        <span class="td-status" id="tdStatus">Parsed on your Mac · sized so a stop-out costs exactly $60</span>
-      </div>
-      <div class="td-result" id="tdResult"></div>
-    </div>
-    <div class="td-panel">
-      <div class="td-sec">Equity curve — realized P&amp;L<span class="rule"></span></div>
-      <canvas id="tdCanvas"></canvas>
-    </div>
     <div class="td-panel">
       <div class="td-sec">Open positions · <span id="tdPosCount">0</span>
         <span class="rule"></span>
+        <span class="td-status" id="tdStatus" style="margin-right:8px"></span>
         <button class="btn ghost" style="padding:8px 14px;font-size:11px" onclick="tdRefresh(true)">↻ Refresh</button>
       </div>
       <div id="tdRows"></div>
@@ -793,9 +774,35 @@ async function tdRefresh(manual){
   catch(e){ rows.innerHTML='<div class="td-empty">Couldn\'t reach your Mac — the desk needs your desktop online.</div>'; return; }
   renderTd();
 }
+let tdExpanded=new Set();
+function tdToggleGroup(k){ tdExpanded.has(k)?tdExpanded.delete(k):tdExpanded.add(k); renderTd(); }
+function tdUnits(v){ if(v==null) return "—"; const a=Math.abs(Number(v)); return a&&a<1?Number(v).toLocaleString("en-US",{maximumSignificantDigits:4}):Number(v).toLocaleString("en-US",{maximumFractionDigits:a<10?4:2}); }
+function tvHref(asset,ac,dir,entry,sl,tp,mark){ const q=new URLSearchParams(); q.set("asset",asset||""); q.set("ac",ac||"crypto"); if(dir)q.set("dir",dir); [["entry",entry],["sl",sl],["tp",tp],["mark",mark]].forEach(([k,v])=>{ if(v!=null&&v!=="")q.set(k,v); }); return "/chart?"+q.toString(); }
+function openChart(url,title){ if(!$("chartModal"))return; $("chartFrame").src=url; $("chartModalTitle").textContent=title||"Chart"; $("chartModalTab").href=url; $("chartModal").style.display="block"; }
+function closeChart(){ if(!$("chartModal"))return; $("chartModal").style.display="none"; $("chartFrame").src="about:blank"; }
+function tdRowHTML(p,isChild,chartUrl){
+  const lev=p.leverage>1?" · "+p.leverage+"x":"";
+  const pend=p.status==="waiting_entry";
+  const tp0=(p.take_profit&&p.take_profit[0]!=null)?p.take_profit[0]:"";
+  return `<div class="td-row${isChild?' td-child':''}">
+      <div class="td-a"><span class="sym">${esc(p.asset)}</span><span class="cls">${esc(p.asset_class||"crypto")}</span>
+        <div class="dir ${p.direction==="LONG"?"long":"short"}">${esc(p.direction)}${lev}</div>${pend?'<span style="font-size:9px;color:var(--gold2);border:1px solid var(--gold2);border-radius:4px;padding:1px 5px;margin-left:6px">pending</span>':''}</div>
+      <div class="td-px">${pend?"limit":"entry"} <b>${fmtUsd(p.entry)}</b><br>mark&nbsp; <b style="color:var(--gold2)">${p.mark?fmtUsd(p.mark):"—"}</b><br><span style="color:var(--muted);font-size:10px">${pend?"placed":"entered"} ${fmtWhen(p.opened_at)}</span></div>
+      <div>${tdRbar(p)}</div>
+      <div class="td-pnl"><div class="big" style="color:${pnlColor(p.pnl)}">${pend?'<span style="color:var(--muted);font-size:12px">unfilled</span>':fmtUsd(p.pnl,true)}</div>
+        <div class="sub">${p.r_multiple!=null&&!pend?`<b style="color:${pnlColor(p.pnl)}">${p.r_multiple>0?"+":""}${p.r_multiple}R</b> · `:""}${tdUnits(p.units)} u · ${fmtUsd(p.notional)}</div>
+        <div style="display:flex;gap:6px;margin-top:7px;justify-content:flex-end;flex-wrap:wrap">
+          ${chartUrl?`<button class="btn ghost" title="Open chart" style="padding:6px 11px;font-size:11px" onclick="openChart('${chartUrl}','${esc(p.asset)} ${esc(p.direction||'')}')">📈 Chart</button>`:""}
+          <button class="btn ghost" title="Add to position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','add',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">＋ Add</button>
+          <button class="btn ghost" title="Reduce position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','reduce',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">− Trim</button>
+          <button class="btn ghost td-closebtn" style="padding:6px 13px;font-size:11px" onclick="tdClose('${p.id}',${p.pnl==null?0:p.pnl},${p.mark==null?"null":p.mark})">${pend?"Cancel":"Close"}</button>
+        </div></div>
+    </div>`;
+}
 function renderTd(){
   const d=tdData||{}, br=d.bankroll||{}, pos=d.positions||[], closed=d.recent_closed||[];
-  const openPnl=pos.reduce((a,p)=>a+(p.pnl||0),0);
+  const openPos=pos.filter(p=>p.status!=="waiting_entry"), pendCount=pos.length-openPos.length;
+  const openPnl=openPos.reduce((a,p)=>a+(p.pnl||0),0);
   $("tdAsof").textContent="as of "+new Date().toLocaleTimeString();
   // analytics chips
   const wins=closed.filter(t=>(t.pnl||0)>0), losses=closed.filter(t=>(t.pnl||0)<=0);
@@ -807,28 +814,40 @@ function renderTd(){
   const chip=(l,v,c,s)=>`<div class="td-chip"><div class="l">${l}</div><div class="v" style="color:${c||"var(--parch)"}">${v}</div>${s?`<div class="s">${s}</div>`:""}</div>`;
   $("tdChips").innerHTML=
     chip("Bankroll",fmtUsd(br.bankroll),"var(--gold2)")+
-    chip("Open P&L",fmtUsd(openPnl,true),pnlColor(openPnl),pos.length+" position"+(pos.length===1?"":"s"))+
+    chip("Open P&L",fmtUsd(openPnl,true),pnlColor(openPnl),openPos.length+" open"+(pendCount?" · "+pendCount+" pending":""))+
     chip("Realized",fmtUsd(br.realized_pnl,true),pnlColor(br.realized_pnl),(closed.length||0)+" closed")+
     chip("Win rate",(br.win_rate??"—")+"%","",(br.wins||0)+"W / "+(br.losses||0)+"L")+
     chip("Profit factor",pf,pf!=="—"&&pf!=="∞"&&parseFloat(pf)<1?"#ff7a7a":"var(--parch)","gross win ÷ loss")+
     chip("Avg R",avgR!=null?(avgR>=0?"+":"")+avgR.toFixed(2)+"R":"—",avgR>0?"var(--green)":avgR<0?"#ff7a7a":"","$60 = 1R")+
     chip("Expectancy",exp!=null?fmtUsd(exp,true):"—",pnlColor(exp),"per trade");
-  // positions
-  $("tdPosCount").textContent=pos.length;
-  $("tdRows").innerHTML=pos.map(p=>{
-    const lev=p.leverage>1?" · "+p.leverage+"x":"";
-    return `<div class="td-row">
-      <div class="td-a"><span class="sym">${esc(p.asset)}</span><span class="cls">${esc(p.asset_class||"crypto")}</span>
-        <div class="dir ${p.direction==="LONG"?"long":"short"}">${esc(p.direction)}${lev}</div></div>
-      <div class="td-px">entry <b>${fmtUsd(p.entry)}</b><br>mark&nbsp; <b style="color:var(--gold2)">${p.mark?fmtUsd(p.mark):"—"}</b></div>
-      <div>${tdRbar(p)}</div>
-      <div class="td-pnl"><div class="big" style="color:${pnlColor(p.pnl)}">${fmtUsd(p.pnl,true)}</div>
-        <div class="sub">${p.r_multiple!=null?`<b style="color:${pnlColor(p.pnl)}">${p.r_multiple>0?"+":""}${p.r_multiple}R</b> · `:""}${p.units??"—"} u · ${fmtUsd(p.notional)}</div>
-        <div style="display:flex;gap:6px;margin-top:7px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn ghost" title="Add to position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','add',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">＋ Add</button>
-          <button class="btn ghost" title="Reduce position" style="padding:6px 11px;font-size:11px" onclick="tdScale('${p.id}','reduce',${p.units==null?0:p.units},${p.mark==null?"null":p.mark})">− Trim</button>
-          <button class="btn ghost td-closebtn" style="padding:6px 13px;font-size:11px" onclick="tdClose('${p.id}',${p.pnl==null?0:p.pnl},${p.mark==null?"null":p.mark})">Close</button>
-        </div></div>
+  // positions — grouped by symbol+direction, expandable to individual entries
+  $("tdPosCount").textContent=openPos.length+(pendCount?" · "+pendCount+" pending":"");
+  const _gs=[], _gm={};
+  pos.forEach(p=>{ const k=(p.asset||"?")+"|"+(p.direction||""); if(!_gm[k]){ _gm[k]={key:k,asset:p.asset,asset_class:p.asset_class,direction:p.direction,items:[]}; _gs.push(_gm[k]); } _gm[k].items.push(p); });
+  $("tdRows").innerHTML=_gs.map(g=>{
+    if(g.items.length===1){ const _p=g.items[0]; return tdRowHTML(_p,false,tvHref(_p.asset,_p.asset_class||'crypto',_p.direction,_p.entry,_p.stop_loss,(_p.take_profit&&_p.take_profit[0]),_p.mark)); }
+    const S=(f,filledOnly)=>g.items.reduce((a,p)=>a+((filledOnly&&p.status==="waiting_entry")?0:(Number(p[f])||0)),0);
+    const units=S("units"), notional=S("notional"), pnl=S("pnl",true), risk=S("risk_usd",true);
+    const wEntry=units?g.items.reduce((a,p)=>a+(Number(p.entry)||0)*(Number(p.units)||0),0)/units:null;
+    const mark=(g.items.find(p=>p.mark!=null)||{}).mark;
+    const levs=[...new Set(g.items.map(p=>Number(p.leverage)||1))].sort((a,b)=>a-b);
+    const levTxt=levs.length===1?(levs[0]>1?" · "+levs[0]+"x":""):" · "+levs[0]+"–"+levs[levs.length-1]+"x";
+    const rM=risk?Math.round(pnl/risk*100)/100:null;
+    const nPend=g.items.filter(p=>p.status==="waiting_entry").length;
+    const open=tdExpanded.has(g.key);
+    const gf=g.items[0]||{}, gSl=gf.stop_loss, gTp=(gf.take_profit&&gf.take_profit[0]!=null)?gf.take_profit[0]:null;
+    const gUrl=tvHref(g.asset,g.asset_class||'crypto',g.direction,wEntry,gSl,gTp,mark);
+    return `<div class="td-group" style="margin-bottom:4px">
+      <div class="td-row td-grouphead" style="cursor:pointer" onclick="tdToggleGroup('${escAttr(g.key)}')">
+        <div class="td-a"><span style="display:inline-block;width:16px;color:var(--muted)">${open?"▾":"▸"}</span><span class="sym">${esc(g.asset)}</span><span class="cls">${esc(g.asset_class||"crypto")}</span>
+          <div class="dir ${g.direction==="LONG"?"long":"short"}">${esc(g.direction)}${levTxt}</div>
+          <span style="color:var(--muted);font-size:11px;margin-left:8px">${g.items.length} entries${nPend?` · <span style="color:var(--gold2)">${nPend} pending</span>`:""}</span><button class="btn ghost" onclick="event.stopPropagation();openChart('${gUrl}','${esc(g.asset)} ${esc(g.direction||'')}')" title="Open chart" style="padding:3px 9px;font-size:10px;margin-left:10px">📈 Chart</button></div>
+        <div class="td-px">avg <b>${fmtUsd(wEntry)}</b><br>mark&nbsp; <b style="color:var(--gold2)">${mark?fmtUsd(mark):"—"}</b></div>
+        <div>${tdRbar({stop_loss:null,entry:wEntry,mark:mark})}</div>
+        <div class="td-pnl"><div class="big" style="color:${pnlColor(pnl)}">${fmtUsd(pnl,true)}</div>
+          <div class="sub">${rM!=null?`<b style="color:${pnlColor(pnl)}">${rM>0?"+":""}${rM}R</b> · `:""}${tdUnits(units)} u · ${fmtUsd(notional)}</div></div>
+      </div>
+      <div class="td-children" style="display:${open?"block":"none"};padding-left:12px;border-left:2px solid rgba(255,255,255,.07);margin:2px 0 6px 8px">${g.items.map(p=>tdRowHTML(p,true)).join("")}</div>
     </div>`;
   }).join("")||'<div class="td-empty">No open positions — paste a signal above.</div>';
   // recently closed
@@ -838,7 +857,20 @@ function renderTd(){
       `<div class="td-closed"><b style="min-width:64px">${esc(t.asset)}</b><span>${esc(t.direction||"")}</span>
        <span style="flex:1">${esc(t.closed_at||"")}</span><b style="color:${pnlColor(t.pnl)}">${fmtUsd(t.pnl,true)}</b></div>`).join("");
   } else cp.style.display="none";
-  tdCurve(closed,openPnl,pos.length>0);
+  // equity curve removed
+}
+function fmtWhen(iso){
+  if(!iso) return "—";
+  const d=new Date(iso);
+  if(isNaN(d.getTime())) return String(iso).slice(0,16).replace("T"," ");
+  const diff=(Date.now()-d.getTime())/1000;
+  let rel;
+  if(diff<0) rel="just now";
+  else if(diff<3600) rel=Math.max(1,Math.round(diff/60))+"m ago";
+  else if(diff<86400) rel=Math.round(diff/3600)+"h ago";
+  else rel=Math.round(diff/86400)+"d ago";
+  const abs=d.toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+  return `${abs} · ${rel}`;
 }
 function tdRbar(p){
   const sl=p.stop_loss, entry=p.entry, tp1=(p.take_profit||[])[0];
@@ -851,58 +883,6 @@ function tdRbar(p){
   return `<div class="td-rbar"><div class="zsl" style="width:${e}%"></div><div class="ztp" style="width:${100-e}%"></div>
       <div class="dot" style="left:${m}%"></div></div>
     <div class="td-lbl"><span>SL ${f(sl)}</span><span>${tp1?"TP "+f(tp1):"2R"}</span></div>`;
-}
-function tdCurve(closed,openPnl,hasOpen){
-  const cv=$("tdCanvas"); if(!cv) return;
-  const dpr=devicePixelRatio||1, W=cv.clientWidth||600, H=132;
-  cv.width=W*dpr; cv.height=H*dpr;
-  const x2=cv.getContext("2d"); x2.scale(dpr,dpr); x2.clearRect(0,0,W,H);
-  const pts=[0]; let cum=0;
-  closed.forEach(t=>{ cum+=(t.pnl||0); pts.push(cum); });
-  const all=hasOpen?[...pts,cum+openPnl]:pts;
-  if(all.length<2){ x2.fillStyle="rgba(154,160,173,.6)"; x2.font="11px 'JetBrains Mono'"; x2.textAlign="center";
-    x2.fillText("Equity curve appears after your first closed trade",W/2,H/2); return; }
-  const mn=Math.min(...all,0), mx=Math.max(...all,0), pad=(mx-mn)*.15||10;
-  const Y=v=>H-10-((v-(mn-pad))/((mx+pad)-(mn-pad)))*(H-20);
-  const X=i=>10+i/(all.length-1)*(W-20);
-  x2.strokeStyle="rgba(154,160,173,.25)"; x2.setLineDash([3,4]);
-  x2.beginPath(); x2.moveTo(10,Y(0)); x2.lineTo(W-10,Y(0)); x2.stroke(); x2.setLineDash([]);
-  const last=pts.length-1;
-  const g=x2.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(201,161,74,.28)"); g.addColorStop(1,"rgba(201,161,74,0)");
-  x2.beginPath(); x2.moveTo(X(0),Y(pts[0]));
-  for(let i=1;i<pts.length;i++) x2.lineTo(X(i),Y(pts[i]));
-  x2.strokeStyle="#e0bd6e"; x2.lineWidth=1.8; x2.stroke();
-  x2.lineTo(X(last),H-10); x2.lineTo(X(0),H-10); x2.closePath(); x2.fillStyle=g; x2.fill();
-  if(hasOpen){ const c=openPnl>=0?"#3ecf8e":"#ff7a7a";
-    x2.beginPath(); x2.setLineDash([4,4]); x2.moveTo(X(last),Y(cum)); x2.lineTo(X(all.length-1),Y(cum+openPnl));
-    x2.strokeStyle=c; x2.stroke(); x2.setLineDash([]);
-    x2.beginPath(); x2.arc(X(all.length-1),Y(cum+openPnl),3.5,0,7); x2.fillStyle=c; x2.fill(); }
-  x2.beginPath(); x2.arc(X(last),Y(cum),3,0,7); x2.fillStyle="#e0bd6e"; x2.fill();
-}
-async function tdEnter(){
-  const ta=$("tdSignal"), btn=$("tdEnterBtn"), st=$("tdStatus"), res=$("tdResult");
-  const text=(ta&&ta.value||"").trim();
-  if(!text){ st.className="td-status err"; st.textContent="Paste a signal first."; return; }
-  if(!(LIVE&&token)){ st.className="td-status err"; st.textContent="Sign in first."; return; }
-  btn.disabled=true; st.className="td-status working";
-  st.textContent="⚡ Parsing on your Mac + pulling live price & volatility… (~30-60s)";
-  res.style.display="none";
-  try{
-    const d=await api("/api/agents/trader/signal",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text})});
-    if(!d.ok){ st.className="td-status err"; st.textContent="✕ "+(d.error||"Couldn't enter that."); btn.disabled=false; return; }
-    const s=d.sizing,p=d.parsed;
-    st.className="td-status ok"; st.textContent="✓ Entered.";
-    res.style.display="block";
-    res.innerHTML=`<b style="color:${p.direction==="LONG"?"var(--green)":"#ff7a7a"}">${esc(p.asset)} ${esc(p.direction)}</b>
-      · entry ${fmtUsd(s.entry)} · stop ${fmtUsd(s.stop_loss)} (${s.stop_pct}% away${s.stop_source!=="signal"?", from volatility":""})
-      · <b>${s.units} ${esc(p.asset)}</b> ≈ ${fmtUsd(s.notional)}${s.leverage>1?` @ ${s.leverage}x`:""}
-      ${s.expected_move_pct?`<br><span style="color:var(--muted)">vol ${(s.annual_vol*100).toFixed(1)}% ann (${esc(s.vol_source||"")}) · expected ${s.hold_days}d move ±${s.expected_move_pct}%</span>`:""}
-      ${(s.warnings||[]).map(w=>`<br><span style="color:var(--gold)">⚠ ${esc(w)}</span>`).join("")}`;
-    ta.value="";
-    banner("Trade entered",p.asset+" "+p.direction+" · $60 risk"); chime("done");
-    setTimeout(tdRefresh,2500);
-  }catch(e){ st.className="td-status err"; st.textContent="✕ "+(e.detail||e.message||"Request failed — is your Mac awake?"); }
-  btn.disabled=false;
 }
 async function tdClose(id,pnl,mark){
   const live=(pnl==null?0:pnl);
@@ -1358,11 +1338,21 @@ function _usageBar(w,l){ if(!w||w.utilization==null) return `<div style="margin:
   const u=Math.round(w.utilization); const c=u>=90?'#f87':u>=70?'#fb4':'#6e9';
   return `<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${l}</span><span style="color:${c};font-weight:600">${u}%</span></div><div style="height:7px;background:rgba(255,255,255,.08);border-radius:4px;margin-top:4px"><div style="height:100%;width:${Math.min(u,100)}%;background:${c};border-radius:4px"></div></div><div style="font-size:11px;color:var(--muted);margin-top:3px">resets ${_resetLabel(w.resets_at)}</div></div>`; }
 function renderUsage(){ const b=$("usageBody"); const accts=(__acct&&__acct.accounts)||[];
-  const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.name===__selAcct?'active':''}" onclick="selUsage('${a.name}')">${esc(a.name)}${a.active?' ✓':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
+  const chips=accts.length? accts.map(a=>`<button class="acct-chip ${a.name===__selAcct?'active':''}" onclick="selUsage('${a.name}')">${esc(a.name)}${a.active?' ✓':a.dead?' <span style="color:#f87" title="re-login needed">⚠</span>':''}<small>${esc(a.email||'')}</small></button>`).join(" ") : "<span style='color:var(--muted)'>No saved accounts.</span>";
   const sel=accts.find(a=>a.name===__selAcct)||{}; const q=sel.quota||(sel.active?(__acct.quota||{}):{});
-  const sw=(sel.name&&!sel.active)?`<button class="btn" onclick="switchAcct('${sel.name}',this)" style="margin-top:14px">⇄ Switch to ${esc(sel.name)}</button>`:"";
+  // A dead profile's refresh token is rejected by the server — switching to it would
+  // fail (or hand you a session that dies within hours), so surface re-login steps
+  // instead of a switch button. A healthy idle profile keeps the normal Switch action.
+  const sw = (sel.name && !sel.active)
+    ? (sel.dead
+        ? `<div style="margin-top:14px;padding:12px 14px;border:1px solid #f87;border-radius:10px;background:rgba(248,135,119,.08);font-size:13px;line-height:1.55">
+             <b style="color:#f87">⚠ Re-login needed</b> — ${esc(sel.name)}'s session expired and can't be refreshed automatically. On your Mac, run:
+             <div style="font-family:var(--mono);font-size:12px;color:var(--gold);margin-top:8px;white-space:pre-line">claude   → then  /login   (sign in as ${esc(sel.email||sel.name)})
+claude-account save ${esc(sel.name)}</div></div>`
+        : `<button class="btn" onclick="switchAcct('${sel.name}',this)" style="margin-top:14px">⇄ Switch to ${esc(sel.name)}</button>`)
+    : "";
   b.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${chips}</div>
-    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">${esc(__selAcct||'')} quota${sel.active?' · active':' · viewing only — tap Switch to use'}</div>
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.5px;color:var(--muted);text-transform:uppercase">${esc(__selAcct||'')} quota${sel.active?' · active':(sel.dead?' · re-login needed':' · viewing only — tap Switch to use')}</div>
     ${_usageBar(q.five_hour,'5-hour window')}${_usageBar(q.seven_day,'Weekly limit')}${sw}`; }
 function selUsage(name){ __selAcct=name; renderUsage(); }   // SELECT only — never auto-switches
 async function switchAcct(name,btn){ if(btn){ btn.disabled=true; btn.textContent="Switching…"; }
@@ -1460,5 +1450,15 @@ addEventListener("popstate",()=>{ const c=_topOverlayClose(); if(c) c(); _navSyn
 
 Object.assign(window,{AGENTS,state,openAgentPage,openTraderPage,openSettings,openChief,openConnect,openUsage,openBrain,openAgentSettings,setLeadStatus,fillJob,draftSales}); // debug hooks
 </script>
+<div id="chartModal" onclick="if(event.target===this)closeChart()" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(3,4,8,.86)">
+  <div style="position:absolute;inset:20px;background:#0b0b12;border:1px solid rgba(255,255,255,.14);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px -20px rgba(0,0,0,.7)">
+    <div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,.08)">
+      <span style="font-size:14px">📈</span><b id="chartModalTitle" style="font-size:13px">Chart</b>
+      <a id="chartModalTab" href="#" target="_blank" rel="noopener" style="margin-left:auto;color:#9aa0ad;font-size:11px;text-decoration:none">open in browser ↗</a>
+      <button onclick="closeChart()" title="Close" style="background:transparent;border:1px solid rgba(255,255,255,.15);color:#e9e2cf;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:14px">✕</button>
+    </div>
+    <iframe id="chartFrame" title="Trade chart" style="flex:1;border:0;width:100%;background:#0b0b12"></iframe>
+  </div>
+</div>
 </body>
 </html>
