@@ -281,6 +281,17 @@ def main() -> int:
     _send_telegram(tg_msg)
     print(f"Vault digest written for {today_str} (recap of {span}); "
           f"{len(followups)} follow-ups.")
+    # Name the follow-ups on stdout so the feed report + reviewer audit see WHAT
+    # was flagged — not just a count. Real runs previously kept the detail in the
+    # vault note / Telegram only; the bridge captures stdout, so the reviewer had
+    # to "go look". Printed last so the bridge's last-6000-char capture keeps them.
+    # Reviewer audit 2026-07-30 (Briefing agent — "3 flagged items are unnamed").
+    if followups:
+        print("\nOpen follow-ups (last 7 days):")
+        for it in followups:
+            print(f"  - {it}")
+    else:
+        print("\nNo open follow-ups tracked this cycle.")
     return 0
 
 

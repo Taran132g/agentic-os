@@ -111,3 +111,7 @@ My Movie v3.mp4
 local_business/.state/
 cover_letter.*
 .venv_tts/
+.coinbase_cdp_key.json
+.env.bak*
+*.bak-20*
+*.pre-*.bak

@@ -163,7 +163,11 @@ def main() -> int:
     hours = int(os.environ.get("TRIAGE_HOURS", "24"))
     limit = int(os.environ.get("TRIAGE_LIMIT", "40"))
 
-    addr = os.environ["GMAIL_ADDRESS"]; pw = os.environ["GMAIL_APP_PASSWORD"]
+    addr = os.environ["GMAIL_ADDRESS"].strip()
+    # Gmail displays App Passwords grouped as "xxxx xxxx xxxx xxxx" (19 chars),
+    # but IMAP wants the bare 16. A spaced paste into .env otherwise fails login
+    # with a confusing [AUTHENTICATIONFAILED]. Strip whitespace so either form works.
+    pw = "".join(os.environ["GMAIL_APP_PASSWORD"].split())
     readonly = (mode != "act") or dry
     # timeout: a Gmail stall must fail the run, not hang it forever (n8n would
     # otherwise hold the execution open indefinitely).
@@ -329,7 +333,13 @@ def main() -> int:
         return 0
 
     _tg_text(digest)
-    print(f"Triage done — {len(items)} classified, {archived} archived, mode={mode}.")
+    # Echo the full per-tier breakdown to stdout so the feed report + reviewer
+    # audit see the tiers, sender names, and subjects — not just the count. Real
+    # runs previously sent the rich digest ONLY to Telegram; the bridge captures
+    # stdout, so the reviewer graded on "N classified" alone. Reviewer audit
+    # 2026-07-30 (Email agent — grade C, "zero visibility into what any are").
+    print(html.unescape(re.sub(r"<[^>]+>", "", digest)))
+    print(f"\nTriage done — {len(items)} classified, {archived} archived, mode={mode}.")
     return 0
 
 

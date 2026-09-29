@@ -120,6 +120,20 @@ FOCUS:
 - Prefer companies with real, currently-open Summer-2027 intern programs and a
   DIRECT application URL.
 
+PRIORITY — BANKING & FINANCIAL-SERVICES TECHNOLOGY FIRST:
+- Taran is prioritizing TECHNOLOGY internships at banks, asset managers, fintech,
+  and insurers (SWE, AI/ML, Application Development, Data Engineering, Technology
+  Analyst, Quant Developer). He already reached real interviews / second rounds
+  at Customers Bank, Vanguard, PNC, Reliance Matrix, and Block last cycle — so
+  peer employers (Capital One, Citizens, Citi, BlackRock, Goldman Sachs, JPMorgan,
+  Fidelity, American Express, Capital Group, Synchrony, and similar) are the
+  highest-value targets. Aim for at least HALF the matches to be banking /
+  financial-services / fintech TECH roles.
+- Then fill the rest with strong general AI/ML and SWE internships so nothing
+  great is missed — do NOT return banking-only.
+- Exclude non-technology finance roles (financial-advisor, sales, actuarial,
+  audit, wealth-management-advisor).
+
 ATTAINABILITY — optimize for REPLY RATE, not prestige:
 - AVOID ultra-competitive employers: FAANG/MANGA, OpenAI/Anthropic-tier AI labs,
   quant firms (Jane Street, Citadel, Two Sigma, HRT), and other household-name
@@ -132,6 +146,9 @@ ATTAINABILITY — optimize for REPLY RATE, not prestige:
   companies that actively recruit at Penn State.
 - Fold attainability INTO match_score: a realistic shot at an interview
   outranks a dream company.
+- Fold the BANKING/FINANCIAL-SERVICES TECH priority into match_score too: give
+  such roles a meaningful boost so they rank at the top of the digest, with
+  proven-employer peers (see PRIORITY list) boosted most.
 
 {persona_block()}
 Prefer Workday / Greenhouse / official career-page postings with a DIRECT
