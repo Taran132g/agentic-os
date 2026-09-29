@@ -16,9 +16,14 @@ import os
 from dataclasses import dataclass
 
 MODE_DRY_RUN = "dry_run"   # full pipeline, logs the intended order, places nothing
-MODE_TESTNET = "testnet"   # real orders on the Yubit TESTNET (fake funds)
+MODE_TESTNET = "testnet"   # real orders on the venue's DEMO/testnet (fake funds)
 MODE_LIVE    = "live"      # real orders with real money
 _VALID_MODES = {MODE_DRY_RUN, MODE_TESTNET, MODE_LIVE}
+
+BROKER_KRAKEN_FUTURES = "kraken_futures"
+BROKER_YUBIT          = "yubit"
+BROKER_COINBASE       = "coinbase"
+_VALID_BROKERS = {BROKER_KRAKEN_FUTURES, BROKER_YUBIT, BROKER_COINBASE}
 
 
 def _env_bool(key: str, default: bool) -> bool:
@@ -45,6 +50,7 @@ def _env_int(key: str, default: int) -> int:
 @dataclass(frozen=True)
 class ExecConfig:
     mode: str
+    broker: str                  # kraken_futures (default) | coinbase | yubit
     auto_execute: bool
     kill_switch: bool
     max_notional_usd: float      # per-trade notional cap; 0 = no cap; oversized clamp DOWN
@@ -83,11 +89,16 @@ def load_config() -> ExecConfig:
     if mode not in _VALID_MODES:
         mode = MODE_DRY_RUN
 
+    broker = (os.environ.get("EXEC_BROKER", BROKER_KRAKEN_FUTURES) or "").strip().lower()
+    if broker not in _VALID_BROKERS:
+        broker = BROKER_KRAKEN_FUTURES
+
     assets_raw = (os.environ.get("EXEC_ALLOWED_ASSETS", "") or "").strip()
     allowed = frozenset(a.strip().upper() for a in assets_raw.split(",") if a.strip())
 
     return ExecConfig(
         mode                = mode,
+        broker              = broker,
         auto_execute        = _env_bool("DR_PROFIT_AUTO_EXECUTE", False),
         kill_switch         = _env_bool("EXEC_KILL_SWITCH", False),
         max_notional_usd    = _env_float("EXEC_MAX_NOTIONAL_USD", 100.0),

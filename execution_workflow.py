@@ -1,6 +1,6 @@
 """
 Execution workflow — the auto-executor that turns a Dr. Profit signal into a
-real (or simulated) order on Yubit USDT-M perps.
+real (or simulated) order on Kraken Futures USD perps (EXEC_BROKER, default).
 
 Pipeline (all fail-safe — never raises to the monitor):
     parse (Claude agent) -> size ($-risk, deterministic) -> risk gate ->
@@ -115,11 +115,23 @@ def _pick_broker(cfg):
     from tools.broker import PaperBroker
     if cfg.is_dry_run:
         return PaperBroker(), None
-    from tools.yubit_client import YubitBroker
-    broker = YubitBroker(testnet=cfg.is_testnet)
+    env = "TESTNET" if cfg.is_testnet else "LIVE"
+    if cfg.broker == "coinbase":
+        if cfg.is_testnet:
+            return None, "Coinbase has no testnet — use dry_run, then live"
+        from tools.coinbase_futures_client import CoinbaseFuturesBroker
+        broker = CoinbaseFuturesBroker()
+        if not broker.configured():
+            return None, "Coinbase API key not set — cannot place orders"
+        return broker, None
+    if cfg.broker == "yubit":
+        from tools.yubit_client import YubitBroker
+        broker, name = YubitBroker(testnet=cfg.is_testnet), "Yubit"
+    else:
+        from tools.kraken_futures_client import KrakenFuturesBroker
+        broker, name = KrakenFuturesBroker(demo=cfg.is_testnet), "Kraken Futures"
     if not broker.configured():
-        env = "TESTNET" if cfg.is_testnet else "LIVE"
-        return None, f"Yubit {env} API key/secret not set — cannot place orders"
+        return None, f"{name} {env} API key/secret not set — cannot place orders"
     return broker, None
 
 
@@ -188,11 +200,11 @@ async def _execute_signal_inner(text: str, source: str, broadcast) -> dict:
         return _skip("skipped", f"{sig['asset']} not in EXEC_ALLOWED_ASSETS",
                      mode=cfg.mode, sig=sig)
 
-    # Yubit trades crypto only. Stock picks (e.g. $COIN) can't be filled there —
+    # The perp venues are crypto-only. Stock picks (e.g. $COIN) can't be filled there —
     # skip them for real orders, but let dry-run still paper-record them so the
     # trader desk shows what was signalled.
     if sig["asset_class"] == "stock" and not cfg.is_dry_run:
-        return _skip("skipped", f"{sig['asset']} is a stock — Yubit is crypto-only",
+        return _skip("skipped", f"{sig['asset']} is a stock — {cfg.broker} is crypto-only",
                      mode=cfg.mode, sig=sig)
 
     # ── dedupe ──

@@ -301,13 +301,15 @@ async def _send_bot_message(text: str):
     import httpx
     try:
         async with httpx.AsyncClient() as client:
-            await client.post(
+            r = await client.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 json={"chat_id": CHAT_ID, "text": text, "parse_mode": ""},
                 timeout=10,
             )
+        if r.status_code != 200:  # was silent: a dead token dropped every alert unnoticed
+            log.error("Bot send failed: HTTP %s %s", r.status_code, r.text[:120])
     except Exception as e:
-        log.warning("Bot send failed: %s", e)
+        log.warning("Bot send failed: %s", type(e).__name__)  # message could embed the token URL
 
 
 async def start_monitor():
