@@ -2,25 +2,118 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
   "redirects": [
-    { "source": "/room", "destination": "/app", "permanent": true }
+    {
+      "source": "/room",
+      "destination": "/app",
+      "permanent": true
+    },
+    {
+      "source": "/pricing",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/control-room",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/demo",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/demo/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/v2",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/v2/:path*",
+      "destination": "/",
+      "permanent": false
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-      { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
-    ]},
-    { "source": "/app", "headers": [
-      { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
-    ]},
-    { "source": "/poker/(.*)", "headers": [
-      { "key": "Cache-Control", "value": "no-cache" }
-    ]},
-    { "source": "/voices2/(.*)", "headers": [
-      { "key": "Cache-Control", "value": "no-cache" }
-    ]},
-    { "source": "/", "headers": [
-      { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }
-    ]}
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    },
+    {
+      "source": "/app",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/poker/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/voices2/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/cave/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/cave/:path*",
+      "destination": "https://api.129.159.182.210.nip.io/cave/:path*"
+    }
   ]
 }

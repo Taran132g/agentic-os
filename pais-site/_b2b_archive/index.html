@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIS — never miss another customer</title>
+<meta name="description" content="An AI receptionist & win-back system for local businesses. See the Control Room.">
+<meta name="theme-color" content="#08090d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="theme.css">
+<script>(function(){window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};var s=document.createElement('script');s.defer=true;s.src='/_vercel/insights/script.js';document.head.appendChild(s)})();</script>
+<style>
+/* Option B — Split screen. Left = the pitch. Right = the product, full height. */
+body { overflow: hidden; }
+@media (max-width: 900px) { body { overflow: auto; } }
+.split { min-height: 100dvh; display: grid; grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+.left { display: flex; flex-direction: column; padding: clamp(1.6rem, 4vw, 3.2rem); }
+.left .wordmark { font-size: 1.3rem; }
+.left .mid { margin-top: auto; }
+.left .eyebrow { display: block; margin-bottom: 1.3rem; }
+.left h1 { font-size: clamp(2.6rem, 1.2rem + 5.5vw, 5rem); }
+.left h1 .gold { color: var(--gold); }
+.left h1 .em { font-style: italic; color: var(--muted); }
+.bullets { list-style: none; margin: 1.8rem 0 0; display: grid; gap: 0.7rem; }
+.bullets li { display: flex; gap: 0.7rem; align-items: baseline; color: var(--muted); font-size: 0.98rem; }
+.bullets li b { color: var(--text); font-weight: 600; }
+.bullets .d { color: var(--gold); font-family: var(--mono); flex: none; }
+.left .cta { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 2.2rem; }
+.left .foot { margin-top: auto; padding-top: 2rem; color: var(--muted); font-size: 0.86rem; font-family: var(--mono); }
+.left .foot a { color: var(--gold); }
+.left .foot a:hover { color: var(--gold-2); text-decoration: underline; }
+
+/* right: product panel filling the half, with the live control-room preview */
+.right { position: relative; background: linear-gradient(155deg, var(--ink-2), var(--ink)); border-left: 1px solid var(--hair-soft);
+  display: flex; align-items: center; justify-content: center; padding: clamp(1.6rem, 3vw, 3rem); overflow: hidden; }
+.right::before { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 50% at 70% 20%, var(--gold-dim), transparent 60%); }
+.frame { position: relative; width: 100%; max-width: 460px; border-radius: var(--r-lg); border: 1px solid var(--hair);
+  background: linear-gradient(180deg, var(--raise), var(--ink-2)); box-shadow: var(--shadow-lg); overflow: hidden; }
+.frame-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-bottom: 1px solid var(--hair-soft); }
+.frame-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--hair); }
+.frame-bar i:first-child { background: var(--gold); }
+.frame-bar .t { font-family: var(--mono); font-size: 0.68rem; color: var(--faint); margin-left: 0.4rem; }
+.frame-bar .pill { margin-left: auto; padding: 0.22em 0.55em; font-size: 0.6rem; }
+.frame-body { padding: 1.1rem 1.15rem 1.3rem; }
+.f-roi { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+.f-roi .lab { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.f-roi .big { font-family: var(--display); font-size: 2.4rem; font-variant-numeric: tabular-nums; color: var(--gold); }
+.pc { border: 1px solid var(--hair); border-radius: var(--r); background: rgba(255,255,255,0.015); padding: 0.85rem 0.9rem; }
+.pc + .pc { margin-top: 0.6rem; }
+.pc .who { font-size: 0.86rem; font-weight: 600; }
+.pc .ctx { font-size: 0.74rem; color: var(--muted); margin-top: 0.15rem; }
+.pc .draft { font-size: 0.77rem; margin-top: 0.55rem; padding: 0.5rem 0.6rem; border-left: 2px solid var(--gold-line); background: rgba(255,255,255,0.02); border-radius: 0 6px 6px 0; }
+.pc .row { display: flex; gap: 0.4rem; margin-top: 0.6rem; }
+.chip { font-family: var(--mono); font-size: 0.62rem; padding: 0.3em 0.55em; border-radius: 6px; }
+.chip.ok { background: var(--gold-dim); color: var(--gold-2); border: 1px solid var(--gold-line); }
+.chip.no { background: rgba(255,255,255,0.03); color: var(--muted); border: 1px solid var(--hair); }
+.frame-open { display: block; text-align: center; padding: 0.7rem; font-family: var(--mono); font-size: 0.72rem; color: var(--gold-2); border-top: 1px solid var(--hair-soft); transition: background var(--dur); }
+.frame-open:hover { background: var(--gold-dim); }
+</style>
+</head>
+<body>
+<div class="split">
+
+  <section class="left">
+    <a class="wordmark" href="/">PAIS<span class="tick">_</span></a>
+    <div class="mid">
+      <span class="eyebrow">AI workflows that run your business</span>
+      <h1>Personal Artificial<br><span class="gold">Intelligence</span> System.</h1>
+      <ul class="bullets">
+        <li><span class="d">01</span><span>It <b>answers the phone</b> you'd have missed.</span></li>
+        <li><span class="d">02</span><span>It <b>wins back regulars</b> who drifted away.</span></li>
+        <li><span class="d">03</span><span>It <b>automates your calendar</b> — bookings, reminders, confirmations.</span></li>
+      </ul>
+      <div class="cta">
+        <a class="btn btn-primary btn-lg" href="/control-room">See the Control Room
+          <svg class="arr" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14m0 0l-6-6m6 6l-6 6"/></svg></a>
+        <a class="btn btn-ghost btn-lg" href="https://cal.com/taranveer/workflows">Book a call</a>
+      </div>
+    </div>
+    <div class="foot">Built local in King of Prussia, PA · <a href="/pricing">Pricing →</a> · <a href="/poker">Poker Trainer ♠</a></div>
+  </section>
+
+  <a class="right" href="/control-room" aria-label="Open the Control Room">
+    <div class="frame">
+      <div class="frame-bar"><i></i><i></i><i></i><span class="t">PAIS Control · The Copper Lantern</span><span class="pill"><span class="dot"></span>online</span></div>
+      <div class="frame-body">
+        <div class="f-roi"><span class="lab">Recovered this month</span><span class="big">$546</span></div>
+        <div class="pc">
+          <div class="who">Win back 4 quiet regulars</div>
+          <div class="ctx">No visit in 42+ days · pulled from your list</div>
+          <div class="draft">"Hey Marcus — the kitchen missed you! Your wings are on us this week if you swing by."</div>
+          <div class="row"><span class="chip ok">✓ Approve &amp; send</span><span class="chip no">Skip</span></div>
+        </div>
+        <div class="pc"><div class="who">☎ Text back (484) 555-0210</div><div class="ctx">Missed at 8:47pm · the floor was slammed</div></div>
+      </div>
+      <span class="frame-open">↳ open the live Control Room</span>
+    </div>
+  </a>
+</div>
+</body>
+</html>
